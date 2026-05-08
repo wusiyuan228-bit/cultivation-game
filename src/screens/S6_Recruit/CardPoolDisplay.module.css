@@ -1,0 +1,89 @@
+/* ==================================================================
+ * 顶栏·卡池横条（2026-04-27 改为嵌入顶栏 flex 中）
+ *   - 去掉 position:absolute，改为 inline-flex
+ *   - 由父级 topBar 的 topPoolSlot 包裹以居中对齐
+ * ================================================================== */
+
+.poolBar {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 20px;
+  background: linear-gradient(135deg, rgba(15, 22, 38, 0.92), rgba(30, 40, 60, 0.85));
+  border: 1.5px solid rgba(200, 168, 80, 0.55);
+  border-radius: 10px;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+  font-family: inherit;
+  color: #ebdcb4;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+.poolBar:hover {
+  border-color: #c8a850;
+  box-shadow: 0 3px 16px rgba(200, 168, 80, 0.45);
+}
+
+.label {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: #c8a850;
+}
+
+.count {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
+}
+.countNum {
+  font-size: 20px;
+  font-weight: 900;
+  color: #c8a850;
+  text-shadow: 0 1px 8px rgba(200, 168, 80, 0.4);
+}
+.countTotal {
+  font-size: 13px;
+  color: rgba(235, 220, 180, 0.55);
+}
+
+.sep {
+  font-size: 15px;
+  color: rgba(200, 168, 80, 0.4);
+  margin: 0 2px;
+}
+
+.rarityGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.rarityTag {
+  padding: 2px 9px;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 3px;
+  border: 1px solid;
+  letter-spacing: 1px;
+}
+.rarityTag.ssr {
+  color: #ffd974;
+  border-color: rgba(255, 217, 116, 0.6);
+  background: rgba(255, 217, 116, 0.14);
+}
+.rarityTag.sr {
+  color: #d4a4ff;
+  border-color: rgba(212, 164, 255, 0.55);
+  background: rgba(212, 164, 255, 0.12);
+}
+.rarityTag.r {
+  color: #8ac7ff;
+  border-color: rgba(138, 199, 255, 0.55);
+  background: rgba(138, 199, 255, 0.12);
+}
+.rarityTag.n {
+  color: #a7c9a0;
+  border-color: rgba(167, 201, 160, 0.55);
+  background: rgba(167, 201, 160, 0.12);
+}

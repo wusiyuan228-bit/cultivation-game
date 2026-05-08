@@ -1,0 +1,224 @@
+/* S7D_MapPreview · 坠魔谷决战地图预览 */
+
+.screen {
+  width: 1920px;
+  height: 1080px;
+  background:
+    radial-gradient(ellipse at top, #1a2338 0%, #0a0f1c 70%),
+    url('/assets/paper_texture.png');
+  background-size: cover;
+  position: relative;
+  overflow: hidden;
+  color: #e8d9b5;
+  font-family: 'KaiTi', 'STKaiti', serif;
+}
+
+/* 顶部标题 */
+.header {
+  padding: 32px 48px 16px;
+  text-align: center;
+}
+
+.title {
+  font-size: 40px;
+  font-weight: 600;
+  margin: 0 0 8px;
+  color: #f8d79a;
+  letter-spacing: 4px;
+  text-shadow: 0 2px 10px rgba(250, 220, 150, 0.5);
+}
+
+.subtitle {
+  font-size: 18px;
+  color: #a8967b;
+  margin: 0;
+  letter-spacing: 2px;
+}
+
+/* 主体布局：左地图 + 右侧边栏 */
+.body {
+  display: flex;
+  gap: 24px;
+  padding: 0 48px 32px;
+  height: calc(100% - 140px);
+}
+
+/* 地图区 */
+.mapWrap {
+  flex: 0 0 auto;
+  background: rgba(0, 0, 0, 0.45);
+  border: 2px solid #8a7148;
+  border-radius: 12px;
+  padding: 16px;
+  position: relative;
+  backdrop-filter: blur(4px);
+}
+
+.colLabels {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 4px;
+}
+
+.cornerLabel {
+  width: 28px;
+  flex-shrink: 0;
+}
+
+.colLabel {
+  width: 52px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: #a8967b;
+  flex-shrink: 0;
+}
+
+.mapRow {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 2px;
+}
+
+.rowLabel {
+  width: 28px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: #a8967b;
+  flex-shrink: 0;
+}
+
+.cell {
+  width: 52px;
+  height: 52px;
+  border: 1px solid rgba(0, 0, 0, 0.35);
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 600;
+  color: #2c1a0a;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  flex-shrink: 0;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.4);
+}
+
+.cell:hover {
+  transform: scale(1.08);
+  box-shadow: 0 0 12px rgba(255, 220, 130, 0.8);
+  z-index: 5;
+}
+
+.cellLabel {
+  pointer-events: none;
+  user-select: none;
+}
+
+.hoverInfo {
+  position: absolute;
+  bottom: -32px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(20, 14, 8, 0.92);
+  border: 1px solid #8a7148;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 14px;
+  color: #f8d79a;
+  white-space: nowrap;
+}
+
+/* 侧边栏 */
+.sidebar {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 280px;
+  max-width: 360px;
+}
+
+.legendBox,
+.statsBox,
+.rulesBox {
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid #8a7148;
+  border-radius: 10px;
+  padding: 16px 20px;
+  backdrop-filter: blur(4px);
+}
+
+.legendTitle,
+.statsTitle,
+.rulesTitle {
+  font-size: 18px;
+  color: #f8d79a;
+  margin: 0 0 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(138, 113, 72, 0.5);
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0;
+  font-size: 14px;
+  color: #e8d9b5;
+}
+
+.legendSwatch {
+  width: 24px;
+  height: 24px;
+  border: 1px solid #000;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.legendDivider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(138, 113, 72, 0.6), transparent);
+  margin: 10px 0 4px 0;
+}
+
+.statRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  font-size: 14px;
+  color: #cdbb96;
+  border-bottom: 1px dotted rgba(138, 113, 72, 0.3);
+}
+
+.statRow:last-child {
+  border-bottom: none;
+}
+
+.statRow b {
+  color: #f8d79a;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.rulesList {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+  line-height: 1.8;
+  color: #cdbb96;
+}
+
+.rulesList li {
+  padding: 2px 0;
+}
+
+.rulesList b {
+  color: #f8d79a;
+}

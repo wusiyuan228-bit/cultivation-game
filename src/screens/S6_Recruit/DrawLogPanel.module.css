@@ -1,0 +1,167 @@
+/* ==================================================================
+ * 底部战报面板（2026-04-27 重构）
+ *   - 贴底居中偏右（left:55% 开始到 right:16px）
+ *   - 折叠态 36px 高 · 展开态 260px 高
+ *   - 展开时 z-index 顶级可覆盖其他 UI
+ * ================================================================== */
+
+.panel {
+  position: absolute;
+  /* 左边界：屏幕中线右侧 140px，避开中间的唐三立绘(居中 200px 宽，立绘右缘在 50%+100px) */
+  left: calc(50% + 140px);
+  /* 右边界：距屏幕右侧 240px，确保不覆盖寒立卡牌（寒立 seat5 right:2vw，立绘宽 200px，加闪现位 76 + gap 10 ≈ 300px） */
+  right: 300px;
+  bottom: 0;
+  background: linear-gradient(180deg, rgba(15, 22, 38, 0.92), rgba(8, 14, 26, 0.98));
+  border-top: 1.5px solid rgba(200, 168, 80, 0.55);
+  border-left: 1.5px solid rgba(200, 168, 80, 0.35);
+  border-right: 1.5px solid rgba(200, 168, 80, 0.35);
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+  box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.6);
+  z-index: 15;
+  overflow: hidden;
+  transition: box-shadow 0.25s ease;
+}
+
+/* 展开态：层级最高（可覆盖其他 UI），更深的阴影 */
+.panel.expanded {
+  z-index: 220;
+  box-shadow: 0 -16px 48px rgba(0, 0, 0, 0.85);
+}
+
+/* 折叠/展开切换条 */
+.toggle {
+  width: 100%;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(200, 168, 80, 0.12) 50%,
+    transparent 100%);
+  border: none;
+  border-bottom: 1px solid rgba(200, 168, 80, 0.25);
+  cursor: pointer;
+  transition: background 0.2s;
+  color: inherit;
+  font-family: inherit;
+}
+.toggle:hover {
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(200, 168, 80, 0.25) 50%,
+    transparent 100%);
+}
+
+.toggleLabel {
+  font-size: 14px;
+  font-weight: 700;
+  color: #c8a850;
+  letter-spacing: 6px;
+}
+.toggleArrow {
+  font-size: 12px;
+  color: #c8a850;
+  transition: transform 0.25s ease;
+  display: inline-block;
+}
+.toggleArrowUp {
+  transform: rotate(180deg);
+}
+
+/* 折叠态：固定高度 72px（约两行），不随内容增长，只显示最新 1 条 */
+.bodyCollapsed {
+  display: flex;
+  flex-direction: column;
+  height: 72px;          /* 固定高度，避免随内容增长 */
+  padding: 6px 16px 8px;
+  overflow: hidden;       /* 溢出的内容隐藏，绝不撑大面板 */
+}
+
+.collapsedEntry {
+  font-size: 12.5px;
+  line-height: 1.4;
+  white-space: pre-line;        /* 允许 \n 换行 + 自动换行 */
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  padding: 0;
+}
+
+.collapsedHeader {
+  font-size: 12px;
+  font-weight: 700;
+  opacity: 0.92;
+  margin-bottom: 1px;
+}
+.collapsedLine {
+  font-size: 12.5px;
+  padding-left: 8px;
+}
+
+/* 已废弃的分隔符（保留类名不报错） */
+.sep { display: none; }
+
+.collapsedEmpty {
+  font-size: 12px;
+  color: rgba(235, 220, 180, 0.4);
+  font-style: italic;
+}
+
+/* 展开态：最大 260px 高 */
+.bodyExpanded {
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 10px 16px 14px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(200, 168, 80, 0.45) transparent;
+}
+.bodyExpanded::-webkit-scrollbar { width: 5px; }
+.bodyExpanded::-webkit-scrollbar-thumb { background: rgba(200, 168, 80, 0.45); border-radius: 2px; }
+.bodyExpanded::-webkit-scrollbar-track { background: transparent; }
+
+.entry {
+  font-size: 13px;
+  line-height: 1.55;
+  margin-bottom: 7px;
+  padding: 4px 0 5px;
+  border-bottom: 1px dashed rgba(200, 168, 80, 0.12);
+  white-space: pre-line;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+.entry:last-child {
+  border-bottom: none;
+}
+.entryHeader {
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  margin-bottom: 3px;
+  opacity: 0.95;
+}
+.entryLine {
+  font-size: 13px;
+  padding-left: 10px;
+  position: relative;
+}
+.entryLine::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 0.8em;
+  width: 4px;
+  height: 4px;
+  background: rgba(200, 168, 80, 0.35);
+  border-radius: 50%;
+}
+
+.empty {
+  font-size: 12px;
+  color: rgba(235, 220, 180, 0.4);
+  text-align: center;
+  padding: 14px 0;
+  font-style: italic;
+}

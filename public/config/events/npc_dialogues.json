@@ -1,0 +1,246 @@
+{
+  "version": "1.0",
+  "note": "30组密谈对话（6角色×5对手）。每组3个预设问题，AI根据坦诚度回答。线索数量影响对方透露深度。",
+  "dialogues": [
+    {
+      "asker": "塘散", "target": "小舞儿",
+      "questions": [
+        {"id": "d_ts_xw_01", "text": "小舞儿，你的功法好像跟一般修士不太一样？", "honest_answer": "我……修的是我自己琢磨出来的路子。跟正统确实不太一样。", "evasive_answer": "有吗？可能是我练得比较杂吧。", "hidden_info": "小舞儿是妖修，功法来自万妖谷"},
+        {"id": "d_ts_xw_02", "text": "寂叔公对你好像也挺照顾的？", "honest_answer": "嗯……他帮过我很多。我很感激他。不过最近我在想……", "evasive_answer": "是啊，他对大家都很好嘛。", "hidden_info": "化形丹的灵魂印记"},
+        {"id": "d_ts_xw_03", "text": "你有没有觉得天渊宗里……有什么不对劲的地方？", "honest_answer": "塘散，你也感觉到了？我不确定该不该说……", "evasive_answer": "没有啊，挺好的。别多想。", "hidden_info": "小舞儿也感应到了地底灵力"}
+      ]
+    },
+    {
+      "asker": "塘散", "target": "萧焱",
+      "questions": [
+        {"id": "d_ts_xy_01", "text": "萧兄，你来天渊宗参加大比，是为了天元秘宝？", "honest_answer": "算是吧。我需要它。不止是为了赢——我有不得不找到它的理由。", "evasive_answer": "谁来大比不是为了赢？哈哈。", "hidden_info": "萧焱需要秘宝重燃异火"},
+        {"id": "d_ts_xy_02", "text": "你认识后勤处那个执事吗？我看你好几次出现在那附近。", "honest_answer": "……我在找一个人。一个很重要的人。", "evasive_answer": "后勤处？我去领装备而已。", "hidden_info": "风无痕的身份"},
+        {"id": "d_ts_xy_03", "text": "你的火系功法很强。但我感觉你收功时会晃一下——没事吧？", "honest_answer": "你眼睛挺尖的。……我的时间不多了。", "evasive_answer": "没事，练功过度而已。", "hidden_info": "秘法在消耗，修为在流失"}
+      ]
+    },
+    {
+      "asker": "塘散", "target": "薰儿",
+      "questions": [
+        {"id": "d_ts_xr_01", "text": "薰儿，你每晚去藏经阁是在查什么？", "honest_answer": "……在查我师父的死因。她不是走火入魔。", "evasive_answer": "补习功课而已。紫兰峰的课业很重。", "hidden_info": "紫霜仙子被杀"},
+        {"id": "d_ts_xr_02", "text": "你对天渊宗的高层……有什么看法？", "honest_answer": "塘散，你的寂叔公——你真的了解他吗？", "evasive_answer": "高层的事跟我们这些弟子关系不大。", "hidden_info": "薰儿怀疑玄寂"},
+        {"id": "d_ts_xr_03", "text": "你和萧焱以前就认识？", "honest_answer": "……我们是一起长大的。后院的老槐树下。", "evasive_answer": "见过几面吧。", "hidden_info": "童年羁绊"}
+      ]
+    },
+    {
+      "asker": "塘散", "target": "寒立",
+      "questions": [
+        {"id": "d_ts_hl_01", "text": "寒立，你为什么来天渊宗？就为了大比的奖励？", "honest_answer": "藏经阁第七层有我需要的东西。修了三十年的残卷——完整版在那里。", "evasive_answer": "散修嘛，哪有奖励往哪走。", "hidden_info": "残卷功法的完整版"},
+        {"id": "d_ts_hl_02", "text": "你观察力很强——有没有注意到什么不正常的事？", "honest_answer": "这里每个人都在藏东西。包括你。", "evasive_answer": "我就是个散修，没什么特别注意的。", "hidden_info": "寒立观察到了所有人的秘密"},
+        {"id": "d_ts_hl_03", "text": "你上次说的那句话——'你有多了解寂叔公'——是什么意思？", "honest_answer": "字面意思。一个准化神级的太上长老，为什么对一个年轻弟子这么好？你想过吗？", "evasive_answer": "随口一问。别太在意。", "hidden_info": "寒立对玄寂的怀疑"}
+      ]
+    },
+    {
+      "asker": "塘散", "target": "旺林",
+      "questions": [
+        {"id": "d_ts_wl_01", "text": "旺兄，逆天宗的情况……还好吗？", "honest_answer": "不好。护山大阵在崩。十年内修不好，三千弟子都完了。", "evasive_answer": "还行吧，慢慢来。", "hidden_info": "逆天宗大阵危机"},
+        {"id": "d_ts_wl_02", "text": "你收到过什么匿名信之类的东西吗？", "honest_answer": "……你也收到了？", "evasive_answer": "匿名信？什么匿名信？", "hidden_info": "风无痕的匿名信"},
+        {"id": "d_ts_wl_03", "text": "如果有一天必须选边——你会怎么选？", "honest_answer": "塘兄……我不知道。两边都有我在乎的人。", "evasive_answer": "到时候再说吧。想这些没用。", "hidden_info": "旺林的摇摆立场"}
+      ]
+    },
+    {
+      "asker": "小舞儿", "target": "塘散",
+      "questions": [
+        {"id": "d_xw_ts_01", "text": "塘散，你最近是不是在担心什么？", "honest_answer": "地底有灵力波动……很像我父亲。我不确定。", "evasive_answer": "没什么，备战大比有点紧张。", "hidden_info": "地底灵力与父亲的关联"},
+        {"id": "d_xw_ts_02", "text": "寂叔公最近有没有跟你说什么？", "honest_answer": "他说那是祖师墓的残余灵力。但我觉得他在隐瞒什么。", "evasive_answer": "没什么特别的，就叫我专心大比。", "hidden_info": "塘散对玄寂的隐约怀疑"},
+        {"id": "d_xw_ts_03", "text": "如果……我有一个很大的秘密——你还会信任我吗？", "honest_answer": "小舞儿，不管你的秘密是什么，你都是你。", "evasive_answer": "你说什么呢，干嘛突然这么严肃。", "hidden_info": "小舞儿在试探能否坦白"}
+      ]
+    },
+    {
+      "asker": "小舞儿", "target": "萧焱",
+      "questions": [
+        {"id": "d_xw_xy_01", "text": "萧焱，你好像一直在找什么人？", "honest_answer": "一个我以为再也见不到的人。他就在这里——但他不认我。", "evasive_answer": "找人？没有啊。", "hidden_info": "风无痕"},
+        {"id": "d_xw_xy_02", "text": "你收功时会晃——是不是身体有问题？", "honest_answer": "……异火熄灭后靠秘法撑着。时间不多了。", "evasive_answer": "训练过度，休息一下就好。", "hidden_info": "异火熄灭和秘法"},
+        {"id": "d_xw_xy_03", "text": "你和薰儿……是什么关系？", "honest_answer": "一起长大的。我欠她很多。", "evasive_answer": "认识而已。", "hidden_info": "童年羁绊"}
+      ]
+    },
+    {
+      "asker": "小舞儿", "target": "薰儿",
+      "questions": [
+        {"id": "d_xw_xr_01", "text": "薰儿姐，你的毒术好厉害。在哪里学的？", "honest_answer": "师父教的。紫霜仙子。她……已经不在了。", "evasive_answer": "紫兰峰的课程。", "hidden_info": "紫霜仙子之死"},
+        {"id": "d_xw_xr_02", "text": "你在查什么？我看你最近心事很重。", "honest_answer": "在查一个人的死因。很重要的人。", "evasive_answer": "没什么，就是功课多。", "hidden_info": "调查师父死因"},
+        {"id": "d_xw_xr_03", "text": "你对寂叔公有什么看法？", "honest_answer": "……小心他。", "evasive_answer": "太上长老嘛，应该很厉害吧。", "hidden_info": "薰儿对玄寂的警觉"}
+      ]
+    },
+    {
+      "asker": "小舞儿", "target": "寒立",
+      "questions": [
+        {"id": "d_xw_hl_01", "text": "寒立……谢谢你那天。什么都没看到那件事。", "honest_answer": "不用谢。你有你的理由。", "evasive_answer": "嗯。", "hidden_info": "寒立知道小舞儿的秘密"},
+        {"id": "d_xw_hl_02", "text": "你觉得这里的人……谁最可信？", "honest_answer": "塘散。他是那种会替陌生人挡暗器的傻子。这种人最可信。", "evasive_answer": "谁都不可信。包括我。", "hidden_info": "寒立的判断"},
+        {"id": "d_xw_hl_03", "text": "化形丹里的东西——你知道那是什么吗？", "honest_answer": "灵魂印记。有人在监控你。", "evasive_answer": "什么化形丹？", "hidden_info": "灵魂印记"}
+      ]
+    },
+    {
+      "asker": "小舞儿", "target": "旺林",
+      "questions": [
+        {"id": "d_xw_wl_01", "text": "旺林哥，你来天渊宗是为了师门？", "honest_answer": "逆天宗护山大阵快崩了。我来找天元秘宝修复它。", "evasive_answer": "就来参加大比锻炼一下。", "hidden_info": "师门危机"},
+        {"id": "d_xw_wl_02", "text": "你和萧焱关系不错——你们以前认识？", "honest_answer": "不算认识。他父亲萧战对逆天宗有恩。我对他有天然好感。", "evasive_answer": "大比上认识的。", "hidden_info": "萧家与逆天宗的渊源"},
+        {"id": "d_xw_wl_03", "text": "你收到过什么奇怪的信吗？", "honest_answer": "……有一封匿名信。让我来天渊宗。", "evasive_answer": "信？什么信？", "hidden_info": "匿名信"}
+      ]
+    },
+    {
+      "asker": "萧焱", "target": "塘散",
+      "questions": [
+        {"id": "d_xy_ts_01", "text": "塘兄，你的清心诀好厉害——灵力稳得像一潭水。哪来的功法？", "honest_answer": "寂叔公给的。他亲手抄了三遍。", "evasive_answer": "家传功法。", "hidden_info": "清心诀来自玄寂"},
+        {"id": "d_xy_ts_02", "text": "你的寂叔公——他是个什么样的人？", "honest_answer": "对我很好。但最近……有些事我想不通。", "evasive_answer": "长辈嘛，很厉害，很照顾我。", "hidden_info": "塘散的隐约怀疑"},
+        {"id": "d_xy_ts_03", "text": "你有没有感觉到天渊宗地底有什么？", "honest_answer": "有灵力波动。像是有人在喊。", "evasive_answer": "地底？没注意。", "hidden_info": "地底异常"}
+      ]
+    },
+    {
+      "asker": "萧焱", "target": "小舞儿",
+      "questions": [
+        {"id": "d_xy_xw_01", "text": "小舞儿，你的灵力有时候会闪一下——是在压制什么吗？", "honest_answer": "你……看到了？", "evasive_answer": "没有啊，可能是你看花眼了。", "hidden_info": "妖力波动"},
+        {"id": "d_xy_xw_02", "text": "你和塘散……在一起多久了？", "honest_answer": "七年了。从十三岁在集市上认识的。", "evasive_answer": "什么在一起！我们是朋友！", "hidden_info": "两人关系"},
+        {"id": "d_xy_xw_03", "text": "寂叔公对你也很照顾——你不觉得奇怪吗？", "honest_answer": "……最近确实觉得有点奇怪。", "evasive_answer": "他对大家都很好啊。", "hidden_info": "寂叔公的反常关注"}
+      ]
+    },
+    {
+      "asker": "萧焱", "target": "薰儿",
+      "questions": [
+        {"id": "d_xy_xr_01", "text": "薰儿……你在天渊宗过得好吗？", "honest_answer": "师父不在以后——不太好。但我不想让你担心。", "evasive_answer": "还行。紫兰峰挺清静的。", "hidden_info": "师父去世的影响"},
+        {"id": "d_xy_xr_02", "text": "你收到过什么匿名线索吗？", "honest_answer": "有。指向天渊宗高层。师父的死不简单。", "evasive_answer": "没有。怎么了？", "hidden_info": "匿名线索"},
+        {"id": "d_xy_xr_03", "text": "那个火种固灵丹——你真的研究了三年？", "honest_answer": "从听说你异火熄灭那天起。", "evasive_answer": "也没三年那么久……", "hidden_info": "薰儿一直在为他准备"}
+      ]
+    },
+    {
+      "asker": "萧焱", "target": "寒立",
+      "questions": [
+        {"id": "d_xy_hl_01", "text": "寒立兄，你观察力很强——对这里的人有什么看法？", "honest_answer": "每个人都在藏东西。你也是。", "evasive_answer": "都挺厉害的。", "hidden_info": "寒立的全局观察"},
+        {"id": "d_xy_hl_02", "text": "你的功法……好像不太完整？", "honest_answer": "残卷。修了三十年。缺的部分在这里的藏经阁。", "evasive_answer": "功法嘛，各有各的路子。", "hidden_info": "残卷功法"},
+        {"id": "d_xy_hl_03", "text": "你知道后勤处那个叫风无痕的执事吗？", "honest_answer": "知道。他不简单。", "evasive_answer": "后勤处的人我不太认识。", "hidden_info": "寒立注意到了风无痕"}
+      ]
+    },
+    {
+      "asker": "萧焱", "target": "旺林",
+      "questions": [
+        {"id": "d_xy_wl_01", "text": "旺兄，你说我父亲对逆天宗有恩——具体是什么恩？", "honest_answer": "令尊在逆天宗修炼三月，帮师父化解了一次灵力暴走。救了师父的命。", "evasive_answer": "年轻时交流修炼结下的情谊。", "hidden_info": "萧战与逆天老祖的关系"},
+        {"id": "d_xy_wl_02", "text": "你是不是也收到过匿名信？", "honest_answer": "……是。让我来天渊宗。说真相可以救师门。", "evasive_answer": "什么匿名信？", "hidden_info": "匿名信"},
+        {"id": "d_xy_wl_03", "text": "如果有一天我需要帮忙——你会帮我吗？", "honest_answer": "萧兄，你是恩人之子。只要我能做到——帮。", "evasive_answer": "看情况吧。我自己也一堆事。", "hidden_info": "旺林的立场"}
+      ]
+    },
+    {
+      "asker": "薰儿", "target": "塘散",
+      "questions": [
+        {"id": "d_xr_ts_01", "text": "塘散，你的寂叔公……他闭关的时候在做什么？", "honest_answer": "我不知道。他从不让我接近那个区域。", "evasive_answer": "闭关修炼吧，太上长老嘛。", "hidden_info": "封锁区域"},
+        {"id": "d_xr_ts_02", "text": "你有没有感应到天渊宗深处的灵力波动？", "honest_answer": "有。很像……一个我认识的人。", "evasive_answer": "没注意。", "hidden_info": "地底灵力=父亲"},
+        {"id": "d_xr_ts_03", "text": "清心诀是寂叔公给你的——你有没有仔细查过这套功法的来历？", "honest_answer": "……没有。你是说它可能有问题？", "evasive_answer": "寂叔公给的，应该没问题。", "hidden_info": "清心诀的真实目的"}
+      ]
+    },
+    {
+      "asker": "薰儿", "target": "小舞儿",
+      "questions": [
+        {"id": "d_xr_xw_01", "text": "小舞儿，你的灵力波动……不太像普通散修。", "honest_answer": "薰儿姐……你看出来了？", "evasive_answer": "我练的功法比较杂。", "hidden_info": "妖修身份"},
+        {"id": "d_xr_xw_02", "text": "寂叔公对你特别关照——你知道为什么吗？", "honest_answer": "我不知道……但最近发现他一直在监控我。", "evasive_answer": "可能因为我是塘散的朋友吧。", "hidden_info": "化形丹灵魂印记"},
+        {"id": "d_xr_xw_03", "text": "你和塘散的感情很深——如果有人在利用这份感情呢？", "honest_answer": "……你怀疑谁？", "evasive_answer": "利用？谁会做这种事？", "hidden_info": "寂叔公在操控感情"}
+      ]
+    },
+    {
+      "asker": "薰儿", "target": "萧焱",
+      "questions": [
+        {"id": "d_xr_xy_01", "text": "萧焱，你的异火到底是怎么回事？", "honest_answer": "一夜之间灭了。不是天灾——我越来越觉得是人为的。", "evasive_answer": "意外。运气不好。", "hidden_info": "异火是被人废的"},
+        {"id": "d_xr_xy_02", "text": "你找到无痕哥了吗？", "honest_answer": "找到了。他在后勤处。但他不认我。", "evasive_answer": "还在找。", "hidden_info": "风无痕在天渊宗"},
+        {"id": "d_xr_xy_03", "text": "……你还好吗？", "honest_answer": "不太好。但你在——就好一些。", "evasive_answer": "还行。别担心。", "hidden_info": "萧焱对薰儿的依赖"}
+      ]
+    },
+    {
+      "asker": "薰儿", "target": "寒立",
+      "questions": [
+        {"id": "d_xr_hl_01", "text": "寒立，你对天渊宗的太上长老有什么看法？", "honest_answer": "准化神级的人对一个年轻弟子那么好——不正常。要么至亲，要么有图谋。", "evasive_answer": "太上长老的事跟我们关系不大。", "hidden_info": "对玄寂的判断"},
+        {"id": "d_xr_hl_02", "text": "你知道小舞儿身上的秘密吗？", "honest_answer": "知道一些。但我答应过替她保密。", "evasive_answer": "什么秘密？", "hidden_info": "寒立守护小舞的秘密"},
+        {"id": "d_xr_hl_03", "text": "如果我告诉你一个关于天渊宗高层的推测——你愿意帮我验证吗？", "honest_answer": "说。", "evasive_answer": "看情况。", "hidden_info": "薰儿想找寒立联手"}
+      ]
+    },
+    {
+      "asker": "薰儿", "target": "旺林",
+      "questions": [
+        {"id": "d_xr_wl_01", "text": "旺林，你在天渊宗保持低调——是为了什么？", "honest_answer": "目标是秘宝。不想被人注意。", "evasive_answer": "性格如此。", "hidden_info": "旺林的真实目的"},
+        {"id": "d_xr_wl_02", "text": "你听说过紫霜仙子吗？", "honest_answer": "紫兰峰峰主？听说她闭关中暴毙——你是她弟子？", "evasive_answer": "不太了解。", "hidden_info": "紫霜仙子的死"},
+        {"id": "d_xr_wl_03", "text": "你觉得天渊宗里……安全吗？", "honest_answer": "不安全。这里水比看起来深得多。", "evasive_answer": "宗门嘛，应该挺安全的。", "hidden_info": "旺林的直觉"}
+      ]
+    },
+    {
+      "asker": "寒立", "target": "塘散",
+      "questions": [
+        {"id": "d_hl_ts_01", "text": "塘散，你父亲失踪多久了？", "honest_answer": "十年了。一点线索都没有。", "evasive_answer": "一段时间了。", "hidden_info": "父亲失踪十年"},
+        {"id": "d_hl_ts_02", "text": "清心诀——你练了多久了？有没有什么异常？", "honest_answer": "十年。异常？灵力确实变得极其平稳——好像太平稳了。", "evasive_answer": "十年了。挺好的，没什么异常。", "hidden_info": "清心诀的异常效果"},
+        {"id": "d_hl_ts_03", "text": "你信任寂叔公吗？", "honest_answer": "……信。但你上次问的那个问题，我一直在想。", "evasive_answer": "当然信。他对我很好。", "hidden_info": "塘散的动摇"}
+      ]
+    },
+    {
+      "asker": "寒立", "target": "小舞儿",
+      "questions": [
+        {"id": "d_hl_xw_01", "text": "你的化形丹——是谁给的？", "honest_answer": "寂叔公。", "evasive_answer": "一个前辈。", "hidden_info": "化形丹来源"},
+        {"id": "d_hl_xw_02", "text": "你知道丹里有灵魂印记吗？", "honest_answer": "知道了。最近才发现的。他一直在监控我。", "evasive_answer": "灵魂印记？什么意思？", "hidden_info": "监控事实"},
+        {"id": "d_hl_xw_03", "text": "如果有一天需要你做出牺牲——你会怎么选？", "honest_answer": "为塘散——我愿意。但我希望是自己选的，不是被安排的。", "evasive_answer": "没想过这种事。", "hidden_info": "小舞儿的决心"}
+      ]
+    },
+    {
+      "asker": "寒立", "target": "萧焱",
+      "questions": [
+        {"id": "d_hl_xy_01", "text": "你的修为在流失——还能撑多久？", "honest_answer": "……你也看出来了。两三个月吧。也许更短。", "evasive_answer": "你看错了。", "hidden_info": "秘法时限"},
+        {"id": "d_hl_xy_02", "text": "风无痕——你认识他？", "honest_answer": "他是我义兄。但他不认我。我不知道为什么。", "evasive_answer": "谁？", "hidden_info": "风无痕与萧焱的关系"},
+        {"id": "d_hl_xy_03", "text": "如果你的异火跟一个阴谋有关——你敢面对吗？", "honest_answer": "……我已经怀疑了。只是不敢确认。", "evasive_answer": "什么阴谋？别开玩笑。", "hidden_info": "异火被废的阴谋"}
+      ]
+    },
+    {
+      "asker": "寒立", "target": "薰儿",
+      "questions": [
+        {"id": "d_hl_xr_01", "text": "你师父的死——查到什么了？", "honest_answer": "有人在她闭关时远程施加了灵力干扰。不是走火入魔——是谋杀。", "evasive_answer": "还在查。", "hidden_info": "谋杀"},
+        {"id": "d_hl_xr_02", "text": "匿名线索是谁给你的？", "honest_answer": "不知道。但对方知道很多天渊宗内部的事。", "evasive_answer": "什么匿名线索？", "hidden_info": "匿名线索来源"},
+        {"id": "d_hl_xr_03", "text": "紫霜锁魂阵——你能用吗？", "honest_answer": "能。师父留给我的。但反噬很大。", "evasive_answer": "那是什么？", "hidden_info": "紫霜锁魂阵的能力和代价"}
+      ]
+    },
+    {
+      "asker": "寒立", "target": "旺林",
+      "questions": [
+        {"id": "d_hl_wl_01", "text": "逆天宗大阵的侵蚀源头——你知道是什么吗？", "honest_answer": "不知道。师父也没查出来。", "evasive_answer": "自然衰老吧。", "hidden_info": "侵蚀源头未知"},
+        {"id": "d_hl_wl_02", "text": "天元秘宝——你确定它能修复大阵？", "honest_answer": "……不确定。越查越觉得不对。", "evasive_answer": "师父说可以。", "hidden_info": "旺林的动摇"},
+        {"id": "d_hl_wl_03", "text": "如果秘宝修不了大阵——你还有Plan B吗？", "honest_answer": "没有。如果秘宝不行——我不知道该怎么办。", "evasive_answer": "车到山前必有路。", "hidden_info": "无后备方案"}
+      ]
+    },
+    {
+      "asker": "旺林", "target": "塘散",
+      "questions": [
+        {"id": "d_wl_ts_01", "text": "塘兄，你对天元秘宝了解多少？", "honest_answer": "不多。寂叔公只说大比优胜者可以得到它。", "evasive_answer": "传说中的东西嘛，谁知道真假。", "hidden_info": "塘散的信息有限"},
+        {"id": "d_wl_ts_02", "text": "你觉得宗门深处那个封锁区域里有什么？", "honest_answer": "我不知道。但那个方向有灵力波动——像是有人被困在里面。", "evasive_answer": "太上长老的闭关之所吧。", "hidden_info": "封锁区域的灵力"},
+        {"id": "d_wl_ts_03", "text": "塘兄——如果有一天我必须跟你站在对面……你能理解吗？", "honest_answer": "旺兄，不管你选什么——我都知道你有你的理由。", "evasive_answer": "别说这种不吉利的话。", "hidden_info": "旺林在为可能的对立铺垫"}
+      ]
+    },
+    {
+      "asker": "旺林", "target": "小舞儿",
+      "questions": [
+        {"id": "d_wl_xw_01", "text": "小舞儿，你知道寂叔公为什么对你特别照顾吗？", "honest_answer": "不知道。但最近我在想这个问题。", "evasive_answer": "可能因为我跟塘散走得近吧。", "hidden_info": "小舞儿的疑虑"},
+        {"id": "d_wl_xw_02", "text": "你觉得塘散……安全吗？在天渊宗。", "honest_answer": "我不确定。我会保护他。", "evasive_answer": "天渊宗挺安全的啊。", "hidden_info": "小舞儿的保护欲"},
+        {"id": "d_wl_xw_03", "text": "如果你有什么需要帮忙的——可以找我。", "honest_answer": "谢谢旺林哥。我记住了。", "evasive_answer": "好呀。", "hidden_info": "旺林的善意"}
+      ]
+    },
+    {
+      "asker": "旺林", "target": "萧焱",
+      "questions": [
+        {"id": "d_wl_xy_01", "text": "萧兄，无痕哥的事……你查到什么了？", "honest_answer": "他在天渊宗后勤处。他不认我。但我不可能认错。", "evasive_answer": "还在找。", "hidden_info": "风无痕的位置"},
+        {"id": "d_wl_xy_02", "text": "你的异火——跟天元秘宝有没有关联？", "honest_answer": "有人跟我说秘宝可以重燃异火。我就是为这个来的。", "evasive_answer": "不知道。也许吧。", "hidden_info": "异火与秘宝的关联"},
+        {"id": "d_wl_xy_03", "text": "如果风无痕要你做一件很危险的事——你会答应吗？", "honest_answer": "看情况。他是我义兄——但他废了我的异火。这个账我还没算清。", "evasive_answer": "谁知道呢。走一步看一步。", "hidden_info": "萧焱对风无痕的复杂感情"}
+      ]
+    },
+    {
+      "asker": "旺林", "target": "薰儿",
+      "questions": [
+        {"id": "d_wl_xr_01", "text": "薰儿，你对天渊宗的高层有什么看法？", "honest_answer": "至少有一个人有问题。但我需要更多证据。", "evasive_answer": "都是前辈嘛，应该都是好人。", "hidden_info": "薰儿的怀疑"},
+        {"id": "d_wl_xr_02", "text": "你和萧焱的调查有什么进展？", "honest_answer": "师父的死和萧焱的异火——背后可能是同一只手。", "evasive_answer": "什么调查？我们只是在切磋。", "hidden_info": "调查进展"},
+        {"id": "d_wl_xr_03", "text": "如果最后查出来真相很残酷——你承受得住吗？", "honest_answer": "师父教过我——可以心软但不能手软。我承受得住。", "evasive_answer": "……应该吧。", "hidden_info": "薰儿的决心"}
+      ]
+    },
+    {
+      "asker": "旺林", "target": "寒立",
+      "questions": [
+        {"id": "d_wl_hl_01", "text": "寒立，你觉得天元秘宝……真的能修复大阵吗？", "honest_answer": "我对秘宝不了解。但你脸上的表情告诉我——你已经开始怀疑了。", "evasive_answer": "不知道。不是我的领域。", "hidden_info": "旺林的动摇被寒立看出来了"},
+        {"id": "d_wl_hl_02", "text": "你在天渊宗这段时间——观察到什么了？", "honest_answer": "这里每个人都在藏东西。你也是。但你藏的最沉——三千条命的重量。", "evasive_answer": "没什么特别的。", "hidden_info": "寒立看穿了旺林的压力"},
+        {"id": "d_wl_hl_03", "text": "如果有一天我不得不选边——你觉得我该怎么选？", "honest_answer": "我没资格给你建议。但我能告诉你一件事：不管你选什么——别对不起自己就行。", "evasive_answer": "你自己的事。我不掺和。", "hidden_info": "寒立的态度"}
+      ]
+    }
+  ]
+}

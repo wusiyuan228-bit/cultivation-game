@@ -1,0 +1,206 @@
+.screen {
+  position: absolute;
+  inset: 0;
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+}
+
+.bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  z-index: 0;
+}
+
+.cardRow {
+  position: absolute;
+  top: 260px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 24px;
+  z-index: 4;
+}
+
+/* 角色卡：约 200×420 */
+.card {
+  position: relative;
+  width: 200px;
+  height: 420px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #1e2030 0%, #141620 100%);
+  border: 2px solid rgba(200, 161, 75, 0.3);
+  cursor: pointer;
+  transition: transform var(--tr-base), border-color var(--tr-base), box-shadow var(--tr-base);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.card:hover {
+  transform: translateY(-8px);
+}
+
+.cardActive {
+  border-color: var(--color-gold);
+  box-shadow: var(--shadow-card-selected);
+}
+
+.cardSelected {
+  border-color: var(--color-gold-light);
+  box-shadow: 0 0 28px 6px rgba(255, 217, 107, 0.8);
+  transform: translateY(-8px);
+}
+
+.typeBadge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-family: var(--font-title);
+  font-weight: 700;
+  font-size: 18px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  z-index: 5;
+}
+
+.portraitBox {
+  flex: 1;
+  margin: 6px;
+  border-radius: 8px;
+  background-size: cover;
+  background-position: top center;
+  background-repeat: no-repeat;
+}
+
+.nameVertical {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-title);
+  font-weight: 700;
+  font-size: 40px;
+  line-height: 1;
+  background: linear-gradient(180deg, #e8c878 0%, #c8a14b 60%, #8b6b2e 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.9));
+}
+
+.statsOverlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  padding: 6px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 0 0 10px 10px;
+  font-family: var(--font-ui);
+  font-size: 14px;
+  color: var(--color-gold-light);
+  letter-spacing: 1px;
+}
+
+.bottomZone {
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  z-index: 10;
+}
+
+.hintText {
+  font-family: var(--font-title);
+  font-size: 32px;
+  color: var(--color-gold-light);
+  letter-spacing: 8px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.7);
+}
+
+.infoPanel {
+  width: 720px;
+  min-height: 120px;
+  padding: 16px 24px;
+  background: linear-gradient(
+    180deg,
+    rgba(20, 16, 8, 0.75) 0%,
+    rgba(30, 25, 12, 0.85) 50%,
+    rgba(20, 16, 8, 0.75) 100%
+  );
+  border: 1px solid rgba(200, 161, 75, 0.4);
+  border-radius: var(--radius-sm);
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(200, 161, 75, 0.1);
+  backdrop-filter: blur(6px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.infoRow {
+  display: flex;
+  gap: 8px;
+  font-family: var(--font-ui);
+  font-size: 20px;
+  line-height: 1.5;
+  color: rgba(245, 239, 224, 0.9);
+}
+
+.infoLabel {
+  color: var(--color-gold);
+  font-weight: 700;
+  flex-shrink: 0;
+  text-shadow: 0 0 4px rgba(200, 161, 75, 0.3);
+}
+
+.infoContent strong { color: var(--color-gold-light); font-weight: 700; }
+.infoContent { color: rgba(245, 239, 224, 0.85); }
+.infoNote { color: rgba(200, 161, 75, 0.6); font-style: normal; margin-left: 4px; font-size: 14px; }
+
+.ctaZone { margin-top: 8px; }
+
+.loadingHint,
+.errorBox {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--color-gold-light);
+  font-family: var(--font-ui);
+  font-size: 24px;
+  text-align: center;
+  z-index: 5;
+}
+
+.errorDetail {
+  margin-top: 12px;
+  font-size: 14px;
+  color: var(--color-danger);
+}

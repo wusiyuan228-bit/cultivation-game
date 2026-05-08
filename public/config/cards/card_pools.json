@@ -1,0 +1,192 @@
+{
+  "version": "7.0",
+  "date": "2026-04-20",
+  "description": "6人共享卡池，抽走不放回。三轮卡池独立（NR/SR/SR+SSR），费用分级。绑定SSR/SR不进卡池，决战前发放。v7.0新增境界系统。",
+  "shared_pool": true,
+  "player_count": 6,
+  "pools": {
+    "pool_1_nr": {
+      "name": "招募环节1·灵缘初试",
+      "timing": "第二章事件结束后",
+      "cost_per_draw": 5,
+      "max_draws_per_player": 4,
+      "draw_order": "按心境值高低排序（高者先抽）",
+      "pool_size": 28,
+      "composition": {
+        "N": 8,
+        "R": 16,
+        "SR_bonus": 4
+      },
+      "cards": [
+        "N-1",
+        "N-2",
+        "N-3",
+        "N-4",
+        "N-5",
+        "N-6",
+        "N-7",
+        "N-8",
+        "R-1",
+        "R-2",
+        "R-3",
+        "R-4",
+        "R-5",
+        "R-6",
+        "R-7",
+        "R-8",
+        "R-9",
+        "R-10",
+        "R-11",
+        "R-12",
+        "R-13",
+        "R-14",
+        "R-15",
+        "R-16",
+        "SR_bonus-千仞雪",
+        "SR_bonus-纳兰嫣然",
+        "SR_bonus-元瑶",
+        "SR_bonus-藤化原"
+      ],
+      "sr_bonus_ids": [
+        "sr_qianrenxue",
+        "sr_nalanyanran",
+        "sr_yuanyao",
+        "sr_tenghuayuan"
+      ],
+      "notes": "NR池独立，未抽走的NR不进入后续卡池。2026-05-01起混入4张SR彩蛋（千仞雪/纳兰嫣然/元瑶/藤化原），增加前期兴奋点。玩家也可选择不抽卡，保留灵石提升境界。",
+      "disabled_cards": {
+        "N": [
+          "n_xuxiaoyan",
+          "n_gena",
+          "n_mojuren",
+          "n_zhanghu"
+        ],
+        "R": [
+          "r_zhaowuji",
+          "r_xusanshi",
+          "r_ruolin",
+          "r_qinglin",
+          "r_xinruyin",
+          "r_dongxuaner",
+          "r_wangzhuo",
+          "r_duntian"
+        ],
+        "note": "这些卡牌被注释，不在游戏内出现，但作为备用卡保留在策划文档中"
+      }
+    },
+    "pool_2_sr": {
+      "name": "招募环节2·仙灵入世",
+      "timing": "第三章合作清怪后",
+      "cost_per_draw": 10,
+      "max_draws_per_player": 4,
+      "draw_order": "按第三章击杀AI数量排名（多的先抽）",
+      "pool_size": 16,
+      "composition": {
+        "SR": 16
+      },
+      "notes": "SR独立池。自动从 cards_all.json 的 pool_sr 加载，排除：① 4张已混入招募1的彩蛋SR（sr_qianrenxue/sr_nalanyanran/sr_yuanyao/sr_tenghuayuan）② 全部 disabled:true 的注释SR（朱竹清/天火尊者/陈巧倩/王平）③ 所有绑定SR（bsr_*）。此轮未被抽走的SR会自动进入招募3的混合池。",
+      "excluded_sr_ids_merged_to_pool_1": [
+        "sr_qianrenxue",
+        "sr_nalanyanran",
+        "sr_yuanyao",
+        "sr_tenghuayuan"
+      ],
+      "disabled_cards": {
+        "SR": [
+          "sr_zhuzhuqing",
+          "sr_tianhuo",
+          "sr_chenqiaoqian",
+          "sr_wangping"
+        ],
+        "note": "这些卡牌被注释，不在游戏内出现，但作为备用卡保留在策划文档中"
+      }
+    },
+    "pool_3_elite": {
+      "name": "招募环节3·神灵降世",
+      "timing": "第四章比斗排名后",
+      "cost_per_draw": 15,
+      "max_draws_per_player": 4,
+      "draw_order": "按宗门比斗排名（第1名先抽）",
+      "pool_size_base": 12,
+      "pool_size_note": "12张SSR + 招募2中未被抽走的剩余SR",
+      "composition": {
+        "SSR": 12,
+        "SR_remaining": "从pool_2_sr中未被抽走的SR自动加入"
+      },
+      "ssr_rate_override": ">50%（暗调爆率，实际SSR出率高于50%）",
+      "base_ssr_cards": [
+        "SSR-1",
+        "SSR-2",
+        "SSR-3",
+        "SSR-4",
+        "SSR-5",
+        "SSR-6",
+        "SSR-7",
+        "SSR-8",
+        "SSR-9",
+        "SSR-10",
+        "SSR-11",
+        "SSR-12"
+      ],
+      "notes": "SSR爆率暗改大于50%。极端情况池子可能被抽空，后续玩家转投属性提升。"
+    }
+  },
+  "bound_cards": {
+    "timing": "第五章·决战前自动发放",
+    "description": "每位主角获得1张绑定SSR + 1张绑定SR，不进卡池",
+    "bindings": [
+      {
+        "hero": "塘散",
+        "bound_ssr": "BSSR-1_塘昊",
+        "bound_sr": "BSR-1_唐雅"
+      },
+      {
+        "hero": "小舞儿",
+        "bound_ssr": "BSSR-2_二明",
+        "bound_sr": "BSR-2_王冬儿"
+      },
+      {
+        "hero": "萧焱",
+        "bound_ssr": "BSSR-3_药尘",
+        "bound_sr": "BSR-3_萧战"
+      },
+      {
+        "hero": "薰儿",
+        "bound_ssr": "BSSR-4_古元",
+        "bound_sr": "BSR-4_小医仙"
+      },
+      {
+        "hero": "寒立",
+        "bound_ssr": "BSSR-5_南宫婉",
+        "bound_sr": "BSR-5_银月"
+      },
+      {
+        "hero": "旺林",
+        "bound_ssr": "BSSR-6_司徒南",
+        "bound_sr": "BSR-6_李慕婉"
+      }
+    ]
+  },
+  "economy": {
+    "灵石用途": [
+      "抽卡",
+      "提升境界"
+    ],
+    "境界提升费用": {
+      "凡人→炼气": 3,
+      "炼气→筑基": 5,
+      "筑基→结丹": 8
+    },
+    "抽卡费用分级": {
+      "NR池": 5,
+      "SR池": 10,
+      "精英池": 15
+    }
+  },
+  "extreme_case_handling": {
+    "pool_empty": "若卡池被抽空，剩余灵石只能用于提升境界",
+    "nr_pool_risk": "24张-极端24次=剩0张，有风险",
+    "sr_pool_risk": "20张-极端24次=不够，有风险",
+    "elite_pool_risk": "剩余SR+12SSR-极端24次=可能抽完，有风险"
+  }
+}

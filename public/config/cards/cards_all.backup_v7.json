@@ -1,0 +1,3079 @@
+{
+  "version": "7.1",
+  "date": "2026-04-27",
+  "total_cards": 76,
+  "realm_system": {
+    "levels": [
+      "凡人",
+      "炼气",
+      "筑基",
+      "结丹",
+      "元婴"
+    ],
+    "upgrade_cost": {
+      "凡人→炼气": 3,
+      "炼气→筑基": 5,
+      "筑基→结丹": 8
+    },
+    "stat_ranges": {
+      "凡人": {
+        "hp": [
+          1,
+          3
+        ],
+        "atk": [
+          1,
+          2
+        ],
+        "mnd": [
+          1,
+          2
+        ],
+        "total": [
+          3,
+          7
+        ]
+      },
+      "炼气": {
+        "hp": [
+          2,
+          4
+        ],
+        "atk": [
+          2,
+          3
+        ],
+        "mnd": [
+          1,
+          3
+        ],
+        "total": [
+          5,
+          10
+        ]
+      },
+      "筑基": {
+        "hp": [
+          3,
+          6
+        ],
+        "atk": [
+          3,
+          5
+        ],
+        "mnd": [
+          2,
+          4
+        ],
+        "total": [
+          8,
+          15
+        ]
+      },
+      "结丹": {
+        "hp": [
+          5,
+          9
+        ],
+        "atk": [
+          5,
+          8
+        ],
+        "mnd": [
+          3,
+          5
+        ],
+        "total": [
+          13,
+          22
+        ]
+      },
+      "元婴": {
+        "hp": [
+          10,
+          12
+        ],
+        "atk": [
+          10,
+          12
+        ],
+        "mnd": [
+          4,
+          5
+        ],
+        "total": [
+          24,
+          29
+        ]
+      }
+    }
+  },
+  "heroes": [
+    {
+      "id": "hero_tangsan",
+      "name": "塘散",
+      "tribute": "唐三",
+      "rarity": "主角",
+      "ip": "斗罗大陆",
+      "type": "灵修",
+      "gender": "男",
+      "faction": "A",
+      "realm": "筑基",
+      "realm_level": 2,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "run_card": {
+        "hp": 6,
+        "atk": 5,
+        "mnd": 4,
+        "skills": {
+          "run_skill": {
+            "name": "紫瞳洞察",
+"desc": "心境判定时心境额外+1",
+            "type": "run"
+          },
+          "battle_skill": null
+        }
+      },
+      "battle_card": {
+        "hp": 8,
+        "atk": 7,
+        "mnd": 3,
+        "tactical_role": "controller",
+        "skills": {
+          "run_skill": {
+            "name": "清心悟道",
+            "desc": "抽到卡牌后可选择放回卡池，并获得7灵石",
+            "type": "run",
+            "category": "return_for_gem",
+            "reward": 7,
+            "params": {
+              "reward": 7
+            }
+          },
+          "battle_skill": {
+            "name": "蛛网束缚",
+            "desc": "普攻命中后目标下回合无法移动",
+            "type": "battle",
+            "trigger": "on_after_hit",
+            "params": { "effect": "disable_move", "duration": 1 }
+          },
+          "ultimate": {
+            "name": "紫极魔瞳·凝",
+            "desc": "选1名相邻敌人本回合无法行动",
+            "type": "battle",
+            "trigger": "active_once",
+            "params": { "effect": "disable_action", "range": "adjacent", "targets": 1 }
+          }
+        }
+      },
+      "awakening": {
+        "name": "修罗·塘散",
+        "trigger": "小舞儿退场",
+        "hp": 10,
+        "atk": 10,
+        "mnd": 3,
+        "tactical_role": "dps_passive",
+        "skills": {
+          "battle_skill": {
+            "name": "昊天锤·连击",
+            "desc": "普攻后可对同一目标再攻击1次（第二次骰子-2）",
+            "type": "battle",
+            "trigger": "on_after_hit",
+            "params": { "effect": "chain_attack", "dicePenalty": -2 }
+          },
+          "ultimate": {
+            "name": "修罗领域",
+            "desc": "本回合所有敌人修为-2",
+            "type": "battle",
+            "trigger": "active_once",
+            "params": { "effect": "global_atk_debuff", "value": -2, "scope": "all_enemies" }
+          }
+        }
+      }
+    },
+    {
+      "id": "hero_xiaowu",
+      "name": "小舞儿",
+      "tribute": "小舞",
+      "rarity": "主角",
+      "ip": "斗罗大陆",
+      "type": "妖修",
+      "gender": "女",
+      "faction": "A",
+      "realm": "筑基",
+      "realm_level": 2,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "run_card": {
+        "hp": 5,
+        "atk": 4,
+        "mnd": 5,
+        "skills": {
+          "run_skill": {
+            "name": "妖力感知",
+            "desc": "每次密谈时，强制获得与之密谈角色的一条未知线索",
+            "type": "run"
+          },
+          "battle_skill": null
+        }
+      },
+      "battle_card": {
+        "hp": 7,
+        "atk": 6,
+        "mnd": 4,
+        "tactical_role": "utility",
+        "skills": {
+          "run_skill": {
+            "name": "妖力共鸣",
+            "desc": "抽取2张卡牌，选1张获取",
+            "type": "run",
+            "category": "preview_2",
+            "params": {
+              "count": 2
+            }
+          },
+          "battle_skill": {
+            "name": "无敌金身",
+            "desc": "被攻击时，将本次受到的伤害降为2点",
+            "type": "battle",
+            "trigger": "on_damage_calc",
+            "params": { "effect": "reduce_damage_to", "value": 2 }
+          },
+          "ultimate": {
+            "name": "八段摔·断魂",
+            "desc": "小舞儿主动退场时，选1名相邻敌人，造成小舞儿当前已损失气血值的固定伤害",
+            "type": "battle",
+            "trigger": "on_self_sacrifice",
+            "params": { "effect": "lost_hp_as_damage", "target": "adjacent_enemy", "count": 1 }
+          }
+        }
+      },
+      "awakening": {
+        "name": "献祭·小舞儿",
+        "trigger": "气血降至1",
+        "hp": 1,
+        "atk": 1,
+        "mnd": 1,
+        "tactical_role": "sacrifice",
+        "skills": {
+          "battle_skill": {
+            "name": "柔骨·缠魂",
+            "desc": "可控制场上任意一名角色移动1格",
+            "type": "battle",
+            "trigger": "active_once",
+            "params": { "effect": "force_move", "target": "any_unit", "value": 1 }
+          },
+          "ultimate": {
+            "name": "十万年魂骨献祭",
+            "desc": "主动/被动退场时，塘散所有属性永久+3",
+            "type": "battle",
+            "trigger": "on_self_sacrifice",
+            "params": { "effect": "buff_ally_permanent", "target": "hero_tangsan", "value": 3, "scope": "all_stats" }
+          }
+        }
+      }
+    },
+    {
+      "id": "hero_xiaoyan",
+      "name": "萧焱",
+      "tribute": "萧炎",
+      "rarity": "主角",
+      "ip": "斗破苍穹",
+      "type": "法修",
+      "gender": "男",
+      "faction": "B",
+      "realm": "筑基",
+      "realm_level": 2,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "run_card": {
+        "hp": 5,
+        "atk": 6,
+        "mnd": 4,
+        "skills": {
+          "run_skill": {
+            "name": "异火探知",
+"desc": "在心境判定前，可投2次骰子，取高的值判定",
+            "type": "run"
+          },
+          "battle_skill": null
+        }
+      },
+      "battle_card": {
+        "hp": 7,
+        "atk": 8,
+        "mnd": 3,
+        "tactical_role": "dps_passive",
+        "skills": {
+          "run_skill": {
+            "name": "焚决吞噬",
+            "desc": "每轮抽卡回合可额外消耗5灵石，多抽一张卡",
+            "type": "run",
+            "category": "extra_draw_paid",
+            "cost": 5,
+            "params": {
+              "extraCost": 5
+            }
+          },
+          "battle_skill": {
+            "name": "八极崩",
+            "desc": "本次攻击额外投掷2颗骰子",
+            "type": "battle",
+            "trigger": "passive_permanent",
+            "params": { "extraDice": 2 }
+          },
+          "ultimate": {
+            "name": "佛怒火莲",
+            "desc": "对相邻所有敌人各造成一次普攻（共用骰子结果）",
+            "type": "battle",
+            "trigger": "active_once",
+            "params": { "effect": "aoe_adjacent", "inheritPassive": true }
+          }
+        }
+      },
+      "awakening": {
+        "name": "炎帝·萧焱",
+        "trigger": "场上有3张+斗破角色",
+        "hp": 9,
+        "atk": 10,
+        "mnd": 3,
+        "tactical_role": "dps_passive",
+        "skills": {
+          "battle_skill": {
+            "name": "陀圣炎·噬",
+            "desc": "普攻命中后吞噬目标1点修为（永久）",
+            "type": "battle",
+            "trigger": "on_after_hit",
+            "params": { "effect": "steal_atk_permanent", "value": 1 }
+          },
+          "ultimate": {
+            "name": "帝品火莲",
+            "desc": "对全场所有敌人造成修为值一半的固定伤害",
+            "type": "battle",
+            "trigger": "active_once",
+            "params": { "effect": "fixed_damage_global", "value": "atk/2", "scope": "all_enemies" }
+          }
+        }
+      }
+    },
+    {
+      "id": "hero_xuner",
+      "name": "薰儿",
+      "tribute": "薰儿",
+      "rarity": "主角",
+      "ip": "斗破苍穹",
+      "type": "灵修",
+      "gender": "女",
+      "faction": "B",
+      "realm": "筑基",
+      "realm_level": 2,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "run_card": {
+        "hp": 5,
+        "atk": 4,
+        "mnd": 6,
+        "skills": {
+          "run_skill": {
+            "name": "古族血脉感应",
+            "desc": "密谈成功时，额外获得线索+1",
+            "type": "run"
+          },
+          "battle_skill": null
+        }
+      },
+      "battle_card": {
+        "hp": 6,
+        "atk": 5,
+        "mnd": 5,
+        "tactical_role": "support",
+        "skills": {
+          "run_skill": {
+            "name": "金帝焚天诀",
+            "desc": "每次抽卡时灵石费用-2",
+            "type": "run",
+            "category": "cost_reduce",
+            "value": 2,
+            "params": {
+              "reduce": 2
+            }
+          },
+          "battle_skill": {
+            "name": "古族之力",
+            "desc": "己方相邻友军本回合修为+1",
+            "type": "battle",
+            "trigger": "passive_permanent",
+            "params": { "effect": "aura_ally_atk_buff", "value": 1, "range": "adjacent" }
+          },
+          "ultimate": {
+            "name": "古族天火",
+            "desc": "对1名相邻敌人造成额外4颗骰子伤害",
+            "type": "battle",
+            "trigger": "active_once",
+            "params": { "extraDice": 4, "range": "adjacent", "targets": 1 }
+          }
+        }
+      },
+      "awakening": {
+        "name": "斗帝血脉·薰儿",
+        "trigger": "古元（绑定SSR）在场时气血降至3以下",
+        "hp": 8,
+        "atk": 7,
+        "mnd": 5,
+        "tactical_role": "support",
+        "skills": {
+          "battle_skill": {
+            "name": "金帝焚天·极",
+            "desc": "普攻自带额外2颗骰子",
+            "type": "battle",
+            "trigger": "passive_permanent",
+            "params": { "extraDice": 2 }
+          },
+          "ultimate": {
+            "name": "古族结界",
+            "desc": "本回合所有友军受伤-2",
+            "type": "battle",
+            "trigger": "active_once",
+            "params": { "effect": "team_damage_reduction", "value": 2, "scope": "all_allies", "duration": 1 }
+          }
+        }
+      }
+    },
+    {
+      "id": "hero_hanli",
+      "name": "寒立",
+      "tribute": "韩立",
+      "rarity": "主角",
+      "ip": "凡人修仙传",
+      "type": "剑修",
+      "gender": "男",
+      "faction": "摇摆",
+      "realm": "筑基",
+      "realm_level": 2,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "run_card": {
+        "hp": 5,
+        "atk": 5,
+        "mnd": 5,
+        "skills": {
+          "run_skill": {
+            "name": "谨慎如凡",
+"desc": "每次心境判定时，判定结果固定+1",
+            "type": "run"
+          },
+          "battle_skill": null
+        }
+      },
+      "battle_card": {
+        "hp": 7,
+        "atk": 7,
+        "mnd": 4,
+        "tactical_role": "dps_passive",
+        "skills": {
+          "run_skill": {
+            "name": "灵药储备",
+            "desc": "主动跳过抽卡轮次时，获得3灵石",
+            "type": "run",
+            "category": "skip_reward",
+            "value": 3,
+            "params": {
+              "reward": 3
+            }
+          },
+          "battle_skill": {
+            "name": "青竹蜂云剑",
+            "desc": "本次攻击额外投掷2颗骰子",
+            "type": "battle",
+            "trigger": "passive_permanent",
+            "params": { "extraDice": 2 }
+          },
+          "ultimate": {
+            "name": "万剑归宗",
+            "desc": "对1名敌人投掷修为×2数量的骰子",
+            "type": "battle",
+            "trigger": "active_once",
+            "params": { "diceFormula": "(atk + extraDice) * 2", "targets": 1, "inheritPassive": true }
+          }
+        }
+      },
+      "awakening": {
+        "name": "元婴·寒立",
+        "trigger": "累计击杀2名敌人",
+        "hp": 9,
+        "atk": 9,
+        "mnd": 4,
+        "tactical_role": "dps_passive",
+        "skills": {
+          "battle_skill": {
+            "name": "噬金虫群",
+            "desc": "普攻命中后额外造成1点固定伤害（无视骰子）",
+            "type": "battle",
+            "trigger": "on_after_hit",
+            "params": { "effect": "fixed_damage", "value": 1 }
+          },
+          "ultimate": {
+            "name": "天罗万象",
+            "desc": "本回合修为翻倍计算骰子",
+            "type": "battle",
+            "trigger": "active_once",
+            "params": { "effect": "self_atk_multiplier", "value": 2, "duration": 1 }
+          }
+        }
+      }
+    },
+    {
+      "id": "hero_wanglin",
+      "name": "旺林",
+      "tribute": "王林",
+      "rarity": "主角",
+      "ip": "仙逆",
+      "type": "法修",
+      "gender": "男",
+      "faction": "摇摆",
+      "realm": "筑基",
+      "realm_level": 2,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "run_card": {
+        "hp": 4,
+        "atk": 5,
+        "mnd": 5,
+        "skills": {
+          "run_skill": {
+            "name": "逆天改命",
+"desc": "心境判定失败时可消耗1灵石重投（每次判定限1次）",
+            "type": "run"
+          },
+          "battle_skill": null
+        }
+      },
+      "battle_card": {
+        "hp": 7,
+        "atk": 8,
+        "mnd": 3,
+        "tactical_role": "dps_burst",
+        "skills": {
+          "run_skill": {
+            "name": "天运窃取",
+            "desc": "每轮抽卡回合可额外消耗3灵石，必定抽到该卡池中最高稀有度的卡牌",
+            "type": "run",
+            "category": "guarantee_highest",
+            "cost": 3,
+            "params": {
+              "extraCost": 3
+            }
+          },
+          "battle_skill": {
+            "name": "邪灵诀",
+            "desc": "本次攻击额外投2颗骰子，若命中则吸取1点气血",
+            "type": "battle",
+            "trigger": ["on_before_roll", "on_after_hit"],
+            "params": { "extraDice": 2, "lifesteal": 1 }
+          },
+          "ultimate": {
+            "name": "逆·天地崩",
+            "desc": "对全场敌人各投3颗骰子造成伤害",
+            "type": "battle",
+            "trigger": "active_once",
+            "params": { "dicePerTarget": 3, "scope": "all_enemies" }
+          }
+        }
+      },
+      "awakening": {
+        "name": "仙尊·旺林",
+        "trigger": "司徒南（绑定SSR）退场",
+        "hp": 10,
+        "atk": 10,
+        "mnd": 4,
+        "tactical_role": "finisher",
+        "skills": {
+          "battle_skill": {
+            "name": "逆天·万魂幡",
+            "desc": "击杀敌人后本回合可再行动1次",
+            "type": "battle",
+            "trigger": "on_kill",
+            "params": { "effect": "extra_action", "maxPerTurn": 1 }
+          },
+          "ultimate": {
+            "name": "一念逆天",
+            "desc": "直接将1名敌人气血设为1（需我方修为>=对方）",
+            "type": "battle",
+            "trigger": "active_once",
+            "params": { "effect": "set_target_hp", "value": 1, "targets": 1, "condition": "self.atk >= target.atk" }
+          }
+        }
+      }
+    }
+  ],
+  "ur_cards": [
+    {
+      "id": "ur_xuanji",
+      "name": "玄寂长老",
+      "tribute": "玄寂",
+      "rarity": "UR",
+      "ip": "原创",
+      "type": "灵修",
+      "gender": "男",
+      "realm": "元婴",
+      "realm_level": 4,
+      "max_realm": "元婴",
+      "max_realm_level": 4,
+      "pool": [],
+      "hp": 12,
+      "atk": 10,
+      "mnd": 5,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": {
+          "name": "轮回·拉魂",
+          "desc": "选1名敌人，该敌人下回合攻击自己的队友",
+          "type": "battle"
+        },
+        "ultimate": {
+          "name": "轮回珠·噬魂",
+          "desc": "直接移除1名气血≤4的敌人",
+          "type": "battle"
+        }
+      }
+    },
+    {
+      "id": "ur_fengwuhen",
+      "name": "风无痕",
+      "tribute": "风无痕",
+      "rarity": "UR",
+      "ip": "原创",
+      "type": "剑修",
+      "gender": "男",
+      "realm": "元婴",
+      "realm_level": 4,
+      "max_realm": "元婴",
+      "max_realm_level": 4,
+      "pool": [],
+      "hp": 10,
+      "atk": 12,
+      "mnd": 4,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": {
+          "name": "轮回·送魂",
+          "desc": "普攻命中后吞噬目标2点修为（永久）",
+          "type": "battle"
+        },
+        "ultimate": {
+          "name": "轮回珠·裂天",
+          "desc": "本回合修为变为15，投掷15颗骰子攻击",
+          "type": "battle"
+        }
+      }
+    }
+  ],
+  "bind_ssr": [
+    {
+      "id": "bssr_tanghao",
+      "name": "塘昊",
+      "tribute": "唐昊",
+      "rarity": "SSR",
+      "ip": "斗罗大陆",
+      "type": "体修",
+      "gender": "男",
+      "realm": "结丹",
+      "realm_level": 3,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "bind_塘散"
+      ],
+      "bind_hero": "塘散",
+      "bind_relation": "父子",
+      "hp": 9,
+      "atk": 8,
+      "mnd": 3,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": {
+          "name": "昊天锤·碎",
+          "desc": "本次攻击额外投掷3颗骰子",
+          "type": "battle"
+        }
+      }
+    },
+    {
+      "id": "bssr_erming",
+      "name": "二明",
+      "tribute": "二明",
+      "rarity": "SSR",
+      "ip": "斗罗大陆",
+      "type": "妖修",
+      "gender": "男",
+      "realm": "结丹",
+      "realm_level": 3,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "bind_小舞儿"
+      ],
+      "bind_hero": "小舞儿",
+      "bind_relation": "哥哥（十万年魂兽）",
+      "hp": 9,
+      "atk": 7,
+      "mnd": 3,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": {
+          "name": "泰坦巨拳",
+          "desc": "本次攻击额外投掷2颗骰子，命中后目标无法移动1回合",
+          "type": "battle"
+        }
+      }
+    },
+    {
+      "id": "bssr_yaochen",
+      "name": "药尘",
+      "tribute": "药尘",
+      "rarity": "SSR",
+      "ip": "斗破苍穹",
+      "type": "丹修",
+      "gender": "男",
+      "realm": "结丹",
+      "realm_level": 3,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "bind_萧焱"
+      ],
+      "bind_hero": "萧焱",
+      "bind_relation": "师徒",
+      "hp": 7,
+      "atk": 6,
+      "mnd": 5,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": {
+          "name": "丹火焚天",
+          "desc": "对相邻敌人投掷修为+2颗骰子，命中后目标修为-1",
+          "type": "battle"
+        }
+      }
+    },
+    {
+      "id": "bssr_guyuan",
+      "name": "古元",
+      "tribute": "古元",
+      "rarity": "SSR",
+      "ip": "斗破苍穹",
+      "type": "灵修",
+      "gender": "男",
+      "realm": "结丹",
+      "realm_level": 3,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "bind_薰儿"
+      ],
+      "bind_hero": "薰儿",
+      "bind_relation": "父女（古族族长）",
+      "hp": 8,
+      "atk": 7,
+      "mnd": 4,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": {
+          "name": "古族天火阵",
+          "desc": "相邻所有友军本回合修为+2",
+          "type": "battle"
+        }
+      }
+    },
+    {
+      "id": "bssr_nangongwan",
+      "name": "南宫婉",
+      "tribute": "南宫婉",
+      "rarity": "SSR",
+      "ip": "凡人修仙传",
+      "type": "灵修",
+      "gender": "女",
+      "realm": "结丹",
+      "realm_level": 3,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "bind_寒立"
+      ],
+      "bind_hero": "寒立",
+      "bind_relation": "道侣",
+      "hp": 7,
+      "atk": 6,
+      "mnd": 5,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": {
+          "name": "万花灵阵",
+          "desc": "治疗相邻1名友军3点气血",
+          "type": "battle"
+        }
+      }
+    },
+    {
+      "id": "bssr_situnan",
+      "name": "司徒南",
+      "tribute": "司徒南",
+      "rarity": "SSR",
+      "ip": "仙逆",
+      "type": "妖修",
+      "gender": "男",
+      "realm": "结丹",
+      "realm_level": 3,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "bind_旺林"
+      ],
+      "bind_hero": "旺林",
+      "bind_relation": "师徒",
+      "hp": 8,
+      "atk": 7,
+      "mnd": 4,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": {
+          "name": "魂噬",
+          "desc": "本次攻击额外投3颗骰子，命中后吸取1点气血",
+          "type": "battle"
+        }
+      }
+    }
+  ],
+  "bind_sr": [
+    {
+      "id": "bsr_tangya",
+      "name": "唐雅",
+      "tribute": "唐雅",
+      "rarity": "SR",
+      "ip": "斗罗大陆",
+      "type": "灵修",
+      "gender": "女",
+      "realm": "结丹",
+      "realm_level": 3,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "bind_塘散"
+      ],
+      "bind_hero": "塘散",
+      "bind_relation": "妹妹",
+      "hp": 6,
+      "atk": 5,
+      "mnd": 4,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": {
+          "name": "九凤引鸣",
+          "desc": "治疗相邻1名友军2点气血，该友军本回合骰子+1",
+          "type": "battle"
+        }
+      }
+    },
+    {
+      "id": "bsr_wangdonger",
+      "name": "王冬儿",
+      "tribute": "王冬儿",
+      "rarity": "SR",
+      "ip": "斗罗大陆",
+      "type": "法修",
+      "gender": "女",
+      "realm": "结丹",
+      "realm_level": 3,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "bind_小舞儿"
+      ],
+      "bind_hero": "小舞儿",
+      "bind_relation": "后代羁绊",
+      "hp": 7,
+      "atk": 6,
+      "mnd": 4,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": {
+          "name": "光明圣龙",
+          "desc": "本次攻击额外投2颗骰子，命中后自身气血+1",
+          "type": "battle"
+        }
+      },
+      "awakening": {
+        "name": "王秋儿",
+        "trigger": "小舞儿退场",
+        "hp": 9,
+        "atk": 8,
+        "mnd": 4
+      }
+    },
+    {
+      "id": "bsr_xiaozhan",
+      "name": "萧战",
+      "tribute": "萧战",
+      "rarity": "SR",
+      "ip": "斗破苍穹",
+      "type": "体修",
+      "gender": "男",
+      "realm": "结丹",
+      "realm_level": 3,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "bind_萧焱"
+      ],
+      "bind_hero": "萧焱",
+      "bind_relation": "父子",
+      "hp": 8,
+      "atk": 5,
+      "mnd": 3,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": {
+          "name": "萧家八极",
+          "desc": "被攻击时对方骰子结果-2",
+          "type": "battle"
+        }
+      }
+    },
+    {
+      "id": "bsr_xiaoyixian",
+      "name": "小医仙",
+      "tribute": "小医仙",
+      "rarity": "SR",
+      "ip": "斗破苍穹",
+      "type": "灵修",
+      "gender": "女",
+      "realm": "结丹",
+      "realm_level": 3,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "bind_薰儿"
+      ],
+      "bind_hero": "薰儿",
+      "bind_relation": "挚友",
+      "hp": 6,
+      "atk": 5,
+      "mnd": 5,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": {
+          "name": "毒体·蚀骨",
+          "desc": "普攻命中后目标中毒：每回合损失1气血，持续2回合",
+          "type": "battle"
+        }
+      }
+    },
+    {
+      "id": "bsr_yinyue",
+      "name": "银月",
+      "tribute": "银月",
+      "rarity": "SR",
+      "ip": "凡人修仙传",
+      "type": "妖修",
+      "gender": "女",
+      "realm": "结丹",
+      "realm_level": 3,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "bind_寒立"
+      ],
+      "bind_hero": "寒立",
+      "bind_relation": "灵兽伙伴",
+      "hp": 6,
+      "atk": 6,
+      "mnd": 4,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": {
+          "name": "月华护体",
+          "desc": "为相邻1名友军抵挡下次受到的伤害（消耗自身2气血）",
+          "type": "battle"
+        }
+      }
+    },
+    {
+      "id": "bsr_limuwan",
+      "name": "李慕婉",
+      "tribute": "李慕婉",
+      "rarity": "SR",
+      "ip": "仙逆",
+      "type": "灵修",
+      "gender": "女",
+      "realm": "结丹",
+      "realm_level": 3,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "bind_旺林"
+      ],
+      "bind_hero": "旺林",
+      "bind_relation": "深爱之人",
+      "hp": 6,
+      "atk": 5,
+      "mnd": 5,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": {
+          "name": "情丝牵引",
+          "desc": "治疗旺林3点气血；若旺林不在场则治疗任意友军2点",
+          "type": "battle"
+        }
+      }
+    }
+  ],
+  "pool_ssr": [
+    {
+      "id": "ssr_bibidong",
+      "name": "比比东",
+      "tribute": "比比东",
+      "rarity": "SSR",
+      "ip": "斗罗大陆",
+      "type": "妖修",
+      "gender": "女",
+      "realm": "结丹",
+      "realm_level": 3,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_3"
+      ],
+      "hp": 8,
+      "atk": 7,
+      "mnd": 4,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": {
+          "name": "死蛛皇·噬",
+          "desc": "本次攻击额外投3颗骰子，命中后目标心境-1",
+          "type": "battle"
+        }
+      }
+    },
+    {
+      "id": "ssr_huoyuhao",
+      "name": "霍雨浩",
+      "tribute": "霍雨浩",
+      "rarity": "SSR",
+      "ip": "斗罗大陆",
+      "type": "灵修",
+      "gender": "男",
+      "realm": "结丹",
+      "realm_level": 3,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_3"
+      ],
+      "hp": 7,
+      "atk": 6,
+      "mnd": 5,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": {
+          "name": "冰碧帝皇蝎·域",
+          "desc": "本回合所有相邻敌人无法移动",
+          "type": "battle"
+        }
+      }
+    },
+    {
+      "id": "ssr_ningfengzhi",
+      "name": "宁风致",
+      "tribute": "宁风致",
+      "rarity": "SSR",
+      "ip": "斗罗大陆",
+      "type": "灵修",
+      "gender": "男",
+      "realm": "结丹",
+      "realm_level": 3,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_3"
+      ],
+      "hp": 7,
+      "atk": 5,
+      "mnd": 5,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": {
+          "name": "七宝加持",
+          "desc": "相邻所有友军本回合修为+2",
+          "type": "battle"
+        }
+      }
+    },
+    {
+      "id": "ssr_meidusa",
+      "name": "美杜莎",
+      "tribute": "美杜莎",
+      "rarity": "SSR",
+      "ip": "斗破苍穹",
+      "type": "妖修",
+      "gender": "女",
+      "realm": "结丹",
+      "realm_level": 3,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_3"
+      ],
+      "hp": 8,
+      "atk": 8,
+      "mnd": 3,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": {
+          "name": "七彩蛇鳞·化龙",
+          "desc": "本次攻击额外投4颗骰子",
+          "type": "battle"
+        }
+      },
+      "awakening": {
+        "name": "七彩天蛇·美杜莎",
+        "trigger": "萧焱在场时气血≤3",
+        "hp": 10,
+        "atk": 9,
+        "mnd": 3
+      }
+    },
+    {
+      "id": "ssr_yunyun",
+      "name": "云韵",
+      "tribute": "云韵",
+      "rarity": "SSR",
+      "ip": "斗破苍穹",
+      "type": "法修",
+      "gender": "女",
+      "realm": "结丹",
+      "realm_level": 3,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_3"
+      ],
+      "hp": 7,
+      "atk": 7,
+      "mnd": 4,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": {
+          "name": "风刃·连斩",
+          "desc": "本次攻击额外投2颗骰子，可攻击2格外的敌人",
+          "type": "battle"
+        }
+      }
+    },
+    {
+      "id": "ssr_xiaoxuan",
+      "name": "萧玄",
+      "tribute": "萧玄（萧族族长）",
+      "rarity": "SSR",
+      "ip": "斗破苍穹",
+      "type": "法修",
+      "gender": "男",
+      "realm": "结丹",
+      "realm_level": 3,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_3"
+      ],
+      "hp": 8,
+      "atk": 7,
+      "mnd": 4,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": {
+          "name": "萧族斗气·焚",
+          "desc": "本次攻击额外投3颗骰子，若目标为法修则额外+1",
+          "type": "battle"
+        }
+      }
+    },
+    {
+      "id": "ssr_xuangu",
+      "name": "玄骨",
+      "tribute": "玄骨",
+      "rarity": "SSR",
+      "ip": "凡人修仙传",
+      "type": "法修",
+      "gender": "男",
+      "realm": "结丹",
+      "realm_level": 3,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_3"
+      ],
+      "hp": 7,
+      "atk": 7,
+      "mnd": 4,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": {
+          "name": "阴阳万解",
+          "desc": "本回合修为+3（=多投3颗骰子）",
+          "type": "battle"
+        }
+      }
+    },
+    {
+      "id": "ssr_mocaihuan",
+      "name": "墨彩环",
+      "tribute": "墨彩环",
+      "rarity": "SSR",
+      "ip": "凡人修仙传",
+      "type": "灵修",
+      "gender": "女",
+      "realm": "结丹",
+      "realm_level": 3,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_3"
+      ],
+      "hp": 6,
+      "atk": 5,
+      "mnd": 5,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": {
+          "name": "蓄力·彩环缚",
+          "desc": "蓄力1回合后对1名敌人造成修为×2骰子伤害",
+          "type": "battle"
+        }
+      }
+    },
+    {
+      "id": "ssr_ziling",
+      "name": "紫灵",
+      "tribute": "紫灵",
+      "rarity": "SSR",
+      "ip": "凡人修仙传",
+      "type": "灵修",
+      "gender": "女",
+      "realm": "结丹",
+      "realm_level": 3,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_3"
+      ],
+      "hp": 7,
+      "atk": 6,
+      "mnd": 5,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": {
+          "name": "紫灵剑·极",
+          "desc": "本次攻击额外投3颗骰子，命中后自身气血+1",
+          "type": "battle"
+        }
+      }
+    },
+    {
+      "id": "ssr_zhouyi",
+      "name": "周佚",
+      "tribute": "周佚",
+      "rarity": "SSR",
+      "ip": "仙逆",
+      "type": "法修",
+      "gender": "男",
+      "realm": "结丹",
+      "realm_level": 3,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_3"
+      ],
+      "hp": 7,
+      "atk": 8,
+      "mnd": 4,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": {
+          "name": "疯魔·灭杀",
+          "desc": "本次攻击额外投4颗骰子，但自身受1点反噬伤害",
+          "type": "battle"
+        }
+      }
+    },
+    {
+      "id": "ssr_tuosen",
+      "name": "拓森",
+      "tribute": "拓森",
+      "rarity": "SSR",
+      "ip": "仙逆",
+      "type": "妖修",
+      "gender": "男",
+      "realm": "结丹",
+      "realm_level": 3,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_3"
+      ],
+      "hp": 9,
+      "atk": 7,
+      "mnd": 3,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": {
+          "name": "妖体·铁甲",
+          "desc": "被攻击时对方骰子结果-3",
+          "type": "battle"
+        }
+      }
+    },
+    {
+      "id": "ssr_tianyunzi",
+      "name": "天运子",
+      "tribute": "天运子",
+      "rarity": "SSR",
+      "ip": "仙逆",
+      "type": "灵修",
+      "gender": "男",
+      "realm": "结丹",
+      "realm_level": 3,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_3"
+      ],
+      "hp": 7,
+      "atk": 6,
+      "mnd": 5,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": {
+          "name": "天运·命格逆转",
+          "desc": "选1名敌人，使其本回合骰子结果全部变为0",
+          "type": "battle"
+        }
+      }
+    }
+  ],
+  "pool_sr": [
+    {
+      "id": "sr_daimubai",
+      "name": "戴沐白",
+      "tribute": "戴沐白",
+      "rarity": "SR",
+      "ip": "斗罗大陆",
+      "type": "体修",
+      "gender": "男",
+      "realm": "筑基",
+      "realm_level": 2,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_2"
+      ],
+      "hp": 8,
+      "atk": 6,
+      "mnd": 3,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": {
+          "name": "白虎金身",
+          "desc": "本回合被攻击时对方骰子-2，反击时自身骰子+1",
+          "type": "battle"
+        }
+      }
+    },
+    {
+      "id": "sr_zhuzhuqing",
+      "name": "朱竹清",
+      "tribute": "朱竹清",
+      "rarity": "SR",
+      "ip": "斗罗大陆",
+      "type": "剑修",
+      "gender": "女",
+      "realm": "筑基",
+      "realm_level": 2,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_2"
+      ],
+      "hp": 5,
+      "atk": 7,
+      "mnd": 4,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": {
+          "name": "幽冥刺",
+          "desc": "本次攻击额外投2颗骰子，可移动后再攻击",
+          "type": "battle"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "id": "sr_ningrongrong",
+      "name": "宁荣荣",
+      "tribute": "宁荣荣",
+      "rarity": "SR",
+      "ip": "斗罗大陆",
+      "type": "灵修",
+      "gender": "女",
+      "realm": "筑基",
+      "realm_level": 2,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_2"
+      ],
+      "hp": 5,
+      "atk": 4,
+      "mnd": 5,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": {
+          "name": "七宝琉璃·加持",
+          "desc": "相邻1名友军本回合修为+2",
+          "type": "battle"
+        }
+      }
+    },
+    {
+      "id": "sr_qianrenxue",
+      "name": "千仞雪",
+      "tribute": "千仞雪",
+      "rarity": "SR",
+      "ip": "斗罗大陆",
+      "type": "灵修",
+      "gender": "女",
+      "realm": "筑基",
+      "realm_level": 2,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_2"
+      ],
+      "hp": 6,
+      "atk": 6,
+      "mnd": 4,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": {
+          "name": "天使之光",
+          "desc": "治疗自身2点气血，本回合修为+1",
+          "type": "battle"
+        }
+      },
+      "awakening": {
+        "name": "六翼天使·千仞雪",
+        "trigger": "气血≤2",
+        "hp": 8,
+        "atk": 8,
+        "mnd": 5
+      }
+    },
+    {
+      "id": "sr_aoska",
+      "name": "奥斯卡",
+      "tribute": "奥斯卡",
+      "rarity": "SR",
+      "ip": "斗罗大陆",
+      "type": "丹修",
+      "gender": "男",
+      "realm": "筑基",
+      "realm_level": 2,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_2"
+      ],
+      "hp": 6,
+      "atk": 4,
+      "mnd": 4,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": {
+          "name": "大香肠",
+          "desc": "治疗相邻1名友军3点气血",
+          "type": "battle"
+        }
+      }
+    },
+    {
+      "id": "sr_mahongjun",
+      "name": "马红俊",
+      "tribute": "马红俊",
+      "rarity": "SR",
+      "ip": "斗罗大陆",
+      "type": "法修",
+      "gender": "男",
+      "realm": "筑基",
+      "realm_level": 2,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_2"
+      ],
+      "hp": 7,
+      "atk": 7,
+      "mnd": 3,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": {
+          "name": "凤凰火雨",
+          "desc": "对相邻所有敌人各投2颗骰子造成伤害",
+          "type": "battle"
+        }
+      }
+    },
+    {
+      "id": "sr_nalanyanran",
+      "name": "纳兰嫣然",
+      "tribute": "纳兰嫣然",
+      "rarity": "SR",
+      "ip": "斗破苍穹",
+      "type": "法修",
+      "gender": "女",
+      "realm": "筑基",
+      "realm_level": 2,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_2"
+      ],
+      "hp": 6,
+      "atk": 6,
+      "mnd": 4,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": {
+          "name": "风属斗技",
+          "desc": "本次攻击额外投2颗骰子，命中后目标退后1格",
+          "type": "battle"
+        }
+      }
+    },
+    {
+      "id": "sr_fengxian",
+      "name": "风闲",
+      "tribute": "风尊者",
+      "rarity": "SR",
+      "ip": "斗破苍穹",
+      "type": "法修",
+      "gender": "男",
+      "realm": "筑基",
+      "realm_level": 2,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_2"
+      ],
+      "hp": 7,
+      "atk": 7,
+      "mnd": 3,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": {
+          "name": "风卷残云",
+          "desc": "本次攻击额外投3颗骰子，命中后目标退后2格",
+          "type": "battle"
+        }
+      }
+    },
+    {
+      "id": "sr_guhe",
+      "name": "古河",
+      "tribute": "古河（炼药师）",
+      "rarity": "SR",
+      "ip": "斗破苍穹",
+      "type": "丹修",
+      "gender": "男",
+      "realm": "筑基",
+      "realm_level": 2,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_2"
+      ],
+      "hp": 6,
+      "atk": 5,
+      "mnd": 4,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": {
+          "name": "炼药之炎",
+          "desc": "治疗相邻1名友军2点气血并使其本回合修为+1",
+          "type": "battle"
+        }
+      }
+    },
+    {
+      "id": "sr_tianhuo",
+      "name": "天火尊者",
+      "tribute": "天火",
+      "rarity": "SR",
+      "ip": "斗破苍穹",
+      "type": "法修",
+      "gender": "男",
+      "realm": "筑基",
+      "realm_level": 2,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_2"
+      ],
+      "hp": 7,
+      "atk": 7,
+      "mnd": 3,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": {
+          "name": "天火三千焰",
+          "desc": "本次攻击额外投3颗骰子，命中后目标持续灼烧1回合（-1气血）",
+          "type": "battle"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "id": "sr_yafei",
+      "name": "雅妃",
+      "tribute": "雅妃",
+      "rarity": "SR",
+      "ip": "斗破苍穹",
+      "type": "丹修",
+      "gender": "女",
+      "realm": "筑基",
+      "realm_level": 2,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_2"
+      ],
+      "hp": 5,
+      "atk": 4,
+      "mnd": 5,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": {
+          "name": "迦南商会·补给",
+          "desc": "治疗所有相邻友军各1点气血",
+          "type": "battle"
+        }
+      }
+    },
+    {
+      "id": "sr_ziyan",
+      "name": "紫妍",
+      "tribute": "紫妍",
+      "rarity": "SR",
+      "ip": "斗破苍穹",
+      "type": "妖修",
+      "gender": "女",
+      "realm": "筑基",
+      "realm_level": 2,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_2"
+      ],
+      "hp": 6,
+      "atk": 6,
+      "mnd": 4,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": {
+          "name": "龙族暴怒",
+          "desc": "本次攻击额外投2颗骰子，若对方为妖修则再+2",
+          "type": "battle"
+        }
+      }
+    },
+    {
+      "id": "sr_lifeiyu",
+      "name": "厉飞雨",
+      "tribute": "厉飞雨",
+      "rarity": "SR",
+      "ip": "凡人修仙传",
+      "type": "剑修",
+      "gender": "男",
+      "realm": "筑基",
+      "realm_level": 2,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_2"
+      ],
+      "hp": 7,
+      "atk": 7,
+      "mnd": 3,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": {
+          "name": "疾风剑诀",
+          "desc": "本次攻击额外投2颗骰子，可在攻击前移动1格",
+          "type": "battle"
+        }
+      }
+    },
+    {
+      "id": "sr_hanyunzhi",
+      "name": "菡云芝",
+      "tribute": "菡云芝",
+      "rarity": "SR",
+      "ip": "凡人修仙传",
+      "type": "法修",
+      "gender": "女",
+      "realm": "筑基",
+      "realm_level": 2,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_2"
+      ],
+      "hp": 6,
+      "atk": 5,
+      "mnd": 5,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": {
+          "name": "化形散",
+          "desc": "本回合变形为敌方角色，复制其修为值进行攻击",
+          "type": "battle"
+        }
+      }
+    },
+    {
+      "id": "sr_mupeiling",
+      "name": "慕沛灵",
+      "tribute": "慕沛灵",
+      "rarity": "SR",
+      "ip": "凡人修仙传",
+      "type": "丹修",
+      "gender": "女",
+      "realm": "筑基",
+      "realm_level": 2,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_2"
+      ],
+      "hp": 5,
+      "atk": 4,
+      "mnd": 5,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": {
+          "name": "灵药妙手",
+          "desc": "治疗相邻1名友军3点气血",
+          "type": "battle"
+        }
+      }
+    },
+    {
+      "id": "sr_chenqiaoqian",
+      "name": "陈巧倩",
+      "tribute": "陈巧倩",
+      "rarity": "SR",
+      "ip": "凡人修仙传",
+      "type": "灵修",
+      "gender": "女",
+      "realm": "筑基",
+      "realm_level": 2,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_2"
+      ],
+      "hp": 6,
+      "atk": 5,
+      "mnd": 4,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": {
+          "name": "傀儡术·替身",
+          "desc": "受致命伤害时不退场，改为气血变1（整场1次）",
+          "type": "battle"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "id": "sr_yuanyao",
+      "name": "元瑶",
+      "tribute": "元瑶",
+      "rarity": "SR",
+      "ip": "凡人修仙传",
+      "type": "灵修",
+      "gender": "女",
+      "realm": "筑基",
+      "realm_level": 2,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_2"
+      ],
+      "hp": 5,
+      "atk": 5,
+      "mnd": 5,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": {
+          "name": "阴灵之力",
+          "desc": "普攻命中后目标心境-2",
+          "type": "battle"
+        }
+      }
+    },
+    {
+      "id": "sr_bingfeng",
+      "name": "冰凤",
+      "tribute": "冰凤",
+      "rarity": "SR",
+      "ip": "凡人修仙传",
+      "type": "妖修",
+      "gender": "女",
+      "realm": "筑基",
+      "realm_level": 2,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_2"
+      ],
+      "hp": 7,
+      "atk": 6,
+      "mnd": 4,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": {
+          "name": "冰凤寒啸",
+          "desc": "本次攻击额外投2颗骰子，命中后目标下回合无法移动",
+          "type": "battle"
+        }
+      }
+    },
+    {
+      "id": "sr_hongdie",
+      "name": "红蝶",
+      "tribute": "红蝶",
+      "rarity": "SR",
+      "ip": "仙逆",
+      "type": "妖修",
+      "gender": "女",
+      "realm": "筑基",
+      "realm_level": 2,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_2"
+      ],
+      "hp": 6,
+      "atk": 5,
+      "mnd": 5,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": {
+          "name": "蝶舞红尘",
+          "desc": "普攻命中后使目标迷惑：下回合随机攻击（可能打友军）",
+          "type": "battle"
+        }
+      }
+    },
+    {
+      "id": "sr_liumei",
+      "name": "柳眉",
+      "tribute": "柳眉",
+      "rarity": "SR",
+      "ip": "仙逆",
+      "type": "灵修",
+      "gender": "女",
+      "realm": "筑基",
+      "realm_level": 2,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_2"
+      ],
+      "hp": 5,
+      "atk": 5,
+      "mnd": 5,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": {
+          "name": "灵力共鸣",
+          "desc": "治疗相邻所有友军各1点气血，自身修为+1",
+          "type": "battle"
+        }
+      }
+    },
+    {
+      "id": "sr_tenghuayuan",
+      "name": "藤化原",
+      "tribute": "藤化原",
+      "rarity": "SR",
+      "ip": "仙逆",
+      "type": "妖修",
+      "gender": "男",
+      "realm": "筑基",
+      "realm_level": 2,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_2"
+      ],
+      "hp": 7,
+      "atk": 6,
+      "mnd": 3,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": {
+          "name": "藤蔓缠绕",
+          "desc": "普攻命中后目标下2回合无法移动",
+          "type": "battle"
+        }
+      }
+    },
+    {
+      "id": "sr_yunquezi",
+      "name": "云雀子",
+      "tribute": "云雀子",
+      "rarity": "SR",
+      "ip": "仙逆",
+      "type": "法修",
+      "gender": "男",
+      "realm": "筑基",
+      "realm_level": 2,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_2"
+      ],
+      "hp": 6,
+      "atk": 6,
+      "mnd": 4,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": {
+          "name": "万鬼噬魂",
+          "desc": "本次攻击额外投3颗骰子，命中后吸取1点气血",
+          "type": "battle"
+        }
+      }
+    },
+    {
+      "id": "sr_xuliguo",
+      "name": "许立国",
+      "tribute": "许立国",
+      "rarity": "SR",
+      "ip": "仙逆",
+      "type": "体修",
+      "gender": "男",
+      "realm": "筑基",
+      "realm_level": 2,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_2"
+      ],
+      "hp": 8,
+      "atk": 5,
+      "mnd": 3,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": {
+          "name": "铁骨铮铮",
+          "desc": "被攻击时对方骰子结果-2，若未受伤则反弹1点伤害",
+          "type": "battle"
+        }
+      }
+    },
+    {
+      "id": "sr_wangping",
+      "name": "王平",
+      "tribute": "王平",
+      "rarity": "SR",
+      "ip": "仙逆",
+      "type": "体修",
+      "gender": "男",
+      "realm": "筑基",
+      "realm_level": 2,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_2"
+      ],
+      "hp": 7,
+      "atk": 5,
+      "mnd": 4,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": {
+          "name": "兄弟情义",
+          "desc": "为相邻友军承受本次攻击（伤害由自己承受）",
+          "type": "battle"
+        }
+      },
+      "disabled": true
+    }
+  ],
+  "pool_r": [
+    {
+      "id": "r_liuerlong",
+      "name": "柳二龙",
+      "tribute": "柳二龙",
+      "rarity": "R",
+      "ip": "斗罗大陆",
+      "type": "妖修",
+      "gender": "女",
+      "realm": "筑基",
+      "realm_level": 2,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_1"
+      ],
+      "hp": 5,
+      "atk": 5,
+      "mnd": 3,
+      "skills": {
+        "run_skill": {
+          "type": "run",
+          "name": "龙吟震慑",
+          "desc": "抽卡时若抽到N卡可放回重抽1次",
+          "category": "reroll_n",
+          "params": {
+            "rerollRarity": "N"
+          }
+        },
+        "battle_skill": null
+      }
+    },
+    {
+      "id": "r_dugubo",
+      "name": "独孤博",
+      "tribute": "独孤博",
+      "rarity": "R",
+      "ip": "斗罗大陆",
+      "type": "丹修",
+      "gender": "男",
+      "realm": "筑基",
+      "realm_level": 2,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_1"
+      ],
+      "hp": 4,
+      "atk": 4,
+      "mnd": 4,
+      "skills": {
+        "run_skill": {
+          "type": "run",
+          "name": "毒手药王",
+          "desc": "抽取2张卡牌，选1张获取",
+          "category": "preview_2",
+          "params": {
+            "count": 2
+          }
+        },
+        "battle_skill": null
+      }
+    },
+    {
+      "id": "r_beibei",
+      "name": "贝贝",
+      "tribute": "贝贝",
+      "rarity": "R",
+      "ip": "斗罗大陆",
+      "type": "法修",
+      "gender": "男",
+      "realm": "筑基",
+      "realm_level": 2,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_1"
+      ],
+      "hp": 5,
+      "atk": 4,
+      "mnd": 3,
+      "skills": {
+        "run_skill": {
+          "type": "run",
+          "name": "蓝电霸王龙感知",
+          "desc": "抽取3张卡牌，选1张获取",
+          "category": "preview_3",
+          "params": {
+            "count": 3
+          }
+        },
+        "battle_skill": null
+      }
+    },
+    {
+      "id": "r_xusanshi",
+      "name": "徐三石",
+      "tribute": "徐三石",
+      "rarity": "R",
+      "ip": "斗罗大陆",
+      "type": "体修",
+      "gender": "男",
+      "realm": "筑基",
+      "realm_level": 2,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_1"
+      ],
+      "hp": 6,
+      "atk": 3,
+      "mnd": 3,
+      "skills": {
+        "run_skill": {
+          "type": "run",
+          "name": "玄武盾护",
+          "desc": "每次抽卡时灵石费用-2",
+          "category": "cost_reduce",
+          "value": 2,
+          "params": {
+            "reduce": 2
+          }
+        },
+        "battle_skill": null
+      },
+      "disabled": true
+    },
+    {
+      "id": "r_zhaowuji",
+      "name": "赵无极",
+      "tribute": "赵无极",
+      "rarity": "R",
+      "ip": "斗罗大陆",
+      "type": "法修",
+      "gender": "男",
+      "realm": "筑基",
+      "realm_level": 2,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_1"
+      ],
+      "hp": 4,
+      "atk": 5,
+      "mnd": 3,
+      "skills": {
+        "run_skill": {
+          "type": "run",
+          "name": "暗金恐爪",
+          "desc": "抽1张卡，若为法修卡则额外获得5颗灵石",
+          "category": "bonus_by_type",
+          "target_type": "法修",
+          "reward": 5,
+          "params": {
+            "targetType": "法修",
+            "reward": 5
+          }
+        },
+        "battle_skill": null
+      },
+      "disabled": true
+    },
+    {
+      "id": "r_fulande",
+      "name": "弗兰德",
+      "tribute": "弗兰德",
+      "rarity": "R",
+      "ip": "斗罗大陆",
+      "type": "法修",
+      "gender": "男",
+      "realm": "筑基",
+      "realm_level": 2,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_1"
+      ],
+      "hp": 4,
+      "atk": 4,
+      "mnd": 4,
+      "skills": {
+        "run_skill": {
+          "type": "run",
+          "name": "院长统筹",
+          "desc": "默认抽取同故事情节的角色卡，若无则随机抽取",
+          "category": "same_ip_first",
+          "params": {
+            "ip": "斗罗大陆"
+          }
+        },
+        "battle_skill": null
+      }
+    },
+    {
+      "id": "r_qinglin",
+      "name": "青鳞",
+      "tribute": "青鳞",
+      "rarity": "R",
+      "ip": "斗破苍穹",
+      "type": "妖修",
+      "gender": "女",
+      "realm": "筑基",
+      "realm_level": 2,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_1"
+      ],
+      "hp": 5,
+      "atk": 4,
+      "mnd": 3,
+      "skills": {
+        "run_skill": {
+          "type": "run",
+          "name": "三花瞳变",
+          "desc": "抽取3张卡牌，选1张获取",
+          "category": "preview_3",
+          "params": {
+            "count": 3
+          }
+        },
+        "battle_skill": null
+      },
+      "disabled": true
+    },
+    {
+      "id": "r_xiaoxiao",
+      "name": "萧潇",
+      "tribute": "萧潇（萧炎之女）",
+      "rarity": "R",
+      "ip": "斗破苍穹",
+      "type": "剑修",
+      "gender": "女",
+      "realm": "筑基",
+      "realm_level": 2,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_1"
+      ],
+      "hp": 4,
+      "atk": 5,
+      "mnd": 3,
+      "skills": {
+        "run_skill": {
+          "type": "run",
+          "name": "踏空而行",
+          "desc": "抽取2张卡牌，选1张获取",
+          "category": "preview_2",
+          "params": {
+            "count": 2
+          }
+        },
+        "battle_skill": null
+      }
+    },
+    {
+      "id": "r_ruolin",
+      "name": "若琳",
+      "tribute": "若琳",
+      "rarity": "R",
+      "ip": "斗破苍穹",
+      "type": "灵修",
+      "gender": "女",
+      "realm": "筑基",
+      "realm_level": 2,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_1"
+      ],
+      "hp": 4,
+      "atk": 4,
+      "mnd": 4,
+      "skills": {
+        "run_skill": {
+          "type": "run",
+          "name": "银宗暗报",
+          "desc": "主动跳过抽卡轮次时，获得2灵石",
+          "category": "skip_reward",
+          "value": 2,
+          "params": {
+            "reward": 2
+          }
+        },
+        "battle_skill": null
+      },
+      "disabled": true
+    },
+    {
+      "id": "r_fama",
+      "name": "法犸",
+      "tribute": "法犸（炼药师公会会长）",
+      "rarity": "R",
+      "ip": "斗破苍穹",
+      "type": "丹修",
+      "gender": "男",
+      "realm": "筑基",
+      "realm_level": 2,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_1"
+      ],
+      "hp": 4,
+      "atk": 3,
+      "mnd": 5,
+      "skills": {
+        "run_skill": {
+          "type": "run",
+          "name": "炼药鉴定",
+          "desc": "默认抽取同故事情节的角色卡，若无则随机抽取",
+          "category": "same_ip_first",
+          "params": {
+            "ip": "斗破苍穹"
+          }
+        },
+        "battle_skill": null
+      }
+    },
+    {
+      "id": "r_haibodong",
+      "name": "海波东",
+      "tribute": "海波东",
+      "rarity": "R",
+      "ip": "斗破苍穹",
+      "type": "法修",
+      "gender": "男",
+      "realm": "筑基",
+      "realm_level": 2,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_1"
+      ],
+      "hp": 5,
+      "atk": 5,
+      "mnd": 3,
+      "skills": {
+        "run_skill": {
+          "type": "run",
+          "name": "冰皇领域",
+          "desc": "抽卡时若抽到N卡可放回重抽1次",
+          "category": "reroll_n",
+          "params": {
+            "rerollRarity": "N"
+          }
+        },
+        "battle_skill": null
+      }
+    },
+    {
+      "id": "r_linxiuya",
+      "name": "林修涯",
+      "tribute": "林修涯",
+      "rarity": "R",
+      "ip": "斗破苍穹",
+      "type": "丹修",
+      "gender": "男",
+      "realm": "筑基",
+      "realm_level": 2,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_1"
+      ],
+      "hp": 4,
+      "atk": 4,
+      "mnd": 4,
+      "skills": {
+        "run_skill": {
+          "type": "run",
+          "name": "风雷阁弟子",
+          "desc": "每次抽卡时灵石费用-2",
+          "category": "cost_reduce",
+          "value": 2,
+          "params": {
+            "reduce": 2
+          }
+        },
+        "battle_skill": null
+      }
+    },
+    {
+      "id": "r_xinruyin",
+      "name": "辛如音",
+      "tribute": "辛如音",
+      "rarity": "R",
+      "ip": "凡人修仙传",
+      "type": "剑修",
+      "gender": "女",
+      "realm": "筑基",
+      "realm_level": 2,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_1"
+      ],
+      "hp": 4,
+      "atk": 5,
+      "mnd": 3,
+      "skills": {
+        "run_skill": {
+          "type": "run",
+          "name": "琴剑双修",
+          "desc": "抽1张卡，若为剑修卡则额外获得5颗灵石",
+          "category": "bonus_by_type",
+          "target_type": "剑修",
+          "reward": 5,
+          "params": {
+            "targetType": "剑修",
+            "reward": 5
+          }
+        },
+        "battle_skill": null
+      },
+      "disabled": true
+    },
+    {
+      "id": "r_manhuzi",
+      "name": "蛮胡子",
+      "tribute": "蛮胡子",
+      "rarity": "R",
+      "ip": "凡人修仙传",
+      "type": "体修",
+      "gender": "男",
+      "realm": "筑基",
+      "realm_level": 2,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_1"
+      ],
+      "hp": 6,
+      "atk": 4,
+      "mnd": 2,
+      "skills": {
+        "run_skill": {
+          "type": "run",
+          "name": "蛮力开路",
+          "desc": "支付20灵石，可在当前卡池中指定一张卡抽取",
+          "category": "designate_paid",
+          "cost": 20,
+          "params": {
+            "extraCost": 20
+          }
+        },
+        "battle_skill": null
+      }
+    },
+    {
+      "id": "r_dongxuaner",
+      "name": "董萱儿",
+      "tribute": "董萱儿",
+      "rarity": "R",
+      "ip": "凡人修仙传",
+      "type": "丹修",
+      "gender": "女",
+      "realm": "筑基",
+      "realm_level": 2,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_1"
+      ],
+      "hp": 4,
+      "atk": 3,
+      "mnd": 4,
+      "skills": {
+        "run_skill": {
+          "type": "run",
+          "name": "灵药妙解",
+          "desc": "每次抽卡时灵石费用-2",
+          "category": "cost_reduce",
+          "value": 2,
+          "params": {
+            "reduce": 2
+          }
+        },
+        "battle_skill": null
+      },
+      "disabled": true
+    },
+    {
+      "id": "r_wangchan",
+      "name": "王蝉",
+      "tribute": "王蝉",
+      "rarity": "R",
+      "ip": "凡人修仙传",
+      "type": "法修",
+      "gender": "男",
+      "realm": "筑基",
+      "realm_level": 2,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_1"
+      ],
+      "hp": 4,
+      "atk": 4,
+      "mnd": 4,
+      "skills": {
+        "run_skill": {
+          "type": "run",
+          "name": "夏日の蝉",
+          "desc": "优先抽取卡池中的女性角色",
+          "category": "prefer_female",
+          "params": {
+            "gender": "女"
+          }
+        },
+        "battle_skill": null
+      }
+    },
+    {
+      "id": "r_lihuayuan",
+      "name": "李化元",
+      "tribute": "李化元",
+      "rarity": "R",
+      "ip": "凡人修仙传",
+      "type": "丹修",
+      "gender": "男",
+      "realm": "筑基",
+      "realm_level": 2,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_1"
+      ],
+      "hp": 4,
+      "atk": 3,
+      "mnd": 5,
+      "skills": {
+        "run_skill": {
+          "type": "run",
+          "name": "炼丹妙手",
+          "desc": "默认抽取同故事情节的角色卡，若无则随机抽取",
+          "category": "same_ip_first",
+          "params": {
+            "ip": "凡人修仙传"
+          }
+        },
+        "battle_skill": null
+      }
+    },
+    {
+      "id": "r_songyu",
+      "name": "宋玉",
+      "tribute": "宋玉",
+      "rarity": "R",
+      "ip": "凡人修仙传",
+      "type": "剑修",
+      "gender": "男",
+      "realm": "筑基",
+      "realm_level": 2,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_1"
+      ],
+      "hp": 5,
+      "atk": 5,
+      "mnd": 3,
+      "skills": {
+        "run_skill": {
+          "type": "run",
+          "name": "吹茶仙子",
+          "desc": "可免灵石抽取一次卡（限1次）",
+          "category": "free_draw_once",
+          "limit": 1,
+          "params": {}
+        },
+        "battle_skill": null
+      }
+    },
+    {
+      "id": "r_wangzhuo",
+      "name": "王卓",
+      "tribute": "王卓",
+      "rarity": "R",
+      "ip": "仙逆",
+      "type": "体修",
+      "gender": "男",
+      "realm": "筑基",
+      "realm_level": 2,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_1"
+      ],
+      "hp": 5,
+      "atk": 4,
+      "mnd": 3,
+      "skills": {
+        "run_skill": {
+          "type": "run",
+          "name": "王族血脉",
+          "desc": "每轮抽卡回合可额外消耗6灵石，多抽一张卡",
+          "category": "extra_draw_paid",
+          "cost": 6,
+          "params": {
+            "extraCost": 6
+          }
+        },
+        "battle_skill": null
+      },
+      "disabled": true
+    },
+    {
+      "id": "r_meiji",
+      "name": "魅姬",
+      "tribute": "魅姬",
+      "rarity": "R",
+      "ip": "仙逆",
+      "type": "妖修",
+      "gender": "女",
+      "realm": "筑基",
+      "realm_level": 2,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_1"
+      ],
+      "hp": 4,
+      "atk": 4,
+      "mnd": 4,
+      "skills": {
+        "run_skill": {
+          "type": "run",
+          "name": "魅惑之术",
+          "desc": "优先抽取卡池中的男性角色",
+          "category": "prefer_male",
+          "params": {
+            "gender": "男"
+          }
+        },
+        "battle_skill": null
+      }
+    },
+    {
+      "id": "r_jimolaoren",
+      "name": "即墨老人",
+      "tribute": "即墨老人",
+      "rarity": "R",
+      "ip": "仙逆",
+      "type": "法修",
+      "gender": "男",
+      "realm": "筑基",
+      "realm_level": 2,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_1"
+      ],
+      "hp": 4,
+      "atk": 5,
+      "mnd": 3,
+      "skills": {
+        "run_skill": {
+          "type": "run",
+          "name": "画道入修",
+          "desc": "抽1张卡，若为灵修卡则额外获得5颗灵石",
+          "category": "bonus_by_type",
+          "target_type": "灵修",
+          "reward": 5,
+          "params": {
+            "targetType": "灵修",
+            "reward": 5
+          }
+        },
+        "battle_skill": null
+      }
+    },
+    {
+      "id": "r_suntai",
+      "name": "孙泰",
+      "tribute": "孙泰",
+      "rarity": "R",
+      "ip": "仙逆",
+      "type": "剑修",
+      "gender": "男",
+      "realm": "筑基",
+      "realm_level": 2,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_1"
+      ],
+      "hp": 4,
+      "atk": 5,
+      "mnd": 3,
+      "skills": {
+        "run_skill": {
+          "type": "run",
+          "name": "七星剑意",
+          "desc": "每轮抽卡回合可额外消耗6灵石，多抽一张卡",
+          "category": "extra_draw_paid",
+          "cost": 6,
+          "params": {
+            "extraCost": 6
+          }
+        },
+        "battle_skill": null
+      }
+    },
+    {
+      "id": "r_zhouru",
+      "name": "周茹",
+      "tribute": "周茹",
+      "rarity": "R",
+      "ip": "仙逆",
+      "type": "灵修",
+      "gender": "女",
+      "realm": "筑基",
+      "realm_level": 2,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_1"
+      ],
+      "hp": 4,
+      "atk": 3,
+      "mnd": 5,
+      "skills": {
+        "run_skill": {
+          "type": "run",
+          "name": "灵力探查",
+          "desc": "默认抽取同故事情节的角色卡，若无则随机抽取",
+          "category": "same_ip_first",
+          "params": {
+            "ip": "仙逆"
+          }
+        },
+        "battle_skill": null
+      }
+    },
+    {
+      "id": "r_duntian",
+      "name": "遁天",
+      "tribute": "遁天",
+      "rarity": "R",
+      "ip": "仙逆",
+      "type": "法修",
+      "gender": "男",
+      "realm": "筑基",
+      "realm_level": 2,
+      "max_realm": "结丹",
+      "max_realm_level": 3,
+      "pool": [
+        "recruit_1"
+      ],
+      "hp": 5,
+      "atk": 4,
+      "mnd": 3,
+      "skills": {
+        "run_skill": {
+          "type": "run",
+          "name": "天使投资",
+          "desc": "使用该角色抽取3次卡牌后获得20灵石（整局累计1次）",
+          "category": "accum_reward",
+          "trigger": 3,
+          "reward": 20,
+          "params": {
+            "threshold": 3,
+            "reward": 20
+          }
+        },
+        "battle_skill": null
+      },
+      "disabled": true
+    }
+  ],
+  "pool_n": [
+    {
+      "id": "n_tailong",
+      "name": "泰隆",
+      "tribute": "泰隆",
+      "rarity": "N",
+      "ip": "斗罗大陆",
+      "type": "体修",
+      "gender": "男",
+      "realm": "炼气",
+      "realm_level": 1,
+      "max_realm": "筑基",
+      "max_realm_level": 2,
+      "pool": [
+        "recruit_1"
+      ],
+      "hp": 4,
+      "atk": 3,
+      "mnd": 2,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": null
+      }
+    },
+    {
+      "id": "n_jiangnannan",
+      "name": "江楠楠",
+      "tribute": "江楠楠",
+      "rarity": "N",
+      "ip": "斗罗大陆",
+      "type": "灵修",
+      "gender": "女",
+      "realm": "炼气",
+      "realm_level": 1,
+      "max_realm": "筑基",
+      "max_realm_level": 2,
+      "pool": [
+        "recruit_1"
+      ],
+      "hp": 3,
+      "atk": 2,
+      "mnd": 3,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": null
+      }
+    },
+    {
+      "id": "n_xuxiaoyan",
+      "name": "许小言",
+      "tribute": "许小言",
+      "rarity": "N",
+      "ip": "斗罗大陆",
+      "type": "法修",
+      "gender": "男",
+      "realm": "凡人",
+      "realm_level": 0,
+      "max_realm": "筑基",
+      "max_realm_level": 2,
+      "pool": [
+        "recruit_1"
+      ],
+      "hp": 2,
+      "atk": 2,
+      "mnd": 2,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": null
+      },
+      "disabled": true
+    },
+    {
+      "id": "n_fengqinger",
+      "name": "凤清儿",
+      "tribute": "凤清儿",
+      "rarity": "N",
+      "ip": "斗破苍穹",
+      "type": "法修",
+      "gender": "女",
+      "realm": "炼气",
+      "realm_level": 1,
+      "max_realm": "筑基",
+      "max_realm_level": 2,
+      "pool": [
+        "recruit_1"
+      ],
+      "hp": 3,
+      "atk": 3,
+      "mnd": 2,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": null
+      }
+    },
+    {
+      "id": "n_xiaoding",
+      "name": "萧鼎",
+      "tribute": "萧鼎",
+      "rarity": "N",
+      "ip": "斗破苍穹",
+      "type": "体修",
+      "gender": "男",
+      "realm": "凡人",
+      "realm_level": 0,
+      "max_realm": "筑基",
+      "max_realm_level": 2,
+      "pool": [
+        "recruit_1"
+      ],
+      "hp": 3,
+      "atk": 2,
+      "mnd": 1,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": null
+      }
+    },
+    {
+      "id": "n_gena",
+      "name": "格娜",
+      "tribute": "格娜",
+      "rarity": "N",
+      "ip": "斗破苍穹",
+      "type": "灵修",
+      "gender": "女",
+      "realm": "炼气",
+      "realm_level": 1,
+      "max_realm": "筑基",
+      "max_realm_level": 2,
+      "pool": [
+        "recruit_1"
+      ],
+      "hp": 2,
+      "atk": 2,
+      "mnd": 3,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": null
+      },
+      "disabled": true
+    },
+    {
+      "id": "n_zhangtie",
+      "name": "张铁",
+      "tribute": "张铁",
+      "rarity": "N",
+      "ip": "凡人修仙传",
+      "type": "体修",
+      "gender": "男",
+      "realm": "凡人",
+      "realm_level": 0,
+      "max_realm": "筑基",
+      "max_realm_level": 2,
+      "pool": [
+        "recruit_1"
+      ],
+      "hp": 3,
+      "atk": 2,
+      "mnd": 1,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": null
+      }
+    },
+    {
+      "id": "n_meining",
+      "name": "梅凝",
+      "tribute": "梅凝",
+      "rarity": "N",
+      "ip": "凡人修仙传",
+      "type": "灵修",
+      "gender": "女",
+      "realm": "炼气",
+      "realm_level": 1,
+      "max_realm": "筑基",
+      "max_realm_level": 2,
+      "pool": [
+        "recruit_1"
+      ],
+      "hp": 2,
+      "atk": 2,
+      "mnd": 3,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": null
+      }
+    },
+    {
+      "id": "n_mojuren",
+      "name": "墨居仁",
+      "tribute": "墨居仁",
+      "rarity": "N",
+      "ip": "凡人修仙传",
+      "type": "法修",
+      "gender": "男",
+      "realm": "炼气",
+      "realm_level": 1,
+      "max_realm": "筑基",
+      "max_realm_level": 2,
+      "pool": [
+        "recruit_1"
+      ],
+      "hp": 3,
+      "atk": 3,
+      "mnd": 2,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": null
+      },
+      "disabled": true
+    },
+    {
+      "id": "n_zhanghu",
+      "name": "张虎",
+      "tribute": "张虎",
+      "rarity": "N",
+      "ip": "仙逆",
+      "type": "体修",
+      "gender": "男",
+      "realm": "凡人",
+      "realm_level": 0,
+      "max_realm": "筑基",
+      "max_realm_level": 2,
+      "pool": [
+        "recruit_1"
+      ],
+      "hp": 3,
+      "atk": 2,
+      "mnd": 1,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": null
+      },
+      "disabled": true
+    },
+    {
+      "id": "n_daniu",
+      "name": "大牛",
+      "tribute": "大牛",
+      "rarity": "N",
+      "ip": "仙逆",
+      "type": "体修",
+      "gender": "男",
+      "realm": "凡人",
+      "realm_level": 0,
+      "max_realm": "筑基",
+      "max_realm_level": 2,
+      "pool": [
+        "recruit_1"
+      ],
+      "hp": 3,
+      "atk": 2,
+      "mnd": 1,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": null
+      }
+    },
+    {
+      "id": "n_tengli",
+      "name": "藤厉",
+      "tribute": "藤厉",
+      "rarity": "N",
+      "ip": "仙逆",
+      "type": "妖修",
+      "gender": "男",
+      "realm": "炼气",
+      "realm_level": 1,
+      "max_realm": "筑基",
+      "max_realm_level": 2,
+      "pool": [
+        "recruit_1"
+      ],
+      "hp": 3,
+      "atk": 3,
+      "mnd": 2,
+      "skills": {
+        "run_skill": null,
+        "battle_skill": null
+      }
+    }
+  ]
+}

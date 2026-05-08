@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800" width="600" height="800">
+  <defs>
+    <linearGradient id="bgYi" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a2a1a"/>
+      <stop offset="60%" stop-color="#0a140a"/>
+      <stop offset="100%" stop-color="#040a04"/>
+    </linearGradient>
+    <radialGradient id="glowYi" cx="50%" cy="42%" r="55%">
+      <stop offset="0%" stop-color="rgba(123,168,95,0.35)"/>
+      <stop offset="100%" stop-color="rgba(0,0,0,0)"/>
+    </radialGradient>
+    <linearGradient id="robeYi" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#4a6a3a"/>
+      <stop offset="100%" stop-color="#1a2a14"/>
+    </linearGradient>
+    <linearGradient id="skinYi" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#e8c49c"/>
+      <stop offset="100%" stop-color="#a88068"/>
+    </linearGradient>
+    <linearGradient id="armorYi" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#8a7046"/>
+      <stop offset="100%" stop-color="#3a2814"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 背景 -->
+  <rect width="600" height="800" fill="url(#bgYi)"/>
+  <ellipse cx="300" cy="340" rx="320" ry="380" fill="url(#glowYi)"/>
+
+  <!-- 竹影 -->
+  <g opacity="0.18" stroke="#7ba85f" stroke-width="2" fill="none">
+    <line x1="60" y1="0" x2="90" y2="800"/>
+    <line x1="510" y1="0" x2="490" y2="800"/>
+    <line x1="85" y1="100" x2="110" y2="100"/>
+    <line x1="85" y1="260" x2="110" y2="260"/>
+    <line x1="85" y1="440" x2="110" y2="440"/>
+    <line x1="85" y1="620" x2="110" y2="620"/>
+    <line x1="490" y1="180" x2="515" y2="180"/>
+    <line x1="490" y1="340" x2="515" y2="340"/>
+    <line x1="490" y1="520" x2="515" y2="520"/>
+    <line x1="490" y1="700" x2="515" y2="700"/>
+  </g>
+
+  <!-- 长棍（立于身后） -->
+  <rect x="148" y="100" width="12" height="680" fill="#5a3818" stroke="#1a0a04" stroke-width="2"/>
+  <rect x="142" y="100" width="24" height="14" rx="2" fill="#3a2010"/>
+  <rect x="142" y="760" width="24" height="14" rx="2" fill="#3a2010"/>
+
+  <!-- 长袍主体（壮硕） -->
+  <path d="M 150 770 L 170 500 Q 180 420 230 380 L 370 380 Q 420 420 430 500 L 450 770 Z"
+        fill="url(#robeYi)" stroke="#0a1604" stroke-width="3"/>
+
+  <!-- 胸甲 -->
+  <path d="M 220 420 L 380 420 L 395 545 L 205 545 Z" fill="url(#armorYi)" stroke="#1a0f04" stroke-width="3"/>
+  <!-- 甲片纹 -->
+  <path d="M 220 460 L 380 460 M 220 495 L 380 495 M 220 525 L 380 525" stroke="#5a4020" stroke-width="1" opacity="0.7"/>
+  <!-- 甲中心圆扣 -->
+  <circle cx="300" cy="485" r="18" fill="#d4a04a" stroke="#6a4a1a" stroke-width="2"/>
+  <circle cx="300" cy="485" r="8" fill="#8b5a1a"/>
+
+  <!-- 腰带 -->
+  <rect x="200" y="560" width="200" height="32" fill="#8a6a2a" stroke="#3a2008" stroke-width="2"/>
+
+  <!-- 肩甲（强化、体修特征） -->
+  <ellipse cx="200" cy="410" rx="40" ry="28" fill="url(#armorYi)" stroke="#1a0f04" stroke-width="3"/>
+  <ellipse cx="400" cy="410" rx="40" ry="28" fill="url(#armorYi)" stroke="#1a0f04" stroke-width="3"/>
+
+  <!-- 强壮手臂（左） -->
+  <path d="M 170 440 Q 140 520 150 620 L 180 620 Q 190 520 205 450 Z" fill="url(#robeYi)" stroke="#0a1604" stroke-width="2"/>
+  <!-- 强壮手臂（右） -->
+  <path d="M 430 440 Q 460 520 450 620 L 420 620 Q 410 520 395 450 Z" fill="url(#robeYi)" stroke="#0a1604" stroke-width="2"/>
+  <!-- 拳头 -->
+  <circle cx="162" cy="635" r="24" fill="url(#skinYi)" stroke="#5a3a1a" stroke-width="2"/>
+  <circle cx="438" cy="635" r="24" fill="url(#skinYi)" stroke="#5a3a1a" stroke-width="2"/>
+
+  <!-- 粗脖子 -->
+  <rect x="268" y="300" width="64" height="45" fill="url(#skinYi)"/>
+
+  <!-- 头部（方脸） -->
+  <path d="M 220 180 Q 220 140 260 125 Q 300 115 340 125 Q 380 140 380 180 L 378 260 Q 370 320 300 335 Q 230 320 222 260 Z"
+        fill="url(#skinYi)" stroke="#5a3a1a" stroke-width="2"/>
+
+  <!-- 头发（络腮+短发） -->
+  <path d="M 215 200 Q 210 140 260 118 Q 300 108 340 118 Q 390 140 385 200 Q 385 175 300 168 Q 215 175 215 200 Z"
+        fill="#0a0604" stroke="#000" stroke-width="1"/>
+
+  <!-- 粗眉 -->
+  <path d="M 248 215 Q 268 205 288 215" stroke="#0a0604" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <path d="M 312 215 Q 332 205 352 215" stroke="#0a0604" stroke-width="5" fill="none" stroke-linecap="round"/>
+
+  <!-- 眼睛（锐利） -->
+  <path d="M 252 240 L 278 238 L 278 248 L 252 246 Z" fill="#1a0a04"/>
+  <path d="M 322 238 L 348 240 L 348 246 L 322 248 Z" fill="#1a0a04"/>
+
+  <!-- 鼻（宽） -->
+  <path d="M 300 250 L 288 285 Q 300 292 312 285 Z" fill="none" stroke="#8a5830" stroke-width="2"/>
+
+  <!-- 络腮胡 -->
+  <path d="M 225 280 Q 235 320 260 335 Q 300 345 340 335 Q 365 320 375 280"
+        stroke="#1a0a04" stroke-width="3" fill="#0a0604" opacity="0.85"/>
+  <path d="M 270 305 Q 280 325 270 340 M 330 305 Q 320 325 330 340 M 300 320 Q 300 345 300 355"
+        stroke="#1a0a04" stroke-width="2" fill="none"/>
+
+  <!-- 嘴（紧抿严肃） -->
+  <path d="M 280 305 Q 300 300 320 305" stroke="#3a1a08" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+
+  <!-- 体修徽章（拳印） -->
+  <g transform="translate(300 730)" opacity="0.45">
+    <circle r="32" fill="none" stroke="#7ba85f" stroke-width="2"/>
+    <circle r="18" fill="#7ba85f" opacity="0.7"/>
+    <text x="0" y="6" font-size="20" font-family="serif" fill="#0a140a" text-anchor="middle" font-weight="bold">体</text>
+  </g>
+</svg>

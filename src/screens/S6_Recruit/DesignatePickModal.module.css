@@ -1,0 +1,109 @@
+.overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(5, 10, 20, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 150;
+}
+
+.panel {
+  width: 900px;
+  max-height: 80vh;
+  padding: 28px 32px;
+  background: linear-gradient(180deg, rgba(30, 40, 60, 0.98), rgba(10, 18, 32, 0.99));
+  border: 2px solid #c8a850;
+  border-radius: 14px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel h2 {
+  font-size: 24px;
+  color: #c8a850;
+  margin: 0 0 4px;
+  letter-spacing: 4px;
+}
+.panel p {
+  font-size: 13px;
+  color: rgba(235, 220, 180, 0.7);
+  margin: 0 0 14px;
+}
+
+.filter {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.filter button {
+  padding: 6px 16px;
+  background: rgba(60, 70, 90, 0.6);
+  border: 1px solid rgba(200, 168, 80, 0.3);
+  border-radius: 5px;
+  color: #ebdcb4;
+  font-size: 13px;
+  cursor: pointer;
+}
+.filter button:hover { border-color: #c8a850; }
+.filter button.active {
+  background: #c8a850;
+  color: #1a1a1a;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 10px;
+  overflow-y: auto;
+  flex: 1;
+  padding: 4px;
+}
+
+.card {
+  padding: 10px;
+  background: rgba(20, 30, 50, 0.8);
+  border: 2px solid #888;
+  border-radius: 6px;
+  color: #ebdcb4;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: all 0.15s;
+}
+.card:hover { transform: translateY(-3px); box-shadow: 0 4px 12px rgba(200, 168, 80, 0.4); }
+
+.rarity {
+  align-self: flex-start;
+  padding: 1px 6px;
+  font-size: 10px;
+  font-weight: 800;
+  color: #1a1a1a;
+  border-radius: 2px;
+}
+.name {
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  margin-top: 2px;
+}
+.type {
+  font-size: 11px;
+  color: rgba(235, 220, 180, 0.6);
+  text-align: center;
+}
+
+.close {
+  margin-top: 14px;
+  padding: 10px 30px;
+  background: rgba(80, 80, 100, 0.8);
+  border: 1px solid #c8a850;
+  border-radius: 6px;
+  color: #ebdcb4;
+  font-size: 14px;
+  cursor: pointer;
+  align-self: center;
+}

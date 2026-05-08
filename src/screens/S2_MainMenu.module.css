@@ -1,0 +1,88 @@
+.screen {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+/* 单张合成背景（水墨+立绘+标题一体图） */
+.bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  z-index: 1;
+}
+
+/* z4: 三按钮（最上层） */
+.buttons {
+  position: absolute;
+  bottom: 6%;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 4;
+  align-items: center;
+}
+
+/* Modal z-index 100 */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal {
+  width: 520px;
+  padding: 28px;
+  background: linear-gradient(180deg, #1a1d2a 0%, #12141e 100%);
+  border: 2px solid var(--color-gold);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.mTitle {
+  font-family: var(--font-title);
+  font-weight: 700;
+  font-size: 28px;
+  color: var(--color-gold);
+  letter-spacing: 4px;
+}
+
+.slot {
+  width: 100%;
+  padding: 12px 16px;
+  background: rgba(245, 239, 224, 0.06);
+  border: 1px solid rgba(200, 161, 75, 0.3);
+  border-radius: var(--radius-md);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background var(--tr-base);
+}
+.slot:not(:disabled):hover { background: rgba(200, 161, 75, 0.15); border-color: var(--color-gold); }
+.slot:disabled { opacity: 0.5; cursor: not-allowed; }
+.slotLabel { font-family: var(--font-title); font-size: 18px; color: var(--color-gold-light); }
+.slotInfo { font-family: var(--font-ui); font-size: 14px; color: var(--color-paper); }
+.slotEmpty { font-family: var(--font-ui); font-size: 14px; color: var(--color-ink-muted); }
+
+.closeBtn {
+  margin-top: 4px; padding: 8px 24px;
+  border: 1px solid var(--color-gold-dark); color: var(--color-gold-light);
+  border-radius: var(--radius-sm); font-family: var(--font-title); font-size: 16px;
+  transition: background var(--tr-base);
+}
+.closeBtn:hover { background: rgba(200, 161, 75, 0.15); }
+.placeholder { padding: 32px; color: var(--color-ink-muted); font-family: var(--font-ui); }

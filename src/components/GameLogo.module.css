@@ -1,0 +1,27 @@
+.wrap {
+  text-align: center;
+  user-select: none;
+}
+
+.logo {
+  font-family: var(--font-logo);
+  font-weight: 700;
+  font-size: var(--fs-logo);
+  background: linear-gradient(180deg, #e8c878 0%, #c8a14b 50%, #8b6b2e 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-stroke: 2px var(--color-ink-deep);
+  filter:
+    drop-shadow(0 0 12px rgba(232, 200, 120, 0.55))
+    drop-shadow(0 4px 8px rgba(0, 0, 0, 0.4));
+  letter-spacing: 8px;
+  line-height: 1.1;
+  display: inline-block;
+}
+
+.wrap[data-size='medium'] .logo {
+  font-size: 72px;
+  letter-spacing: 4px;
+  -webkit-text-stroke-width: 1.5px;
+}

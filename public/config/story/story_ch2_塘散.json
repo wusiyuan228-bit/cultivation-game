@@ -1,0 +1,49 @@
+{
+  "version": "3.0",
+  "character": "塘散",
+  "chapter": 2,
+  "chapter_title": "拜师入门",
+  "total_segments": 4,
+  "segments": [
+    {
+      "id": "ch2_ts_01",
+      "type": "narration",
+      "tag": "密",
+      "speaker": null,
+      "text": "赴天渊宗路上遇到一个灰袍散修，背着没鞘的铁剑，始终走在前面十几步。你搭话他加快步子，你跟上他更快。路过峡谷遭山匪伏击，三枚暗器射来时你本能推开他，铁蒺藜划过前臂割出血口。他盯着你手臂上的血，眼神像搅不开的潭水。当晚你枕边多了半瓶旧瓶好药。他叫寒立，话少，但心不冷。",
+      "simplified": "路遇灰袍散修寒立。山匪伏击你替他挡伤，他当晚默默放药。话少心不冷。",
+      "character_portrait": "portrait_hanli",
+      "emotion": "warm"
+    },
+    {
+      "id": "ch2_ts_02",
+      "type": "narration",
+      "tag": "密",
+      "speaker": null,
+      "text": "天渊宗山下集市，小舞儿从人堆里挤出来塞你一串灵果：'怎么又瘦了！'七年了，每月碰面从没断过。她给你灵果你给她讲故事，她说你太正经你说她太贪吃。和她在一起清心诀不需要——你的心本来就是静的。",
+      "simplified": "集市与小舞儿重逢。七年老友，和她在一起心本来就静。",
+      "character_portrait": "portrait_xiaowu",
+      "emotion": "warm"
+    },
+    {
+      "id": "ch2_ts_03",
+      "type": "narration",
+      "tag": "公",
+      "speaker": null,
+      "text": "宗门广场人山人海。萧焱大声打赌张扬得像火，但收拳时晃了一下。薰儿冷淡犀利，目光在你身上停了半秒。旺林主动拱手：'久仰塘兄——令尊塘昊前辈在西域威名赫赫。'说话有分寸，你回了礼。入门测试规则公布：气血、修为、心境三大属性决定一切。长老提到大比优胜者可进入坠魔谷——天渊宗封禁了数百年的遗迹。你心跳加速——坠魔谷，是不是和父亲有关？",
+      "simplified": "认识萧焱、薰儿、旺林。测试规则公布，大比可进坠魔谷——你心跳加速。",
+      "character_portrait": "portrait_tangsan_teen",
+      "emotion": "calm"
+    },
+    {
+      "id": "ch2_ts_04",
+      "type": "narration",
+      "tag": "密",
+      "speaker": null,
+      "text": "深呼吸。第一场测试的对手已经站到了你面前。不管坠魔谷里有什么——先赢了再说。",
+      "simplified": "对手上场了。先赢了再说。",
+      "character_portrait": "portrait_tangsan_teen",
+      "emotion": "calm"
+    }
+  ]
+}

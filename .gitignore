@@ -1,0 +1,50 @@
+# 依赖
+node_modules/
+
+# 构建产物
+dist/
+dist-ssr/
+*.local
+
+# 日志
+*.log
+.dev.log
+dev.log
+vite-dev.log
+vite_log.txt
+vite_s7c.log
+vite.err
+vite.out
+vite_s7c.err
+
+# 编辑器 / IDE
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+Thumbs.db
+
+# TypeScript 缓存
+*.tsbuildinfo
+
+# 临时截图 / 测试产物（项目根目录下的大截图，不跟随代码走）
+s6b_screenshot*.png
+_verify/
+screenshots/
+test_recruit_sim.mjs
+
+# 临时脚本输出
+tools/*.png
+scripts/*.png
+scripts/_*.png
+
+# 环境变量
+.env
+.env.local
+.env.*.local

@@ -1,0 +1,73 @@
+/**
+ * CommonHud - 通用右下角HUD
+ * 复刻 S4_StoryReading 右下角灵石+角色按钮的 UI 规范，作为全局常驻 UI 的一部分。
+ * 所有非抽卡界面默认挂载，从而和 BackButton/MusicToggle 一起构成"4件套"常驻控件。
+ */
+.hud {
+  position: fixed;
+  right: 32px;
+  bottom: 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  z-index: 50;
+  min-width: 200px;
+  pointer-events: none;       /* 子元素各自开启 pointer-events */
+  user-select: none;
+}
+
+.spiritStones,
+.collectionBtn {
+  pointer-events: auto;
+  padding: 8px 16px;
+  background: rgba(245, 239, 224, 0.12);
+  border: 1px solid rgba(139, 107, 46, 0.4);
+  border-radius: 6px;
+  /* 统一游戏楷体，与 --font-title 保持一致 */
+  font-family: 'LXGW WenKai', '霞鹜文楷', KaiTi, STKaiti, '楷体', serif !important;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: 1px;
+  color: #f5efe0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  white-space: nowrap;
+}
+
+.spiritStones {
+  cursor: default;
+}
+
+.spiritStones strong {
+  color: #7ecfff;
+  margin-left: 4px;
+  font-weight: 700;
+}
+
+.collectionBtn {
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+  background: rgba(245, 239, 224, 0.15);
+  border: 1px solid rgba(200, 161, 75, 0.6);
+  /* 覆盖 button UA 默认样式，确保与 .spiritStones 完全同款 */
+  font: inherit;
+  font-family: 'LXGW WenKai', '霞鹜文楷', KaiTi, STKaiti, '楷体', serif !important;
+  font-size: 16px !important;
+  font-weight: 500 !important;
+  color: #f5efe0;
+  letter-spacing: 1px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  padding: 8px 16px;
+}
+
+.collectionBtn:hover {
+  background: rgba(200, 161, 75, 0.22);
+  border-color: rgba(232, 200, 120, 0.9);
+}
+
+.collectionBtn strong {
+  color: #ffd98a;
+  margin-left: 4px;
+  font-weight: 700;
+}

@@ -1,0 +1,118 @@
+.clock {
+  width: 220px;
+  min-height: 200px;
+  padding: 14px 12px;
+  background: rgba(13, 27, 42, 0.95);
+  border: 2px solid var(--color-gold);
+  border-radius: 12px;
+  box-shadow: var(--shadow-panel), 0 0 20px rgba(200, 161, 75, 0.2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.clockLeft { }
+.clockRight { }
+
+.label {
+  font-family: var(--font-body-kaiti);
+  font-size: 16px;
+  color: var(--color-gold-light);
+  letter-spacing: 1px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.diceGrid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  min-height: 90px;
+  padding: 4px;
+  justify-items: center;
+  align-items: center;
+  width: 100%;
+}
+
+/* 当骰子数 ≤ 3 时一排显示 */
+.diceGrid[data-count='1'],
+.diceGrid[data-count='2'],
+.diceGrid[data-count='3'] {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.die {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-weight: 800;
+  font-size: 20px;
+  user-select: none;
+  transform-style: preserve-3d;
+}
+
+/* 0 面：深灰 */
+.face0 {
+  background: linear-gradient(145deg, #4a4a4a 0%, #2a2a2a 100%);
+  color: #ffffff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+/* 1 面：蓝底，微发光 */
+.face1 {
+  background: linear-gradient(145deg, #3b6fa8 0%, #1f3a5f 100%);
+  color: #ffffff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 0 6px rgba(74, 144, 226, 0.6), 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+/* 2 面：金底，强发光 */
+.face2 {
+  background: linear-gradient(145deg, #e8c878 0%, #c8a14b 100%);
+  color: #1a1a1a;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 0 12px rgba(255, 217, 107, 0.9), 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+.noDie {
+  grid-column: 1 / -1;
+  color: var(--color-ink-muted);
+  font-family: var(--font-body-kaiti);
+  font-size: 14px;
+  padding: 16px 0;
+}
+
+.sumRow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(200, 161, 75, 0.3);
+  width: 100%;
+}
+
+.sumLabel {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--color-gold-light);
+  opacity: 0.8;
+  letter-spacing: 2px;
+}
+
+.sumValue {
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-weight: 800;
+  font-size: 40px;
+  line-height: 1;
+  background: linear-gradient(180deg, #e8c878 0%, #c8a14b 60%, #8b6b2e 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  filter: drop-shadow(0 0 8px rgba(200, 161, 75, 0.4));
+}

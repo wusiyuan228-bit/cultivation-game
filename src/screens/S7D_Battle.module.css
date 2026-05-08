@@ -1,0 +1,1567 @@
+/*
+ * S7D_Battle · 坠魔谷决战地图样式
+ * 复用 S7_Battle.module.css 的底图/瓦片/棋子风格，针对 S7D 做以下适配：
+ *   - 18×12 地图，单元格 70px（较 S7B 的 190px 压缩，以容纳 12 单位）
+ *   - 地图底图复用 /images/map/s7_battle_map.jpg
+ *   - 功能瓦片复用 tile_spring/atk_boost/mnd_boost/miasma.png
+ *   - 水晶 / 出生点 暂用文字占位（待美术素材）
+ *   - 棋子缩小为 66×66，只显示名字前 3 字 + 槽号 + HP 条
+ */
+
+/* ==========================================================================
+ * 顶层容器
+ * ========================================================================== */
+.screen {
+  width: 1920px;
+  height: 1080px;
+  position: relative;
+  overflow: hidden;
+  color: #e8d9b5;
+  font-family: 'KaiTi', 'STKaiti', serif;
+  background:
+    radial-gradient(ellipse at top, #1a2338 0%, #0a0f1c 70%),
+    url('/assets/paper_texture.png');
+  background-size: cover;
+}
+
+/* ==========================================================================
+ * 空态 / 错误态
+ * ========================================================================== */
+.centerMsg {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  color: #d4b88a;
+  font-size: 24px;
+  letter-spacing: 2px;
+}
+
+.loadingSpinner {
+  font-size: 56px;
+  animation: spin 2s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.errorIcon {
+  font-size: 64px;
+  color: #e77;
+  margin-bottom: 16px;
+}
+
+.errorText {
+  color: #e88;
+  font-size: 20px;
+  margin-bottom: 24px;
+  max-width: 560px;
+  line-height: 1.6;
+}
+
+.errorBtn {
+  padding: 10px 32px;
+  background: linear-gradient(135deg, #8a7148, #5e4c32);
+  color: #f8d79a;
+  border: 1px solid #a8896a;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.errorBtn:hover {
+  filter: brightness(1.15);
+}
+
+/* ==========================================================================
+ * 顶栏
+ * ========================================================================== */
+.topBar {
+  position: relative;
+  z-index: 10;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  padding: 10px 40px 10px 96px; /* 左侧留出 BackButton */
+  background: linear-gradient(
+    180deg,
+    rgba(28, 20, 10, 0.9) 0%,
+    rgba(28, 20, 10, 0.55) 100%
+  );
+  border-bottom: 1px solid rgba(138, 113, 72, 0.55);
+  gap: 24px;
+}
+
+.topBarLeft {
+  flex: 0 0 280px;
+}
+
+.topBarCenter {
+  flex: 1 1 auto;
+  display: flex;
+  gap: 24px;
+  justify-content: center;
+}
+
+.topBarRight {
+  flex: 0 0 280px;
+  text-align: right;
+}
+
+.roundInfo {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.roundLabel {
+  font-size: 14px;
+  color: #a8967b;
+}
+
+.roundValue {
+  font-size: 28px;
+  font-weight: 700;
+  color: #f8d79a;
+  text-shadow: 0 0 8px rgba(250, 220, 150, 0.5);
+}
+
+.subRoundLabel {
+  font-size: 14px;
+  color: #cdbb96;
+}
+
+.slotHint {
+  color: #8a7148;
+  font-size: 12px;
+  margin-left: 4px;
+}
+
+.currentActor {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  padding: 8px 14px;
+  background: rgba(250, 220, 150, 0.12);
+  border: 1px solid rgba(250, 220, 150, 0.45);
+  border-radius: 8px;
+}
+
+.currentActorLabel {
+  font-size: 11px;
+  color: #a8967b;
+}
+
+.currentActorName {
+  font-size: 18px;
+  color: #f8d79a;
+  font-weight: 700;
+}
+
+.currentActorOwner {
+  font-size: 12px;
+  color: #cdbb96;
+}
+
+/* ==========================================================================
+ * 水晶血条
+ * ========================================================================== */
+.crystalBar {
+  min-width: 260px;
+}
+
+.crystalBarLabel {
+  font-size: 12px;
+  color: #a8967b;
+  margin-bottom: 4px;
+}
+
+.crystalBarTrack {
+  position: relative;
+  height: 22px;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(138, 113, 72, 0.6);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.crystalBarFill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  transition: width 0.4s ease;
+}
+
+.crystalBarFillA {
+  background: linear-gradient(90deg, #4a90e2, #87cefa);
+  box-shadow: 0 0 8px rgba(135, 206, 250, 0.6) inset;
+}
+
+.crystalBarFillB {
+  background: linear-gradient(90deg, #e24a4a, #ffb6c1);
+  box-shadow: 0 0 8px rgba(255, 182, 193, 0.6) inset;
+}
+
+.crystalBarText {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  letter-spacing: 1px;
+}
+
+/* ==========================================================================
+ * 主体
+ * ========================================================================== */
+.body {
+  display: flex;
+  gap: 20px;
+  padding: 16px 24px 20px;
+  height: calc(100% - 72px);
+  box-sizing: border-box;
+}
+
+/* ==========================================================================
+ * 地图容器
+ * ========================================================================== */
+.mapWrap {
+  flex: 0 0 auto;
+  position: relative;
+  padding: 14px;
+  background: rgba(0, 0, 0, 0.55);
+  border: 2px solid #8a7148;
+  border-radius: 10px;
+  backdrop-filter: blur(4px);
+  /* 宽高由 CSS 变量驱动 */
+  width: calc(var(--map-width, 1296px) + 28px);
+  height: calc(var(--map-height, 862px) + 28px);
+}
+
+.mapBgLayer {
+  position: absolute;
+  left: 14px;
+  top: 14px;
+  width: var(--map-width, 1296px);
+  height: var(--map-height, 862px);
+  background-image: url('/images/map/s7_battle_map.jpg');
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+  transform: translateZ(0);
+  will-change: transform;
+  pointer-events: none;
+  z-index: 0;
+  border-radius: 4px;
+  opacity: 0.85;
+}
+
+.mapVignette {
+  position: absolute;
+  left: 14px;
+  top: 14px;
+  width: var(--map-width, 1296px);
+  height: var(--map-height, 862px);
+  pointer-events: none;
+  z-index: 1;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 55%,
+    rgba(0, 0, 0, 0.35) 95%,
+    rgba(0, 0, 0, 0.55) 100%
+  );
+  border-radius: 4px;
+}
+
+/* ==========================================================================
+ * 瓦片网格
+ * ========================================================================== */
+.mapGrid {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-rows: repeat(var(--map-rows, 12), var(--cell-size, 70px));
+  grid-template-columns: repeat(var(--map-cols, 18), var(--cell-size, 70px));
+  gap: 2px;
+}
+
+.cell {
+  position: relative;
+  width: var(--cell-size, 70px);
+  height: var(--cell-size, 70px);
+  outline: 1px solid rgba(255, 255, 255, 0.14);
+  outline-offset: -1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  transition: background-color 0.12s;
+}
+
+.cellHover {
+  background: rgba(255, 220, 130, 0.14) !important;
+  outline-color: rgba(255, 220, 130, 0.55) !important;
+}
+
+/* 结构性瓦片轻微染色（让背景层能透出，又能区分） */
+.cell_river {
+  background: rgba(40, 100, 180, 0.28);
+}
+
+.cell_bridge {
+  background: rgba(138, 93, 46, 0.45);
+  outline-color: rgba(200, 160, 100, 0.5);
+}
+
+.cell_spawn_a,
+.cell_spawn_b,
+.cell_crystal_a,
+.cell_crystal_b {
+  background: rgba(0, 0, 0, 0.35);
+}
+
+/* 功能瓦片背景图 */
+.cellTile {
+  position: absolute;
+  inset: 4px;
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.85;
+}
+
+/* 文字标签 */
+.cellTextLabel {
+  position: relative;
+  z-index: 2;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+  letter-spacing: 0.5px;
+  pointer-events: none;
+}
+
+/* 水晶占位（后续替换为美术素材） */
+.crystalMark {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border-radius: 3px;
+  pointer-events: none;
+}
+
+.crystalMarkA {
+  background: linear-gradient(135deg, rgba(74, 144, 226, 0.5), rgba(135, 206, 250, 0.75));
+  box-shadow: 0 0 10px rgba(135, 206, 250, 0.5) inset;
+  border: 1px dashed rgba(255, 255, 255, 0.55);
+}
+
+.crystalMarkB {
+  background: linear-gradient(135deg, rgba(226, 74, 74, 0.5), rgba(255, 182, 193, 0.75));
+  box-shadow: 0 0 10px rgba(255, 182, 193, 0.5) inset;
+  border: 1px dashed rgba(255, 255, 255, 0.55);
+}
+
+.crystalIcon {
+  font-size: 18px;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
+}
+
+.crystalText {
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+  letter-spacing: 0.5px;
+}
+
+/* 出生点占位 */
+.spawnMark {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  pointer-events: none;
+}
+
+.spawnMarkA {
+  background: rgba(74, 144, 226, 0.3);
+  border: 1px dotted rgba(135, 206, 250, 0.7);
+}
+
+.spawnMarkB {
+  background: rgba(226, 74, 74, 0.3);
+  border: 1px dotted rgba(255, 182, 193, 0.7);
+}
+
+.spawnText {
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+  letter-spacing: 0.5px;
+}
+
+/* hover 提示 */
+.hoverInfo {
+  position: absolute;
+  bottom: -28px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(20, 14, 8, 0.95);
+  border: 1px solid #8a7148;
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-size: 13px;
+  color: #f8d79a;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 20;
+}
+
+/* ==========================================================================
+ * 棋子层
+ * ========================================================================== */
+.unitLayer {
+  position: absolute;
+  left: 14px;
+  top: 14px;
+  width: var(--map-width, 1296px);
+  height: var(--map-height, 862px);
+  z-index: 5;
+  pointer-events: none;
+}
+
+.unitPiece {
+  position: absolute;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: left 0.25s ease-out, top 0.25s ease-out, box-shadow 0.2s, transform 0.15s;
+  border: 2px solid transparent;
+  font-family: inherit;
+  user-select: none;
+}
+
+.unitPiece:hover {
+  transform: scale(1.08);
+  z-index: 10;
+}
+
+/* 阵营颜色 */
+.unitPieceA {
+  background: radial-gradient(circle at 30% 30%, #7fb3ef, #2c5fa8);
+  border-color: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+}
+
+.unitPieceB {
+  background: radial-gradient(circle at 30% 30%, #ef7f7f, #a82c2c);
+  border-color: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+}
+
+/* 我方额外描边 */
+.unitPiecePlayer {
+  border-color: rgba(255, 220, 130, 0.75);
+}
+
+/* 主角：金色描边 */
+.unitPieceHero {
+  border: 3px solid #f8d79a;
+  box-shadow: 0 0 12px rgba(250, 220, 150, 0.7);
+}
+
+/* 当前行动者：脉动光晕 */
+.unitPieceCurrent {
+  animation: piecePulse 1.5s ease-in-out infinite;
+  border-color: #fff;
+}
+
+@keyframes piecePulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(255, 255, 255, 0.6); }
+  50%      { box-shadow: 0 0 18px rgba(255, 255, 255, 1), 0 0 30px rgba(255, 220, 130, 0.6); }
+}
+
+/* 选中态 */
+.unitPieceSelected {
+  border: 3px solid #ffdd66;
+  box-shadow: 0 0 14px rgba(255, 221, 102, 0.9);
+}
+
+.unitPieceName {
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  letter-spacing: 0.5px;
+  line-height: 1;
+  padding-top: 6px;
+}
+
+.unitPieceSlot {
+  position: absolute;
+  top: 2px;
+  right: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #ffd866;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 50%;
+  width: 14px;
+  height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.unitPieceHp {
+  position: absolute;
+  bottom: 2px;
+  left: 4px;
+  right: 4px;
+  height: 10px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 3px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.8);
+}
+
+.unitPieceHpFill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, #ff4040, #ff8080);
+  transition: width 0.3s;
+}
+
+.unitPieceHpText {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 8px;
+  font-weight: 700;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.9);
+  line-height: 1;
+}
+
+/* ==========================================================================
+ * 侧栏
+ * ========================================================================== */
+.sidebar {
+  flex: 1 1 auto;
+  min-width: 340px;
+  max-width: 460px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.panelBox {
+  background: rgba(0, 0, 0, 0.58);
+  border: 1px solid #8a7148;
+  border-radius: 10px;
+  padding: 12px 16px;
+  backdrop-filter: blur(4px);
+}
+
+.panelTitle {
+  margin: 0 0 10px;
+  font-size: 15px;
+  color: #f8d79a;
+  letter-spacing: 1px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(138, 113, 72, 0.5);
+}
+
+/* ---- 行动队列 ---- */
+.queueList {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.queueItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  font-size: 12px;
+  color: #cdbb96;
+  border-radius: 5px;
+  border: 1px solid transparent;
+  transition: background 0.15s;
+}
+
+.queueItemCurrent {
+  background: rgba(255, 220, 130, 0.18);
+  border-color: rgba(255, 220, 130, 0.55);
+  color: #f8d79a;
+  font-weight: 700;
+}
+
+.queueItemDone {
+  opacity: 0.45;
+}
+
+.queueIdx {
+  width: 18px;
+  height: 18px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(138, 113, 72, 0.5);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  flex-shrink: 0;
+}
+
+.queueOwner {
+  flex: 0 0 72px;
+  font-size: 11px;
+  color: #a8967b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.queueName {
+  flex: 1 1 auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.queueMnd {
+  flex: 0 0 auto;
+  font-size: 11px;
+  color: #9ecdff;
+}
+
+.queueDoneTag {
+  color: #6fcf97;
+  font-weight: 700;
+}
+
+.queueSkipTag {
+  color: #e88;
+  font-weight: 700;
+}
+
+/* ---- 三区概览 ---- */
+.playerRow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  margin-bottom: 6px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+}
+
+.playerRow:last-child {
+  margin-bottom: 0;
+}
+
+.playerRowA {
+  background: rgba(74, 144, 226, 0.1);
+  border-color: rgba(74, 144, 226, 0.35);
+}
+
+.playerRowB {
+  background: rgba(226, 74, 74, 0.1);
+  border-color: rgba(226, 74, 74, 0.35);
+}
+
+.playerRowHuman {
+  box-shadow: 0 0 6px rgba(250, 220, 150, 0.35) inset;
+  border-color: rgba(250, 220, 150, 0.55);
+}
+
+.playerRowHead {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.playerRowFaction {
+  color: #f8d79a;
+  font-weight: 700;
+}
+
+.playerRowName {
+  color: #e8d9b5;
+}
+
+.playerRowZones {
+  display: flex;
+  gap: 10px;
+  font-size: 11px;
+}
+
+.zoneTag {
+  color: #cdbb96;
+}
+
+.zoneTagGrave {
+  color: #a8967b;
+  font-style: italic;
+}
+
+/* ---- 单位详情 ---- */
+.unitDetail {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.unitDetailHead {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.unitDetailName {
+  font-size: 16px;
+  color: #f8d79a;
+  font-weight: 700;
+}
+
+.unitDetailRarity {
+  font-size: 11px;
+  color: #cdbb96;
+  padding: 1px 6px;
+  border: 1px solid rgba(138, 113, 72, 0.6);
+  border-radius: 3px;
+}
+
+.unitDetailMeta {
+  font-size: 11px;
+  color: #a8967b;
+}
+
+.unitDetailStats {
+  display: flex;
+  gap: 12px;
+  padding: 6px 0;
+  font-size: 13px;
+  color: #e8d9b5;
+  border-top: 1px dotted rgba(138, 113, 72, 0.4);
+  border-bottom: 1px dotted rgba(138, 113, 72, 0.4);
+}
+
+.unitDetailSkill {
+  font-size: 12px;
+  color: #cdbb96;
+  line-height: 1.5;
+}
+
+.unitDetailSkill b {
+  color: #f8d79a;
+}
+
+/* ---- 战报 ---- */
+.logBox {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 180px;
+  max-height: 320px;
+}
+
+.logList {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding-right: 4px;
+}
+
+.logItem {
+  display: flex;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  padding: 2px 0;
+  border-bottom: 1px dotted rgba(138, 113, 72, 0.2);
+}
+
+.logRound {
+  flex: 0 0 40px;
+  color: #8a7148;
+  font-size: 10px;
+  padding-top: 2px;
+}
+
+.logText {
+  flex: 1 1 auto;
+  color: #cdbb96;
+  word-break: break-word;
+}
+
+/* ---- 结束态 ---- */
+.panelBoxEnd {
+  background: linear-gradient(135deg, rgba(250, 220, 150, 0.15), rgba(0, 0, 0, 0.6));
+  border: 2px solid #f8d79a;
+  border-radius: 10px;
+  padding: 20px 24px;
+  text-align: center;
+  box-shadow: 0 0 24px rgba(250, 220, 150, 0.5);
+}
+
+.endTitle {
+  margin: 0 0 8px;
+  font-size: 28px;
+  color: #f8d79a;
+  letter-spacing: 2px;
+  text-shadow: 0 0 12px rgba(250, 220, 150, 0.7);
+}
+
+.endReason {
+  font-size: 14px;
+  color: #cdbb96;
+  margin-bottom: 16px;
+}
+
+.endBtn {
+  padding: 10px 28px;
+  background: linear-gradient(135deg, #8a7148, #5e4c32);
+  color: #f8d79a;
+  border: 1px solid #a8896a;
+  border-radius: 6px;
+  font-size: 15px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.endBtn:hover {
+  filter: brightness(1.15);
+}
+
+/* ==========================================================================
+ * 滚动条美化
+ * ========================================================================== */
+.sidebar::-webkit-scrollbar,
+.queueList::-webkit-scrollbar,
+.logList::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar::-webkit-scrollbar-track,
+.queueList::-webkit-scrollbar-track,
+.logList::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 3px;
+}
+
+.sidebar::-webkit-scrollbar-thumb,
+.queueList::-webkit-scrollbar-thumb,
+.logList::-webkit-scrollbar-thumb {
+  background: rgba(138, 113, 72, 0.6);
+  border-radius: 3px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover,
+.queueList::-webkit-scrollbar-thumb:hover,
+.logList::-webkit-scrollbar-thumb:hover {
+  background: rgba(200, 161, 75, 0.75);
+}
+
+/* ==========================================================================
+ * Batch 1 · 交互附加样式
+ *   - 可达格高亮 / 可攻击标记
+ *   - 结束回合按钮 + 回合控制条
+ *   - 骰子弹窗
+ *   - 胜负结果面板
+ *   - AI 行动徽章
+ * ========================================================================== */
+
+/* —— 可达格（绿色半透明 + 呼吸动画） —— */
+.cellReachable {
+  cursor: pointer;
+}
+
+.reachOverlay {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle, rgba(120, 230, 140, 0.45) 0%, rgba(120, 230, 140, 0.1) 70%);
+  border: 2px solid rgba(140, 250, 160, 0.8);
+  box-sizing: border-box;
+  border-radius: 4px;
+  pointer-events: none;
+  animation: reachPulse 1.4s ease-in-out infinite;
+}
+
+@keyframes reachPulse {
+  0%, 100% { opacity: 0.7; }
+  50%      { opacity: 1; }
+}
+
+/* —— 可攻击敌方水晶格（红色脉动 + ⚔ 标记） —— */
+.cellAttackableCrystal {
+  cursor: pointer;
+}
+
+.attackCrystalOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  color: #ffd780;
+  text-shadow:
+    0 0 8px rgba(255, 100, 80, 0.9),
+    0 0 16px rgba(255, 100, 80, 0.7);
+  background: radial-gradient(circle, rgba(255, 100, 80, 0.35) 0%, rgba(255, 100, 80, 0.1) 70%);
+  border: 2px solid rgba(255, 120, 100, 0.85);
+  border-radius: 4px;
+  box-sizing: border-box;
+  pointer-events: none;
+  animation: attackPulse 1s ease-in-out infinite;
+}
+
+@keyframes attackPulse {
+  0%, 100% { transform: scale(1); opacity: 0.9; }
+  50%      { transform: scale(1.05); opacity: 1; }
+}
+
+/* —— 可攻击敌方棋子（红色描边） —— */
+.unitPieceAttackable {
+  outline: 3px solid #ff6450;
+  outline-offset: 2px;
+  box-shadow:
+    0 0 12px rgba(255, 100, 80, 0.7),
+    0 0 20px rgba(255, 100, 80, 0.4);
+  cursor: crosshair;
+  animation: attackUnitPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes attackUnitPulse {
+  0%, 100% { box-shadow: 0 0 12px rgba(255, 100, 80, 0.7), 0 0 20px rgba(255, 100, 80, 0.4); }
+  50%      { box-shadow: 0 0 18px rgba(255, 100, 80, 0.9), 0 0 28px rgba(255, 100, 80, 0.6); }
+}
+
+.attackMark {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 22px;
+  height: 22px;
+  background: radial-gradient(circle, #ff7050 40%, #c03020 100%);
+  border: 1px solid #ffc090;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 8px rgba(255, 120, 80, 0.9);
+  pointer-events: none;
+}
+
+/* —— 回合控制条（地图下方浮层） —— */
+.turnControls {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 18px;
+  background: linear-gradient(135deg, rgba(30, 28, 46, 0.95), rgba(20, 18, 30, 0.95));
+  border: 1px solid rgba(200, 161, 75, 0.5);
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 220, 160, 0.08);
+  backdrop-filter: blur(6px);
+  z-index: 10;
+}
+
+.turnInfo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #e8d9b5;
+  font-size: 15px;
+}
+
+.turnBadge {
+  padding: 3px 10px;
+  background: linear-gradient(135deg, #a07a3d, #c89b50);
+  color: #fff;
+  border-radius: 4px;
+  font-size: 13px;
+  letter-spacing: 1px;
+  box-shadow: 0 0 8px rgba(200, 150, 70, 0.5);
+}
+
+.turnBadgeAi {
+  padding: 3px 10px;
+  background: linear-gradient(135deg, #4d5a80, #6d7aa0);
+  color: #e0e8ff;
+  border-radius: 4px;
+  font-size: 13px;
+  letter-spacing: 1px;
+  box-shadow: 0 0 8px rgba(100, 130, 180, 0.5);
+  animation: aiThinking 1.2s ease-in-out infinite;
+}
+
+@keyframes aiThinking {
+  0%, 100% { opacity: 0.85; }
+  50%      { opacity: 1; }
+}
+
+.turnName {
+  font-weight: bold;
+  color: #f8d79a;
+}
+
+.turnHint {
+  font-size: 13px;
+  color: #b9aa83;
+}
+
+.endTurnBtn {
+  padding: 8px 18px;
+  background: linear-gradient(135deg, #8a7148, #5e4c32);
+  color: #f8d79a;
+  border: 1px solid #c8a14b;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  font-family: inherit;
+  letter-spacing: 1px;
+  transition: all 0.15s;
+}
+
+.endTurnBtn:hover {
+  background: linear-gradient(135deg, #a58855, #7a613f);
+  box-shadow: 0 0 10px rgba(200, 161, 75, 0.5);
+  transform: translateY(-1px);
+}
+
+.endTurnBtn:active {
+  transform: translateY(0);
+}
+
+/* ==========================================================================
+ * 骰子弹窗
+ * ========================================================================== */
+.diceOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.dicePanel {
+  background: linear-gradient(145deg, #1f2038, #12131f);
+  border: 2px solid #c8a14b;
+  border-radius: 12px;
+  padding: 28px 36px;
+  min-width: 420px;
+  box-shadow: 0 0 32px rgba(200, 161, 75, 0.6);
+  color: #e8d9b5;
+}
+
+.diceTitle {
+  text-align: center;
+  font-size: 22px;
+  color: #f8d79a;
+  margin-bottom: 20px;
+  letter-spacing: 2px;
+  text-shadow: 0 0 8px rgba(250, 220, 150, 0.4);
+}
+
+.diceRow {
+  display: grid;
+  grid-template-columns: 60px 1fr 80px;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.diceLabel {
+  font-size: 15px;
+  color: #cdbb96;
+}
+
+.diceValues {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.diceVal {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(145deg, #fff, #e0d8c0);
+  color: #333;
+  border-radius: 6px;
+  font-size: 18px;
+  font-weight: bold;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  animation: diceDrop 0.5s cubic-bezier(0.4, 0, 0.2, 1) backwards;
+}
+
+.diceVal:nth-child(1) { animation-delay: 0s; }
+.diceVal:nth-child(2) { animation-delay: 0.08s; }
+.diceVal:nth-child(3) { animation-delay: 0.16s; }
+.diceVal:nth-child(4) { animation-delay: 0.24s; }
+.diceVal:nth-child(5) { animation-delay: 0.32s; }
+.diceVal:nth-child(6) { animation-delay: 0.4s; }
+
+@keyframes diceDrop {
+  from { transform: translateY(-20px) rotate(-180deg); opacity: 0; }
+  to   { transform: translateY(0) rotate(0); opacity: 1; }
+}
+
+.dicePlayer {
+  background: linear-gradient(145deg, #dff0ff, #a0c8e8);
+  color: #124060;
+}
+
+.diceEnemy {
+  background: linear-gradient(145deg, #ffe0d8, #e8a090);
+  color: #601824;
+}
+
+.diceSum {
+  text-align: right;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.diceDamage {
+  margin-top: 18px;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, rgba(255, 120, 80, 0.15), rgba(255, 100, 80, 0.08));
+  border: 1px solid rgba(255, 140, 100, 0.5);
+  border-radius: 8px;
+  font-size: 18px;
+  text-align: center;
+  color: #ffdcc0;
+  letter-spacing: 1px;
+}
+
+.diceDamage strong {
+  color: #ff7050;
+  font-size: 24px;
+  margin: 0 4px;
+  text-shadow: 0 0 8px rgba(255, 100, 70, 0.6);
+}
+
+.diceClose {
+  display: block;
+  margin: 20px auto 0;
+  padding: 10px 36px;
+  background: linear-gradient(135deg, #8a7148, #5e4c32);
+  color: #f8d79a;
+  border: 1px solid #c8a14b;
+  border-radius: 6px;
+  font-size: 15px;
+  letter-spacing: 1px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.diceClose:hover {
+  filter: brightness(1.15);
+}
+
+/* ==========================================================================
+ * 胜负结果面板
+ * ========================================================================== */
+.resultOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  backdrop-filter: blur(4px);
+}
+
+.resultPanel {
+  background: linear-gradient(145deg, #1f2038, #12131f);
+  border: 3px solid #c8a14b;
+  border-radius: 16px;
+  padding: 40px 60px;
+  min-width: 520px;
+  text-align: center;
+  box-shadow: 0 0 48px rgba(200, 161, 75, 0.7), inset 0 1px 0 rgba(255, 220, 160, 0.15);
+}
+
+.resultTitle {
+  font-size: 42px;
+  color: #f8d79a;
+  margin-bottom: 16px;
+  letter-spacing: 6px;
+  text-shadow:
+    0 0 16px rgba(250, 220, 150, 0.8),
+    0 0 28px rgba(250, 220, 150, 0.4);
+}
+
+.resultSubtitle {
+  font-size: 18px;
+  color: #d4b88a;
+  margin-bottom: 12px;
+}
+
+.resultReason {
+  font-size: 14px;
+  color: #9b8c65;
+  margin-bottom: 28px;
+  letter-spacing: 1px;
+}
+
+.resultBtn {
+  padding: 12px 48px;
+  background: linear-gradient(135deg, #8a7148, #5e4c32);
+  color: #f8d79a;
+  border: 1px solid #c8a14b;
+  border-radius: 8px;
+  font-size: 17px;
+  letter-spacing: 2px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+
+.resultBtn:hover {
+  background: linear-gradient(135deg, #a58855, #7a613f);
+  box-shadow: 0 0 16px rgba(200, 161, 75, 0.6);
+  transform: translateY(-2px);
+}
+
+/* ==========================================================================
+ * Batch 2A · 技能按钮组
+ * ========================================================================== */
+
+.skillButtonGroup {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.skillBtn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px 6px 10px;
+  border: 1.5px solid rgba(200, 161, 75, 0.6);
+  background: linear-gradient(180deg, rgba(60, 45, 30, 0.85), rgba(40, 30, 22, 0.9));
+  color: #f0dca8;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  transition: all 0.2s;
+  min-height: 34px;
+  white-space: nowrap;
+}
+
+.skillBtn:hover:not(:disabled) {
+  background: linear-gradient(180deg, rgba(80, 60, 40, 0.95), rgba(55, 42, 30, 1));
+  box-shadow: 0 0 10px rgba(200, 161, 75, 0.5);
+  transform: translateY(-1px);
+}
+
+.skillBtn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.skillBtnBattle {
+  border-color: rgba(140, 180, 230, 0.7);
+}
+
+.skillBtnUltimate {
+  border-color: rgba(220, 150, 70, 0.85);
+  background: linear-gradient(180deg, rgba(80, 50, 28, 0.9), rgba(55, 35, 20, 0.95));
+}
+
+.skillBtnLit .skillBtnLamp {
+  background: radial-gradient(circle, #8ce3a8 40%, #3a9a5a 90%);
+  box-shadow: 0 0 6px #8ce3a8;
+}
+
+.skillBtnDim .skillBtnLamp {
+  background: #555;
+  box-shadow: none;
+}
+
+.skillBtnLamp {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.skillBtnDisabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  filter: saturate(0.5);
+}
+
+.skillBtnPassive {
+  opacity: 0.85;
+  cursor: help;
+}
+
+.skillBtnLabel {
+  font-size: 13px;
+  letter-spacing: 0.5px;
+}
+
+/* ==========================================================================
+ * Batch 2A · 瞄准条（屏幕顶部通栏）
+ * ========================================================================== */
+
+.aimBar {
+  position: fixed;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4000;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 22px;
+  background: linear-gradient(135deg, rgba(120, 70, 30, 0.92), rgba(80, 45, 20, 0.95));
+  border: 1.5px solid rgba(220, 160, 80, 0.8);
+  border-radius: 10px;
+  color: #ffe8b8;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6), 0 0 18px rgba(220, 160, 80, 0.4);
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+.aimBarMeta {
+  font-size: 12px;
+  opacity: 0.85;
+  color: #e0c890;
+}
+
+.aimBarCancel {
+  background: rgba(180, 60, 60, 0.7);
+  border: 1px solid rgba(230, 100, 100, 0.8);
+  color: #fff;
+  padding: 4px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  transition: all 0.2s;
+}
+
+.aimBarCancel:hover {
+  background: rgba(220, 80, 80, 0.9);
+  box-shadow: 0 0 8px rgba(230, 100, 100, 0.6);
+}
+
+/* ==========================================================================
+ * Batch 2A · 补位弹窗
+ * ========================================================================== */
+
+.reinforceOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  z-index: 5000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.reinforceBox {
+  width: min(1700px, 96vw);
+  height: min(1000px, 92vh);
+  background: linear-gradient(180deg, #2a1e18, #1d1310);
+  border: 2px solid #c8a14b;
+  border-radius: 12px;
+  box-shadow: 0 0 40px rgba(200, 161, 75, 0.3), 0 10px 40px rgba(0, 0, 0, 0.8);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.reinforceHeader {
+  flex: none;
+  padding: 14px 24px;
+  background: linear-gradient(90deg, rgba(150, 40, 40, 0.35), rgba(90, 30, 30, 0.4));
+  border-bottom: 2px solid rgba(200, 161, 75, 0.4);
+  color: #ffe0a0;
+}
+
+.reinforceTitle {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: #ffd98a;
+}
+
+.reinforceSubtitle {
+  margin-top: 4px;
+  font-size: 13px;
+  color: #e0b890;
+}
+
+.reinforceBody {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+/* 确保内嵌的 S7D_Lineup 正确填充容器 */
+.reinforceBody > * {
+  position: relative;
+  height: 100%;
+  width: 100%;
+  overflow: auto;
+}
+
+/* ==========================================================================
+ * Batch 2A · 水晶结算过场
+ * ========================================================================== */
+
+.crystalFxOverlay {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse at center, rgba(50, 20, 60, 0.75), rgba(0, 0, 0, 0.88));
+  z-index: 4500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.crystalFxPanel {
+  min-width: 420px;
+  max-width: 640px;
+  padding: 28px 36px 22px;
+  background: linear-gradient(180deg, rgba(50, 35, 55, 0.95), rgba(30, 20, 38, 0.98));
+  border: 2px solid rgba(180, 140, 220, 0.85);
+  border-radius: 14px;
+  box-shadow: 0 0 40px rgba(180, 140, 220, 0.45), 0 10px 40px rgba(0, 0, 0, 0.7);
+  color: #ffe8ff;
+  text-align: center;
+}
+
+.crystalFxTitle {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: 3px;
+  color: #e8c0ff;
+  margin-bottom: 20px;
+  text-shadow: 0 0 14px rgba(220, 160, 255, 0.7);
+}
+
+.crystalFxRows {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.crystalFxRow {
+  display: grid;
+  grid-template-columns: 120px 1fr 80px;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 16px;
+  background: rgba(0, 0, 0, 0.32);
+  border: 1px solid rgba(180, 140, 220, 0.3);
+  border-radius: 8px;
+}
+
+.crystalFxRowA {
+  border-color: rgba(100, 160, 230, 0.55);
+  background: linear-gradient(90deg, rgba(30, 60, 110, 0.25), rgba(0, 0, 0, 0.35));
+}
+
+.crystalFxRowB {
+  border-color: rgba(230, 130, 130, 0.55);
+  background: linear-gradient(90deg, rgba(130, 40, 40, 0.25), rgba(0, 0, 0, 0.35));
+}
+
+.crystalFxFaction {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: #ffe0b0;
+  text-align: left;
+}
+
+.crystalFxOccupants {
+  font-size: 13px;
+  color: #d0c0a0;
+  text-align: left;
+}
+
+.crystalFxDmg {
+  font-size: 30px;
+  font-weight: 900;
+  color: #ff7070;
+  text-shadow: 0 0 12px rgba(255, 90, 90, 0.7);
+  letter-spacing: 1px;
+}
+
+.crystalFxHint {
+  font-size: 12px;
+  color: #9a8e9a;
+  opacity: 0.8;
+  margin-top: 8px;
+}

@@ -1,0 +1,563 @@
+/* ==============================================================
+ * S7D_Deploy · 备战选卡页样式
+ * 画布基准：1920 × 1080（与 S7D_PreBattle 风格一致）
+ * ============================================================== */
+
+.screen {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 50% 30%, rgba(40, 20, 8, 0.9) 0%, rgba(10, 5, 2, 1) 80%),
+    #0a0504;
+  color: #e8d9b5;
+  font-family: 'KaiTi', '楷体', serif;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* ---- 顶部 ---- */
+.topBar {
+  position: absolute;
+  top: 40px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  z-index: 2;
+}
+
+.topTitle {
+  font-size: 42px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  color: #f0d9a3;
+  text-shadow: 0 0 18px rgba(200, 161, 75, 0.6);
+}
+
+.topSubtitle {
+  margin-top: 10px;
+  font-size: 18px;
+  color: #b69f6e;
+  letter-spacing: 2px;
+}
+
+/* ---- 主区域 ---- */
+.body {
+  position: absolute;
+  top: 150px;
+  left: 80px;
+  right: 80px;
+  bottom: 60px;
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 40px;
+}
+
+/* ---- 候选卡面板 ---- */
+.candidatePanel,
+.deployPanel {
+  background: rgba(20, 12, 6, 0.75);
+  border: 2px solid rgba(138, 113, 72, 0.4);
+  border-radius: 12px;
+  padding: 20px 24px;
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.panelHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(138, 113, 72, 0.45);
+}
+
+.panelTitle {
+  font-size: 24px;
+  color: #f0d9a3;
+  letter-spacing: 2px;
+}
+
+.panelMeta {
+  font-size: 15px;
+  color: #a8926a;
+}
+
+/* ---- 候选卡网格 ---- */
+.cardGrid {
+  flex: 1;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 14px;
+  padding-right: 6px;
+}
+
+.cardGrid::-webkit-scrollbar {
+  width: 8px;
+}
+
+.cardGrid::-webkit-scrollbar-thumb {
+  background: rgba(138, 113, 72, 0.5);
+  border-radius: 4px;
+}
+
+.cardItem {
+  position: relative;
+  aspect-ratio: 3/4;
+  border: 2px solid #888;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  background: #1a0f08;
+  transition: transform 0.18s, box-shadow 0.18s;
+}
+
+.cardItem:hover {
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 8px 22px rgba(200, 161, 75, 0.4);
+}
+
+.cardPortrait {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
+}
+
+.cardBottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 6px 8px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0) 100%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cardRarity {
+  font-size: 12px;
+  color: #000;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.cardName {
+  font-size: 14px;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.picked .cardPortrait {
+  filter: brightness(0.45) saturate(0.5);
+}
+
+.pickedOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+}
+
+.pickedCheck {
+  font-size: 56px;
+  color: #6fcf97;
+  text-shadow: 0 0 12px rgba(111, 207, 151, 0.9);
+}
+
+.pickedLabel {
+  font-size: 13px;
+  color: #e8d9b5;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+/* ---- 卡槽区 ---- */
+.heroSlot,
+.filledSlot,
+.emptySlot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  min-height: 72px;
+  background: rgba(10, 5, 2, 0.7);
+  border: 2px solid rgba(138, 113, 72, 0.35);
+}
+
+.heroSlot {
+  border: 2px solid #c8a14b;
+  background: linear-gradient(90deg, rgba(200, 161, 75, 0.18), rgba(200, 161, 75, 0.05));
+  position: relative;
+}
+
+.filledSlot {
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+}
+
+.filledSlot:hover {
+  transform: translateX(3px);
+  box-shadow: 0 4px 14px rgba(200, 161, 75, 0.35);
+}
+
+.emptySlot {
+  border-style: dashed;
+  justify-content: center;
+  color: #6a5c42;
+  font-size: 14px;
+  letter-spacing: 3px;
+}
+
+.emptySlotLabel {
+  opacity: 0.7;
+}
+
+.slotPortrait {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center top;
+  background-color: #0a0504;
+  border: 2px solid rgba(138, 113, 72, 0.6);
+  flex-shrink: 0;
+}
+
+.slotInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.slotName {
+  font-size: 16px;
+  color: #f0d9a3;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.slotTag {
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 3px;
+  background: #6a5c42;
+  color: #000;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.slotStats {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #b69f6e;
+  letter-spacing: 1px;
+}
+
+.slotLock {
+  font-size: 22px;
+  opacity: 0.6;
+  flex-shrink: 0;
+}
+
+.slotRemove {
+  font-size: 18px;
+  color: #e0887e;
+  opacity: 0.5;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+}
+
+.filledSlot:hover .slotRemove {
+  opacity: 1;
+}
+
+.pickSlots {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 4px;
+  margin-top: 10px;
+}
+
+.pickSlots::-webkit-scrollbar {
+  width: 6px;
+}
+
+.pickSlots::-webkit-scrollbar-thumb {
+  background: rgba(138, 113, 72, 0.45);
+  border-radius: 3px;
+}
+
+/* ---- 工具按钮栏 ---- */
+.toolRow {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.toolBtn {
+  flex: 1;
+  padding: 8px 10px;
+  font-size: 14px;
+  color: #b69f6e;
+  background: rgba(20, 12, 6, 0.8);
+  border: 1px solid rgba(138, 113, 72, 0.5);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+  letter-spacing: 2px;
+}
+
+.toolBtn:hover:not(:disabled) {
+  background: rgba(138, 113, 72, 0.25);
+  color: #f0d9a3;
+}
+
+.toolBtn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* ---- 出征按钮 ---- */
+.launchBtn {
+  margin-top: 14px;
+  padding: 16px;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  color: #6a5c42;
+  background: rgba(40, 28, 16, 0.9);
+  border: 2px solid #6a5c42;
+  border-radius: 8px;
+  cursor: not-allowed;
+  transition: all 0.25s;
+  font-family: inherit;
+}
+
+.launchBtn.launchReady {
+  color: #000;
+  background: linear-gradient(135deg, #f0d9a3, #c8a14b);
+  border-color: #f0d9a3;
+  cursor: pointer;
+  box-shadow: 0 0 26px rgba(200, 161, 75, 0.55), inset 0 0 14px rgba(255, 255, 255, 0.25);
+  animation: launchPulse 2.2s ease-in-out infinite;
+}
+
+.launchBtn.launchReady:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 34px rgba(200, 161, 75, 0.7), inset 0 0 14px rgba(255, 255, 255, 0.3);
+}
+
+@keyframes launchPulse {
+  0%, 100% { box-shadow: 0 0 26px rgba(200, 161, 75, 0.55), inset 0 0 14px rgba(255, 255, 255, 0.25); }
+  50% { box-shadow: 0 0 40px rgba(200, 161, 75, 0.8), inset 0 0 20px rgba(255, 255, 255, 0.35); }
+}
+
+/* ---- 空状态 / 加载 ---- */
+.empty,
+.loading {
+  grid-column: 1 / -1;
+  padding: 60px 20px;
+  text-align: center;
+  color: #6a5c42;
+  font-size: 16px;
+  letter-spacing: 2px;
+}
+
+/* ---- 悬停详情 ---- */
+.hoverCard {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 22px;
+  background: rgba(10, 5, 2, 0.95);
+  border: 1px solid rgba(200, 161, 75, 0.6);
+  border-radius: 10px;
+  min-width: 420px;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.hoverPortrait {
+  width: 64px;
+  height: 64px;
+  border-radius: 6px;
+  background-size: cover;
+  background-position: center top;
+  background-color: #1a0f08;
+  flex-shrink: 0;
+}
+
+.hoverMeta {
+  flex: 1;
+}
+
+.hoverName {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 2px;
+}
+
+.hoverSmall {
+  font-size: 12px;
+  color: #8a795a;
+  margin-top: 2px;
+}
+
+.hoverStats {
+  display: flex;
+  gap: 14px;
+  margin-top: 6px;
+  font-size: 13px;
+  color: #b69f6e;
+}
+
+.hoverStats b {
+  color: #f0d9a3;
+  margin-left: 4px;
+}
+
+.hoverStats em {
+  color: #6fcf97;
+  font-style: normal;
+  margin-left: 3px;
+}
+
+/* ==================== 详情弹窗内的操作按钮 ==================== */
+.actionRow {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+.actionHint {
+  text-align: center;
+  padding: 12px 0;
+  color: #c8a14b;
+  font-size: 15px;
+  letter-spacing: 2px;
+}
+
+.actionBtn {
+  flex: 1;
+  padding: 12px 18px;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+  border: 2px solid transparent;
+  max-width: 220px;
+}
+
+.actionBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.actionAdd {
+  color: #0a0504;
+  background: linear-gradient(135deg, #c8e89b, #6fcf97);
+  border-color: #9ad87c;
+  box-shadow: 0 0 14px rgba(111, 207, 151, 0.45);
+}
+
+.actionAdd:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 22px rgba(111, 207, 151, 0.65);
+}
+
+.actionRemove {
+  color: #fff0ec;
+  background: linear-gradient(135deg, #b8564c, #883832);
+  border-color: #d07b6e;
+  box-shadow: 0 0 12px rgba(208, 123, 110, 0.4);
+}
+
+.actionRemove:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(208, 123, 110, 0.6);
+}
+
+.actionCancel {
+  color: #b69f6e;
+  background: rgba(20, 12, 6, 0.8);
+  border-color: rgba(138, 113, 72, 0.6);
+}
+
+.actionCancel:hover {
+  background: rgba(138, 113, 72, 0.25);
+  color: #f0d9a3;
+}
+
+
+/* ==============================================================
+ * R/N 卡禁用样式（决战规则）
+ * ============================================================== */
+.battleDisabled {
+  opacity: 0.42;
+  filter: grayscale(0.6);
+  cursor: help;
+  position: relative;
+}
+
+.battleDisabled:hover {
+  opacity: 0.6;
+  filter: grayscale(0.4);
+}
+
+.disabledOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: linear-gradient(180deg, rgba(10, 5, 2, 0.55) 0%, rgba(30, 15, 8, 0.72) 100%);
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+.disabledIcon {
+  font-size: 28px;
+  filter: drop-shadow(0 0 6px rgba(200, 30, 30, 0.6));
+}
+
+.disabledLabel {
+  font-size: 13px;
+  color: #e89090;
+  letter-spacing: 2px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  padding: 2px 10px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(200, 80, 80, 0.5);
+  border-radius: 3px;
+}

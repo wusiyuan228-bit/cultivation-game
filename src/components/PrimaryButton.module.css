@@ -1,0 +1,115 @@
+/* 仙侠古风透明按钮 —— 适配黑白水墨背景 + 金色UI体系 */
+
+.btn {
+  position: relative;
+  width: 280px;
+  height: 52px;
+  background: linear-gradient(
+    180deg,
+    rgba(20, 16, 8, 0.55) 0%,
+    rgba(30, 25, 12, 0.65) 50%,
+    rgba(20, 16, 8, 0.55) 100%
+  );
+  border: none;
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 32px;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.2s ease;
+  overflow: visible;
+}
+
+/* 上下金色边线（古卷轴风格） */
+.btn::before,
+.btn::after {
+  content: '';
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  height: 1.5px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--color-gold-dark) 15%,
+    var(--color-gold) 50%,
+    var(--color-gold-dark) 85%,
+    transparent 100%
+  );
+}
+.btn::before { top: 0; }
+.btn::after { bottom: 0; }
+
+/* 左右竖线装饰 */
+.corner {
+  position: absolute;
+  top: 20%;
+  bottom: 20%;
+  width: 1.5px;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    var(--color-gold-dark) 30%,
+    var(--color-gold) 50%,
+    var(--color-gold-dark) 70%,
+    transparent 100%
+  );
+  opacity: 0.7;
+}
+.corner[data-side='left'] { left: 0; }
+.corner[data-side='right'] { right: 0; }
+
+/* 金色文字 */
+.text {
+  font-family: var(--font-title);
+  font-weight: 700;
+  font-size: 20px;
+  color: var(--color-gold-light);
+  letter-spacing: 8px;
+  text-shadow:
+    0 0 6px rgba(200, 161, 75, 0.4),
+    0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+/* Hover: 微微浮起 + 背景加深 + 金线增亮 */
+.btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: linear-gradient(
+    180deg,
+    rgba(30, 25, 12, 0.7) 0%,
+    rgba(40, 34, 16, 0.8) 50%,
+    rgba(30, 25, 12, 0.7) 100%
+  );
+}
+.btn:hover:not(:disabled) .text {
+  color: #f5e6b8;
+  text-shadow:
+    0 0 10px rgba(232, 200, 120, 0.6),
+    0 0 20px rgba(200, 161, 75, 0.3),
+    0 1px 2px rgba(0, 0, 0, 0.8);
+}
+.btn:hover:not(:disabled)::before,
+.btn:hover:not(:disabled)::after {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--color-gold) 15%,
+    var(--color-gold-light) 50%,
+    var(--color-gold) 85%,
+    transparent 100%
+  );
+}
+.btn:hover:not(:disabled) .corner {
+  opacity: 1;
+}
+
+/* Active: 按下反馈 */
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

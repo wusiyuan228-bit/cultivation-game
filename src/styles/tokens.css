@@ -1,0 +1,79 @@
+:root {
+  /* === Colors - Ink === */
+  --color-ink-deep: #1a1a1a;
+  --color-ink-body: #3a3a3a;
+  --color-ink-muted: #6b6b6b;
+
+  /* === Colors - Paper & Fog === */
+  --color-paper: #f5efe0;
+  --color-paper-edge: #d9c9a3;
+  --color-fog: #edebe5;
+  --color-mountain: #8a8a8a;
+  --color-mountain-deep: #4a4a4a;
+
+  /* === Colors - Theme === */
+  --color-gold: #c8a14b;
+  --color-gold-light: #e8c878;
+  --color-gold-dark: #8b6b2e;
+  --color-button-blue: #1f3a5f;
+  --color-button-blue-dark: #12253f;
+  --color-button-border: #c8a14b;
+  --color-highlight: #ffd96b;
+  --color-selected-glow: rgba(255, 217, 107, 0.6);
+
+  /* === Colors - Cultivation Types === */
+  --color-type-sword: #7b4fa8;  /* 剑修·紫 */
+  --color-type-body: #b8502f;   /* 体修·赤铜 */
+  --color-type-demon: #d96b8c;  /* 妖修·粉 */
+  --color-type-magic: #3b6fa8;  /* 法修·蓝 */
+  --color-type-pill: #c88b2f;   /* 丹修·丹橙 */
+  --color-type-soul: #7ba85f;   /* 灵修·青绿 */
+
+  /* === Colors - Faction === */
+  --color-faction-a: #3b6fa8;
+  --color-faction-b: #a83b3b;
+
+  /* === Colors - Functional === */
+  --color-success: #5f8b4c;
+  --color-warning: #c88b2f;
+  --color-danger: #a83b3b;
+
+  /* === Typography === */
+  --font-logo: 'LXGW WenKai', '霞鹜文楷', KaiTi, STKaiti, serif;
+  --font-title: 'LXGW WenKai', KaiTi, STKaiti, serif;
+  --font-body-kaiti: 'LXGW WenKai', KaiTi, STKaiti, '楷体', serif;
+  --font-ui: 'Noto Sans SC', 'Source Han Sans CN', 'Microsoft YaHei', sans-serif;
+
+  /* === Font Sizes === */
+  --fs-logo: 120px;
+  --fs-h1: 42px;
+  --fs-cta: 30px;
+  --fs-btn: 26px;
+  --fs-plaque: 28px;
+  --fs-body: 24px;
+  --fs-panel: 20px;
+  --fs-aux: 16px;
+  --fs-footer: 14px;
+
+  /* === Spacing === */
+  --space-safe: 48px;
+  --space-btn-gap: 20px;
+  --space-card-gap: 20px;
+
+  /* === Radius === */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 12px;
+
+  /* === Shadow === */
+  --shadow-btn: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-btn-hover: 0 6px 16px rgba(0, 0, 0, 0.5);
+  --shadow-panel: 0 2px 8px rgba(0, 0, 0, 0.25);
+  --shadow-card-selected: 0 0 24px 4px rgba(255, 217, 107, 0.6);
+  --shadow-cta: 0 4px 16px rgba(200, 161, 75, 0.5);
+
+  /* === Transitions === */
+  --tr-fast: 150ms ease-out;
+  --tr-base: 200ms ease-out;
+  --tr-slow: 400ms ease-out;
+}

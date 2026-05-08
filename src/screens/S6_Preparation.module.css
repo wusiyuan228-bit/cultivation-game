@@ -1,0 +1,501 @@
+/** S6 筹备阶段样式（沿用 S5 水墨主题） */
+
+.screen {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--color-ink-deep);
+  color: var(--color-paper);
+}
+
+.bg {
+  position: absolute;
+  inset: 0;
+  background-image: url('/images/bg/s6_hall.jpg');
+  background-size: cover;
+  background-position: center;
+  filter: brightness(0.38) saturate(1.05);
+}
+
+.bgVeil {
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(0deg, rgba(200, 161, 75, 0.04) 0 1px, transparent 1px 80px),
+    radial-gradient(ellipse at bottom, rgba(0, 0, 0, 0.5) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* ============ 标题 ============ */
+.header {
+  position: absolute;
+  top: 36px;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  z-index: 10;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-title);
+  font-size: 44px;
+  letter-spacing: 10px;
+  color: var(--color-gold-light);
+  text-shadow: 0 2px 10px rgba(200, 161, 75, 0.55), 0 0 18px rgba(200, 161, 75, 0.25);
+}
+
+.sub {
+  margin-top: 8px;
+  font-family: var(--font-body-kaiti);
+  font-size: 18px;
+  color: rgba(235, 220, 180, 0.75);
+  letter-spacing: 4px;
+}
+
+/* ============ 左上角状态面板 ============ */
+.statusPanel {
+  position: absolute;
+  top: 36px;
+  left: 80px;
+  padding: 14px 18px;
+  background: rgba(13, 27, 42, 0.85);
+  border: 1px solid rgba(200, 161, 75, 0.45);
+  border-radius: 8px;
+  min-width: 260px;
+  z-index: 5;
+}
+
+.statusName {
+  font-family: var(--font-title);
+  font-size: 20px;
+  color: var(--color-gold-light);
+  letter-spacing: 2px;
+  margin-bottom: 6px;
+}
+
+.statusRealm {
+  font-family: var(--font-body-kaiti);
+  font-size: 15px;
+  color: rgba(235, 220, 180, 0.85);
+  margin-bottom: 8px;
+}
+
+.statusRealm strong {
+  color: #ffe4a8;
+  font-size: 17px;
+  margin-left: 4px;
+  letter-spacing: 1px;
+}
+
+.statusStats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  font-family: 'Consolas', monospace;
+  font-size: 14px;
+  color: var(--color-paper);
+}
+
+.statusStats em {
+  font-style: normal;
+  color: #9fd37b;
+  font-size: 12px;
+  margin-left: 3px;
+}
+
+/* ============ 右上角资源HUD ============ */
+.resourceHud {
+  position: absolute;
+  top: 36px;
+  right: 80px;
+  padding: 10px 14px;
+  background: rgba(13, 27, 42, 0.85);
+  border: 1px solid rgba(200, 161, 75, 0.45);
+  border-radius: 8px;
+  z-index: 5;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hudRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 6px;
+  font-family: var(--font-ui);
+  font-size: 15px;
+  color: var(--color-paper);
+  letter-spacing: 1px;
+}
+
+/* 可点击的HUD行 */
+.hudRowBtn {
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  background: rgba(200, 161, 75, 0.08);
+  border: 1px solid rgba(200, 161, 75, 0.22);
+  border-radius: 4px;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+}
+
+.hudRowBtn:hover {
+  background: rgba(200, 161, 75, 0.2);
+  border-color: rgba(200, 161, 75, 0.55);
+  transform: translateX(-2px);
+  box-shadow: 0 0 10px rgba(200, 161, 75, 0.28);
+}
+
+.hudRowBtn:active {
+  transform: translateX(0);
+}
+
+.hudIcon {
+  color: var(--color-gold);
+  font-size: 18px;
+  width: 22px;
+  text-align: center;
+}
+
+.hudLabel {
+  flex: 1;
+  color: rgba(232, 200, 120, 0.85);
+}
+
+.hudValue {
+  font-family: 'Consolas', monospace;
+  font-weight: 700;
+  color: #fff;
+  font-size: 16px;
+}
+
+/* ============ 三张抉择卡 ============ */
+.cardsRow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  gap: 32px;
+  z-index: 4;
+}
+
+.card {
+  width: 260px;
+  height: 360px;
+  padding: 28px 22px 24px;
+  background: linear-gradient(180deg, rgba(22, 34, 58, 0.95) 0%, rgba(13, 22, 40, 0.95) 100%);
+  border: 2px solid var(--accent, var(--color-gold));
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+  color: var(--color-paper);
+  font-family: var(--font-body-kaiti);
+  outline: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.card:hover {
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.7), 0 0 28px var(--accent, rgba(200, 161, 75, 0.5));
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border: 1px solid rgba(200, 161, 75, 0.2);
+  pointer-events: none;
+  border-radius: 8px;
+}
+
+.cardDim {
+  opacity: 0.7;
+}
+
+.cardUpgrade {
+  --accent: #9778d1;
+}
+
+.cardRecruit {
+  --accent: #d1a048;
+}
+
+.cardNext {
+  --accent: #5fa3c8;
+}
+
+.cardIcon {
+  font-size: 52px;
+  line-height: 1;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.7));
+  margin-top: 14px;
+}
+
+.cardName {
+  font-family: var(--font-title);
+  font-size: 24px;
+  color: var(--color-gold-light);
+  letter-spacing: 4px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.7);
+}
+
+.cardDesc {
+  flex: 1;
+  text-align: center;
+  font-size: 15px;
+  line-height: 1.8;
+  color: rgba(235, 220, 180, 0.9);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.cardDesc strong {
+  color: #ffe4a8;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.costLine {
+  padding: 4px 12px;
+  background: rgba(200, 161, 75, 0.1);
+  border: 1px solid rgba(200, 161, 75, 0.35);
+  border-radius: 4px;
+  font-size: 13px;
+  color: var(--color-gold-light);
+}
+
+.maxed {
+  color: #9fd37b;
+  font-size: 14px;
+  letter-spacing: 1px;
+}
+
+.cardFoot {
+  font-size: 12px;
+  color: rgba(200, 161, 75, 0.55);
+  letter-spacing: 2px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(200, 161, 75, 0.18);
+  width: 100%;
+  text-align: center;
+}
+
+/* ============ 底部提示 ============ */
+.hint {
+  position: absolute;
+  bottom: 36px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 24px;
+  background: rgba(13, 27, 42, 0.85);
+  border: 1px solid rgba(200, 161, 75, 0.35);
+  border-radius: 6px;
+  font-family: var(--font-body-kaiti);
+  font-size: 14px;
+  color: rgba(235, 220, 180, 0.75);
+  letter-spacing: 2px;
+  z-index: 3;
+}
+
+/* ============ Toast ============ */
+.toast {
+  position: absolute;
+  bottom: 110px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12px 28px;
+  border-radius: 6px;
+  font-family: var(--font-body-kaiti);
+  font-size: 18px;
+  letter-spacing: 2px;
+  z-index: 50;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+}
+
+.toastOk {
+  background: linear-gradient(180deg, rgba(95, 160, 90, 0.85) 0%, rgba(40, 80, 50, 0.92) 100%);
+  border: 1px solid rgba(130, 210, 120, 0.7);
+  color: #d8f4cc;
+  text-shadow: 0 0 6px rgba(130, 210, 120, 0.6);
+}
+
+.toastBad {
+  background: linear-gradient(180deg, rgba(180, 80, 60, 0.85) 0%, rgba(90, 40, 30, 0.92) 100%);
+  border: 1px solid rgba(220, 120, 100, 0.7);
+  color: #f3c8be;
+}
+
+/* ============ 角色选择弹窗：境界提升 ============ */
+.pickerOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pickerPanel {
+  background: linear-gradient(180deg, rgba(18, 30, 52, 0.97) 0%, rgba(10, 18, 32, 0.98) 100%);
+  border: 2px solid rgba(200, 161, 75, 0.5);
+  border-radius: 12px;
+  padding: 28px 32px 20px;
+  max-width: 680px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
+}
+
+.pickerTitle {
+  font-family: var(--font-title);
+  font-size: 26px;
+  color: var(--color-gold-light);
+  letter-spacing: 4px;
+  margin: 0 0 8px;
+  text-align: center;
+  text-shadow: 0 2px 8px rgba(200, 161, 75, 0.4);
+}
+
+.pickerSub {
+  text-align: center;
+  font-family: var(--font-body-kaiti);
+  font-size: 14px;
+  color: rgba(235, 220, 180, 0.7);
+  margin-bottom: 20px;
+  letter-spacing: 1px;
+}
+
+.pickerSub strong {
+  color: #ffe4a8;
+}
+
+.pickerGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pickerCard {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  background: rgba(22, 34, 58, 0.85);
+  border: 2px solid var(--color-gold);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+  color: var(--color-paper);
+  font-family: var(--font-body-kaiti);
+  outline: none;
+  text-align: left;
+  width: 100%;
+}
+
+.pickerCard:not(:disabled):hover {
+  background: rgba(200, 161, 75, 0.15);
+  box-shadow: 0 0 16px rgba(200, 161, 75, 0.3);
+  transform: translateX(4px);
+}
+
+.pickerCard:not(:disabled):active {
+  transform: translateX(0);
+}
+
+.pickerCardDim {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pickerPortrait {
+  width: 64px;
+  height: 85px;
+  background-size: cover;
+  background-position: center 20%;
+  border-radius: 6px;
+  border: 1px solid rgba(200, 161, 75, 0.4);
+  flex-shrink: 0;
+}
+
+.pickerInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pickerName {
+  font-family: var(--font-title);
+  font-size: 18px;
+  color: var(--color-gold-light);
+  letter-spacing: 2px;
+}
+
+.pickerRealm {
+  font-size: 14px;
+  color: rgba(235, 220, 180, 0.85);
+}
+
+.pickerArrow {
+  color: #9fd37b;
+}
+
+.pickerArrow strong {
+  color: #bef09a;
+  font-size: 15px;
+}
+
+.pickerMax {
+  color: rgba(200, 161, 75, 0.55);
+  font-size: 12px;
+  margin-left: 4px;
+}
+
+.pickerStats {
+  display: flex;
+  gap: 12px;
+  font-size: 13px;
+  color: rgba(235, 220, 180, 0.75);
+  font-family: 'Consolas', monospace;
+}
+
+.pickerStats em {
+  font-style: normal;
+  color: #9fd37b;
+  margin-left: 3px;
+  font-size: 12px;
+}
+
+.pickerClose {
+  display: block;
+  margin: 18px auto 0;
+  padding: 8px 32px;
+  background: rgba(200, 161, 75, 0.15);
+  border: 1px solid rgba(200, 161, 75, 0.5);
+  border-radius: 6px;
+  color: var(--color-gold-light);
+  font-family: var(--font-body-kaiti);
+  font-size: 15px;
+  cursor: pointer;
+  letter-spacing: 2px;
+  transition: background 0.2s ease;
+}
+
+.pickerClose:hover {
+  background: rgba(200, 161, 75, 0.3);
+}

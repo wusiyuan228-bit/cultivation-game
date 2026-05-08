@@ -1,0 +1,302 @@
+/* ==================================================================
+ * 参与者座位（2026-04-27 重构）
+ *
+ * 关键变化：
+ *   - 立绘缩小为 110×148，留出空间给"抽到卡"闪现位
+ *   - 顺序数字并入名字前缀（不再绝对定位）
+ *   - 当前抽卡者：金色边框发光 + 顶部"抽卡中"角标
+ *   - 其他座位不再变暗，保持常亮可交互
+ * ================================================================== */
+
+.seat {
+  position: absolute;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: default;
+  z-index: 5;
+}
+
+/* 中间座位：通过 transform 把"立绘盒"的中心对齐到 left:50% */
+/* row 布局：立绘(200) + gap(10) + 闪现(120) = 330；立绘中心在 100px 处；
+   要让立绘中心 = left(50%)，需要整体左移 100px */
+.seat.anchorCenter {
+  transform: translateX(-100px);
+}
+
+/* 右侧反转：闪现位在立绘左侧 */
+.seat.reversed {
+  flex-direction: row-reverse;
+}
+
+/* 当前抽卡者整体轻微放大 */
+.seat.current {
+  z-index: 10;
+}
+
+/* 角色卡片容器：立绘 + 信息栏竖排 */
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 200px;
+  padding: 6px 6px 8px;
+  background: rgba(10, 18, 32, 0.72);
+  border: 1.5px solid rgba(200, 168, 80, 0.35);
+  border-radius: 10px;
+  transition: border-color 0.25s, box-shadow 0.25s;
+}
+.seat.current .card {
+  border-color: #c8a850;
+  box-shadow: 0 0 20px rgba(200, 168, 80, 0.65), inset 0 0 10px rgba(200, 168, 80, 0.18);
+  animation: seatPulse 1.8s ease-in-out infinite;
+}
+
+/* ==================== 已离场状态 ==================== */
+.seat.left .card {
+  filter: grayscale(1) brightness(0.55);
+  border-color: rgba(120, 120, 120, 0.35);
+  box-shadow: none;
+  animation: none;
+}
+.seat.left .portraitImg {
+  filter: grayscale(1) brightness(0.7);
+}
+.leftTag {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 6px 14px;
+  background: linear-gradient(135deg, rgba(80, 80, 80, 0.92), rgba(60, 60, 60, 0.92));
+  color: #d4d4d4;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  border: 1px solid rgba(200, 200, 200, 0.35);
+  border-radius: 6px;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.8);
+  z-index: 6;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+@keyframes seatPulse {
+  0%, 100% { box-shadow: 0 0 16px rgba(200, 168, 80, 0.55), inset 0 0 8px rgba(200, 168, 80, 0.15); }
+  50%      { box-shadow: 0 0 28px rgba(200, 168, 80, 0.95), inset 0 0 14px rgba(200, 168, 80, 0.32); }
+}
+
+/* "抽卡中" 角标 —— 仅在 current 时显示 */
+.drawingTag {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 3px 12px;
+  background: linear-gradient(135deg, #c8a850, #ffd974);
+  color: #1a1a1a;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  border-radius: 4px;
+  box-shadow: 0 2px 10px rgba(200, 168, 80, 0.7);
+  z-index: 2;
+  white-space: nowrap;
+}
+
+/* 立绘：缩小到 180×160（横向留给 hover 技能提示） */
+.portrait {
+  position: relative;
+  width: 188px;
+  height: 160px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1.5px solid rgba(200, 168, 80, 0.35);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.5);
+  background: #0a0e18;
+}
+
+.portraitImg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center 12%;
+  transition: transform 0.3s;
+}
+.seat.current .portraitImg {
+  transform: scale(1.03);
+}
+
+/* 信息栏（名字/属性/持卡） */
+.info {
+  width: 188px;
+  text-align: center;
+  background: rgba(10, 18, 32, 0.88);
+  border: 1px solid rgba(200, 168, 80, 0.35);
+  border-radius: 6px;
+  padding: 4px 8px;
+}
+
+.nameRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.orderInName {
+  font-size: 12px;
+  font-weight: 900;
+  color: #1a1a1a;
+  background: linear-gradient(135deg, #c8a850, #ffd974);
+  padding: 1px 6px;
+  border-radius: 4px;
+  box-shadow: 0 1px 4px rgba(200, 168, 80, 0.55);
+  line-height: 1.3;
+}
+.name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #ebdcb4;
+  letter-spacing: 1px;
+}
+.playerTag {
+  padding: 1px 6px;
+  background: #c8a850;
+  color: #1a1a1a;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 3px;
+}
+
+.statRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 12px;
+  margin-top: 3px;
+}
+.gem {
+  color: #c8a850;
+  font-weight: 700;
+}
+.skip {
+  color: rgba(235, 220, 180, 0.7);
+}
+
+.deckRow {
+  font-size: 11px;
+  color: rgba(235, 220, 180, 0.78);
+  margin-top: 3px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 3px;
+  transition: all 0.15s;
+}
+.deckRow:hover {
+  background: rgba(200, 168, 80, 0.15);
+  color: #ffd974;
+}
+
+/* ========================= Hover 技能提示 ========================= */
+/* 默认：左对齐到立绘左边缘（适用于左/中列） */
+.skillTip {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 0;
+  width: 260px;
+  padding: 10px 14px;
+  background: rgba(5, 10, 20, 0.97);
+  border: 1px solid #c8a850;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
+  z-index: 40;
+  pointer-events: none;
+}
+
+/* 右列（seat4/5）：右对齐到立绘右边缘 —— 注意立绘宽 200，所以 right:calc(100% - 200px) */
+.seat.reversed .skillTip {
+  left: auto;
+  right: 0;
+}
+.skillName {
+  font-size: 14px;
+  font-weight: 700;
+  color: #c8a850;
+  margin-bottom: 4px;
+}
+.skillDesc {
+  font-size: 12px;
+  color: rgba(235, 220, 180, 0.85);
+  line-height: 1.5;
+}
+.noSkillTip {
+  font-size: 12px;
+  color: rgba(235, 220, 180, 0.5);
+  font-style: italic;
+}
+
+/* ========================= 抽到卡闪现位（带立绘，1.5 秒显示） ========================= */
+.drawSlot {
+  width: 120px;
+  height: 180px;
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.drawFlashCard {
+  width: 120px;
+  height: 180px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2.5px solid;
+  box-shadow: 0 0 24px currentColor, 0 4px 16px rgba(0, 0, 0, 0.7);
+  background: linear-gradient(180deg, rgba(30, 40, 60, 0.98), rgba(10, 18, 32, 0.99));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 0 6px;
+  text-align: center;
+  pointer-events: none;
+}
+
+/* 闪现卡立绘缩略图 */
+.drawFlashPortrait {
+  width: 100%;
+  height: 90px;
+  background-size: cover;
+  background-position: center 15%;
+  border-bottom: 1.5px solid rgba(200, 168, 80, 0.35);
+  flex-shrink: 0;
+}
+
+.drawFlashRarity {
+  font-size: 10px;
+  font-weight: 900;
+  padding: 1px 8px;
+  border-radius: 2px;
+  color: #1a1a1a;
+  margin: 5px 0 3px;
+  flex-shrink: 0;
+}
+.drawFlashName {
+  font-size: 13px;
+  font-weight: 700;
+  color: #ebdcb4;
+  line-height: 1.2;
+  word-break: break-all;
+  flex-shrink: 0;
+}
+.drawFlashStats {
+  display: flex;
+  gap: 6px;
+  font-size: 10px;
+  color: rgba(235, 220, 180, 0.75);
+  margin-top: 3px;
+  flex-shrink: 0;
+}

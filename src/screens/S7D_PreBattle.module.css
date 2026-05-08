@@ -1,0 +1,374 @@
+/* S7D 坠魔谷大战 · 备战界面样式 */
+
+.screen {
+  position: relative;
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 50% 20%, rgba(80, 20, 30, 0.55) 0%, rgba(10, 8, 12, 0.95) 60%),
+    linear-gradient(180deg, #140c10 0%, #0a0608 100%);
+  color: #e8dcb8;
+  font-family: 'Noto Serif SC', 'Songti SC', serif;
+}
+
+/* 顶部标题栏 */
+.topBar {
+  position: absolute;
+  top: 96px;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  letter-spacing: 4px;
+  z-index: 5;
+}
+
+.topTitle {
+  font-size: 40px;
+  font-weight: 700;
+  color: #f0d98a;
+  text-shadow:
+    0 0 18px rgba(220, 140, 80, 0.55),
+    0 2px 8px rgba(0, 0, 0, 0.9);
+  margin-bottom: 8px;
+}
+
+.topSubtitle {
+  font-size: 17px;
+  color: #c9a878;
+  letter-spacing: 6px;
+  opacity: 0.9;
+}
+
+/* 三栏对战公布区 */
+.arenaPanel {
+  position: absolute;
+  top: 220px;
+  left: 120px;
+  right: 120px;
+  bottom: 200px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 24px;
+  align-items: stretch;
+  z-index: 3;
+}
+
+/* 阵营卡（左右两侧） */
+.factionColumn {
+  border: 2px solid rgba(200, 160, 100, 0.3);
+  border-radius: 12px;
+  padding: 22px 20px;
+  display: flex;
+  flex-direction: column;
+  background: rgba(20, 16, 14, 0.75);
+  backdrop-filter: blur(6px);
+}
+
+.factionColumn.player {
+  border-color: rgba(122, 185, 255, 0.55);
+  box-shadow:
+    inset 0 0 40px rgba(122, 185, 255, 0.12),
+    0 0 30px rgba(122, 185, 255, 0.18);
+}
+
+.factionColumn.enemy {
+  border-color: rgba(255, 120, 90, 0.55);
+  box-shadow:
+    inset 0 0 40px rgba(255, 120, 90, 0.12),
+    0 0 30px rgba(255, 120, 90, 0.18);
+}
+
+.factionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 14px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid rgba(200, 160, 100, 0.22);
+}
+
+.factionBadge {
+  font-size: 13px;
+  letter-spacing: 3px;
+  padding: 3px 12px;
+  border-radius: 4px;
+  background: rgba(80, 60, 40, 0.6);
+  color: #d8c48c;
+}
+
+.factionBadge.player {
+  background: rgba(80, 120, 180, 0.28);
+  color: #a8c8e8;
+  border: 1px solid rgba(122, 185, 255, 0.4);
+}
+
+.factionBadge.enemy {
+  background: rgba(180, 70, 55, 0.28);
+  color: #e8a088;
+  border: 1px solid rgba(255, 120, 90, 0.4);
+}
+
+.factionName {
+  font-size: 24px;
+  font-weight: 700;
+  color: #f0d98a;
+  letter-spacing: 2px;
+}
+
+.factionMotto {
+  font-size: 12px;
+  color: #a9997a;
+  letter-spacing: 1px;
+  margin-top: 2px;
+  max-width: 220px;
+  text-align: right;
+  line-height: 1.5;
+}
+
+/* 队员卡片 */
+.memberList {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  flex: 1;
+}
+
+.memberCard {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(200, 160, 100, 0.18);
+  background: rgba(30, 22, 18, 0.55);
+  position: relative;
+}
+
+.memberTop {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.aiDeckRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 1px dashed rgba(200, 160, 100, 0.18);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.aiDeckLabel {
+  color: #8a7b5a;
+  letter-spacing: 1px;
+  margin-right: 2px;
+}
+
+.aiDeckLoading {
+  color: #6a5a40;
+  font-style: italic;
+  letter-spacing: 1px;
+}
+
+.aiDeckChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(200, 160, 100, 0.4);
+  background: rgba(15, 10, 8, 0.6);
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.aiDeckChip.aiDeckStarter {
+  background: rgba(240, 217, 138, 0.14);
+  box-shadow: 0 0 6px rgba(240, 217, 138, 0.35);
+}
+
+.aiDeckChipRarity {
+  font-size: 9px;
+  padding: 0 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  letter-spacing: 0;
+}
+
+.memberCard.isPlayer {
+  border-color: rgba(240, 217, 138, 0.6);
+  background: linear-gradient(90deg, rgba(240, 217, 138, 0.12), rgba(30, 22, 18, 0.6));
+  box-shadow: inset 0 0 18px rgba(240, 217, 138, 0.12);
+}
+
+.memberCard.isSwing {
+  border-color: rgba(180, 140, 220, 0.5);
+  background: linear-gradient(90deg, rgba(180, 140, 220, 0.1), rgba(30, 22, 18, 0.6));
+}
+
+.memberAvatar {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background-size: cover;
+  background-position: center top;
+  background-color: rgba(80, 60, 40, 0.6);
+  border: 2px solid rgba(200, 160, 100, 0.35);
+}
+
+.memberInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.memberName {
+  font-size: 17px;
+  font-weight: 600;
+  color: #f0e0b0;
+  letter-spacing: 1px;
+}
+
+.memberTag {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 10px;
+  letter-spacing: 1px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: rgba(240, 217, 138, 0.2);
+  color: #f0d98a;
+  vertical-align: middle;
+}
+
+.memberTag.swing {
+  background: rgba(180, 140, 220, 0.2);
+  color: #d4b4ee;
+}
+
+.memberTag.fixed {
+  background: rgba(120, 160, 200, 0.18);
+  color: #a8c0d8;
+}
+
+.memberStats {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+  font-size: 12px;
+  color: #b0a280;
+}
+
+.memberStats b {
+  color: #f0d98a;
+  margin-left: 2px;
+}
+
+.memberType {
+  font-size: 11px;
+  color: #8a7b5a;
+  margin-top: 2px;
+}
+
+/* 中央 VS 柱 */
+.versusColumn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  width: 120px;
+}
+
+.vs {
+  font-size: 80px;
+  font-weight: 900;
+  color: #f0d98a;
+  letter-spacing: 4px;
+  text-shadow:
+    0 0 30px rgba(255, 140, 80, 0.7),
+    0 0 60px rgba(255, 80, 60, 0.35);
+  transform: rotate(-6deg);
+}
+
+.vsBadge {
+  font-size: 15px;
+  letter-spacing: 3px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  background: rgba(120, 70, 40, 0.6);
+  color: #f0d98a;
+  border: 1px solid rgba(240, 180, 90, 0.4);
+}
+
+/* 底部说明 + 出征按钮 */
+.bottomBar {
+  position: absolute;
+  bottom: 88px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  z-index: 5;
+}
+
+.bottomHint {
+  font-size: 13px;
+  color: #a9997a;
+  letter-spacing: 2px;
+  max-width: 900px;
+  text-align: center;
+  line-height: 1.7;
+}
+
+.launchBtn {
+  padding: 14px 64px;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 6px;
+  color: #1a1412;
+  background: linear-gradient(180deg, #e8c878 0%, #b88840 100%);
+  border: 2px solid #f0d98a;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  box-shadow: 0 0 30px rgba(240, 180, 90, 0.35);
+}
+
+.launchBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 40px rgba(240, 180, 90, 0.6);
+}
+
+.launchBtn:active {
+  transform: translateY(0);
+}
+
+/* 左下：整理卡组按钮 */
+.manageBtn {
+  position: absolute;
+  bottom: 96px;
+  left: 40px;
+  padding: 10px 22px;
+  font-size: 14px;
+  letter-spacing: 2px;
+  color: #d8c48c;
+  background: rgba(40, 30, 25, 0.8);
+  border: 1px solid rgba(200, 160, 100, 0.5);
+  border-radius: 6px;
+  cursor: pointer;
+  z-index: 5;
+}
+
+.manageBtn:hover {
+  background: rgba(80, 60, 40, 0.9);
+  color: #f0d98a;
+}

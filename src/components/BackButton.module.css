@@ -1,0 +1,25 @@
+.back {
+  position: absolute;
+  left: 32px;
+  top: 32px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-ink-deep);
+  background: rgba(245, 239, 224, 0.6);
+  border: 1px solid var(--color-mountain);
+  border-radius: 50%;
+  transition: background var(--tr-base), transform var(--tr-base);
+  z-index: 20;
+}
+
+.back:hover {
+  background: rgba(245, 239, 224, 0.9);
+  transform: scale(1.08);
+}
+
+.back:active {
+  transform: scale(0.95);
+}

@@ -1,0 +1,604 @@
+.screen {
+  position: absolute;
+  inset: 0;
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+  font-family: var(--font-body-kaiti);
+  color: var(--color-paper);
+}
+
+.bg {
+  position: absolute;
+  inset: 0;
+  background: url('/images/stage/s5_battle_bg.jpg') center/cover no-repeat;
+  z-index: 0;
+}
+
+/* 暗角遮罩——增强UI可读性 */
+.bgVeil {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 50% 50%, transparent 40%, rgba(0, 0, 0, 0.4) 100%);
+  z-index: 1;
+}
+
+/* 教学横幅 */
+.banner {
+  position: absolute;
+  top: 48px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 14px 48px;
+  background: linear-gradient(180deg, rgba(200, 139, 47, 0.95) 0%, rgba(160, 100, 30, 0.9) 100%);
+  border: 2px solid var(--color-gold-light);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  z-index: 10;
+}
+
+.bannerTitle {
+  font-family: var(--font-title);
+  font-size: 28px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 4px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+}
+
+.bannerText {
+  font-family: var(--font-body-kaiti);
+  font-size: 20px;
+  color: #fff;
+  opacity: 0.95;
+}
+
+.ruleNote {
+  position: absolute;
+  top: 150px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 10px 28px;
+  background: rgba(13, 27, 42, 0.85);
+  border: 1px solid var(--color-gold);
+  border-radius: 6px;
+  font-family: var(--font-body-kaiti);
+  max-width: 1200px;
+  text-align: center;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ruleLine1 {
+  font-size: 19px;
+  color: var(--color-gold-light);
+  letter-spacing: 0.5px;
+  font-weight: 500;
+}
+
+.ruleLine2 {
+  font-size: 16px;
+  color: rgba(232, 200, 120, 0.8);
+  letter-spacing: 0.5px;
+}
+
+.progress {
+  position: absolute;
+  top: 205px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 20px;
+  background: rgba(13, 27, 42, 0.7);
+  border: 1px solid rgba(200, 161, 75, 0.4);
+  border-radius: 20px;
+  font-size: 14px;
+  color: var(--color-gold-light);
+  letter-spacing: 1px;
+  z-index: 10;
+}
+
+/* 对战区 */
+.arena {
+  position: absolute;
+  top: 250px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: grid;
+  grid-template-columns: 1fr 760px 1fr;
+  align-items: flex-start;
+  padding: 40px 80px;
+  z-index: 5;
+}
+
+.side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 20px;
+  position: relative;
+}
+
+.sideRight {
+  /* 右侧对称 */
+}
+
+.portrait {
+  width: 180px;
+  height: 240px;
+  border-radius: 12px;
+  border: 3px solid var(--color-gold);
+  background-color: rgba(10, 20, 40, 0.9);
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+}
+
+.portraitLetter {
+  font-family: var(--font-title);
+  font-size: 80px;
+  font-weight: 700;
+  background: linear-gradient(180deg, #e8c878 0%, #8b6b2e 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.8));
+}
+
+.typeBadge {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-family: var(--font-title);
+  font-weight: 700;
+  font-size: 18px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+}
+
+.charName {
+  font-family: var(--font-title);
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-gold-light);
+  letter-spacing: 2px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.7);
+}
+
+.statsRow {
+  display: flex;
+  gap: 10px;
+}
+
+.atkTag,
+.mndTag {
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-family: var(--font-ui);
+  font-size: 14px;
+  letter-spacing: 1px;
+}
+
+.atkTag {
+  background: rgba(184, 80, 47, 0.25);
+  border: 1px solid var(--color-type-body);
+  color: #ffb89a;
+}
+
+.mndTag {
+  background: rgba(123, 168, 95, 0.25);
+  border: 1px solid var(--color-type-soul);
+  color: #bce3a8;
+}
+
+.hpBar {
+  position: relative;
+  width: 240px;
+  height: 26px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(200, 161, 75, 0.6);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.hpFill {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  background: linear-gradient(90deg, #8b1a1a 0%, #cc3333 50%, #e85555 100%);
+  transition: width 0.4s ease-out;
+}
+
+.hpText {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-ui);
+  font-size: 14px;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+  letter-spacing: 1px;
+}
+
+.floatDmg {
+  position: absolute;
+  top: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Consolas', monospace;
+  font-weight: 900;
+  font-size: 56px;
+  color: #ff3344;
+  text-shadow: 0 2px 0 #fff, 0 4px 10px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+}
+
+/* 中央对战区 */
+.center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding-top: 8px;
+}
+
+.diceZone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+}
+
+.vs {
+  font-family: var(--font-title);
+  font-size: 36px;
+  font-weight: 900;
+  color: var(--color-gold-light);
+  text-shadow: 0 2px 10px rgba(200, 161, 75, 0.6);
+  letter-spacing: 2px;
+  flex-shrink: 0;
+}
+
+.resultArea {
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 700px;
+}
+
+.damageLog {
+  padding: 10px 24px;
+  background: rgba(13, 27, 42, 0.9);
+  border: 1px solid var(--color-gold);
+  border-radius: 6px;
+  font-family: var(--font-body-kaiti);
+  font-size: 20px;
+  color: var(--color-gold-light);
+  text-align: center;
+  letter-spacing: 1px;
+  box-shadow: 0 0 12px rgba(200, 161, 75, 0.3);
+}
+
+.damageLogEnd {
+  padding: 14px 36px;
+  background: linear-gradient(180deg, rgba(200, 139, 47, 0.25) 0%, rgba(100, 60, 20, 0.25) 100%);
+  border: 2px solid var(--color-gold);
+  border-radius: 8px;
+  font-family: var(--font-title);
+  font-size: 26px;
+  font-weight: 700;
+  color: #ffe4a8;
+  text-align: center;
+  letter-spacing: 4px;
+  box-shadow: 0 0 24px rgba(200, 161, 75, 0.55);
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
+}
+
+/* 本场胜负小结（按钮下方） */
+.matchSummary {
+  margin-top: 14px;
+  padding: 10px 26px;
+  border-radius: 6px;
+  font-family: var(--font-body-kaiti);
+  font-size: 18px;
+  letter-spacing: 2px;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+}
+
+.matchSummaryLabel {
+  font-weight: 700;
+  color: var(--color-gold-light);
+  letter-spacing: 1px;
+}
+
+.matchSummaryWin {
+  background: linear-gradient(180deg, rgba(95, 160, 90, 0.22) 0%, rgba(40, 80, 50, 0.28) 100%);
+  border: 1px solid rgba(130, 210, 120, 0.55);
+  color: #c8f0bc;
+  text-shadow: 0 0 8px rgba(130, 210, 120, 0.5);
+}
+
+.matchSummaryLose {
+  background: linear-gradient(180deg, rgba(180, 80, 60, 0.2) 0%, rgba(90, 40, 30, 0.28) 100%);
+  border: 1px solid rgba(220, 120, 100, 0.55);
+  color: #f3c8be;
+  text-shadow: 0 0 8px rgba(220, 120, 100, 0.4);
+}
+
+.actionBar {
+  margin-top: 12px;
+  display: flex;
+  justify-content: center;
+}
+
+.ctaBtn {
+  padding: 14px 56px;
+  background: linear-gradient(180deg, var(--color-button-blue) 0%, var(--color-button-blue-dark) 100%);
+  color: #fff;
+  border: 2px solid var(--color-gold);
+  border-radius: 6px;
+  font-family: var(--font-title);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 6px;
+  cursor: pointer;
+  box-shadow: var(--shadow-btn), 0 0 16px rgba(200, 161, 75, 0.25);
+  transition: transform var(--tr-base), box-shadow var(--tr-base);
+}
+
+.ctaBtn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-btn-hover), 0 0 24px rgba(200, 161, 75, 0.55);
+}
+
+.ctaBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.introTip {
+  position: absolute;
+  bottom: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 900px;
+  padding: 10px 28px;
+  background: rgba(13, 27, 42, 0.9);
+  border-left: 3px solid var(--color-gold);
+  border-radius: 0 4px 4px 0;
+  font-family: var(--font-body-kaiti);
+  font-size: 18px;
+  color: var(--color-paper);
+  z-index: 6;
+}
+
+/* 结算弹窗 */
+.endOverlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+.endCard {
+  width: 520px;
+  padding: 40px 48px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #f7f1e3 0%, #efe6ce 100%);
+  border: 3px solid var(--color-gold-dark);
+  text-align: center;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
+}
+
+.endWin {
+  border-color: var(--color-gold);
+  box-shadow: 0 0 32px rgba(255, 217, 107, 0.5), 0 8px 32px rgba(0, 0, 0, 0.8);
+}
+
+.endLose {
+  border-color: var(--color-ink-muted);
+}
+
+.endTitle {
+  margin: 0 0 16px;
+  font-family: var(--font-title);
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--color-ink-deep);
+  letter-spacing: 3px;
+}
+
+.endMsg {
+  margin: 0 0 28px;
+  font-family: var(--font-body-kaiti);
+  font-size: 22px;
+  color: var(--color-ink-body);
+  line-height: 1.6;
+}
+
+/* ============ 副 CTA 按钮（继续，敌人回合）============ */
+.ctaBtnAlt {
+  background: linear-gradient(180deg, #8a3a1e 0%, #5a1f0e 100%) !important;
+  border-color: #e8a878 !important;
+  animation: ctaPulse 1.4s ease-in-out infinite;
+}
+
+@keyframes ctaPulse {
+  0%, 100% {
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.55), 0 0 18px rgba(232, 168, 120, 0.45);
+  }
+  50% {
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.55), 0 0 32px rgba(232, 168, 120, 0.85);
+  }
+}
+
+/* ============ 右下角战报面板 ============ */
+/* 为右下角常驻 CommonHud（灵石/角色按钮）让出空间，面板左移 */
+.battleLog {
+  position: absolute;
+  right: 248px;
+  bottom: 32px;
+  width: 320px;
+  max-height: 340px;
+  display: flex;
+  flex-direction: column;
+  background: rgba(10, 18, 32, 0.9);
+  border: 1px solid rgba(200, 161, 75, 0.55);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+  z-index: 20;
+}
+
+.battleLogHeader {
+  padding: 8px 14px;
+  font-family: var(--font-title);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  color: var(--color-gold-light);
+  text-align: center;
+  background: linear-gradient(180deg, rgba(200, 139, 47, 0.35) 0%, rgba(100, 60, 20, 0.2) 100%);
+  border-bottom: 1px solid rgba(200, 161, 75, 0.3);
+  border-radius: 8px 8px 0 0;
+}
+
+.battleLogList {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 10px 10px;
+  max-height: 300px;
+  /* 细滚动条 */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(200, 161, 75, 0.6) transparent;
+}
+
+.battleLogList::-webkit-scrollbar {
+  width: 6px;
+}
+.battleLogList::-webkit-scrollbar-track {
+  background: transparent;
+}
+.battleLogList::-webkit-scrollbar-thumb {
+  background: rgba(200, 161, 75, 0.55);
+  border-radius: 3px;
+}
+.battleLogList::-webkit-scrollbar-thumb:hover {
+  background: rgba(200, 161, 75, 0.85);
+}
+
+.battleLogEmpty {
+  padding: 18px 6px;
+  text-align: center;
+  font-family: var(--font-body-kaiti);
+  font-size: 13px;
+  color: rgba(232, 200, 120, 0.45);
+  font-style: italic;
+}
+
+.battleLogItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 5px 6px;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  line-height: 1.5;
+  border-bottom: 1px dashed rgba(200, 161, 75, 0.15);
+}
+
+.battleLogItem:last-child {
+  border-bottom: none;
+}
+
+.logTurn {
+  flex-shrink: 0;
+  width: 26px;
+  text-align: center;
+  font-family: 'Consolas', monospace;
+  font-weight: 700;
+  color: var(--color-gold-light);
+  opacity: 0.75;
+}
+
+.logSide {
+  flex-shrink: 0;
+  width: 18px;
+  text-align: center;
+  font-weight: 700;
+  border-radius: 3px;
+  padding: 0 1px;
+}
+
+.logPlayer .logSide {
+  background: rgba(123, 168, 95, 0.3);
+  color: #bce3a8;
+  border: 1px solid rgba(123, 168, 95, 0.5);
+}
+
+.logEnemy .logSide {
+  background: rgba(184, 80, 47, 0.3);
+  color: #ffb89a;
+  border: 1px solid rgba(184, 80, 47, 0.5);
+}
+
+.logSystem {
+  background: linear-gradient(90deg, rgba(200, 161, 75, 0.2) 0%, rgba(200, 161, 75, 0.08) 100%);
+  border-bottom: 1px solid rgba(200, 161, 75, 0.45) !important;
+  margin: 4px 0;
+  padding: 8px 6px;
+}
+
+.logSystem .logSide {
+  background: rgba(200, 161, 75, 0.4);
+  color: #ffe4a8;
+  border: 1px solid rgba(200, 161, 75, 0.7);
+}
+
+.logSystem .logText {
+  color: #ffe4a8;
+  font-weight: 600;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.logSystem .logTurn {
+  color: #ffe4a8;
+  opacity: 1;
+}
+
+.logText {
+  flex: 1;
+  color: var(--color-paper);
+  opacity: 0.9;
+  word-break: break-word;
+}
