@@ -911,6 +911,36 @@ export const useBattleStore = create<BattleState>((set, get) => ({
     }
 
     const afterCastUnits = units.map((x) => snapshots[x.id] ?? x);
+
+    // ★ 修复：通过对比 cast 前后的死亡状态，统计本次绝技直接造成的敌方死亡数
+    //   原因：很多绝技（如旺林·逆·天地崩）直接通过 engine.changeStat 把敌人 hp 改为 0，
+    //         不走 attack() 的击杀累加逻辑 → 导致 S7A 结算时 killCount=0、奖励错误。
+    //   方案：在 set 之前 diff，新增死亡的敌方 → killCount++ 并累加到施法者 killCountByThisUnit。
+    let killedByCast = 0;
+    const castAttackerWasEnemy = u.isEnemy;
+    for (let i = 0; i < units.length; i++) {
+      const before = units[i];
+      const after = afterCastUnits[i];
+      if (!before || !after) continue;
+      const newlyDead = !before.dead && after.dead;
+      if (!newlyDead) continue;
+      // 仅统计"敌对阵营"的击杀（avoid 自损算成击杀自己）
+      if (after.isEnemy !== castAttackerWasEnemy) {
+        killedByCast++;
+      }
+    }
+    if (killedByCast > 0) {
+      set((s) => ({ killCount: s.killCount + killedByCast }));
+      // 同步累加到施法者的 killCountByThisUnit（影响"杀敌-1需要X"等被动）
+      const aIdx2 = afterCastUnits.findIndex((x) => x.id === unitId);
+      if (aIdx2 >= 0 && afterCastUnits[aIdx2]) {
+        afterCastUnits[aIdx2] = {
+          ...afterCastUnits[aIdx2],
+          killCountByThisUnit: (afterCastUnits[aIdx2].killCountByThisUnit ?? 0) + killedByCast,
+        };
+      }
+    }
+
     set({
       units: afterCastUnits,
       skillUsedThisTurn: true,
@@ -918,6 +948,17 @@ export const useBattleStore = create<BattleState>((set, get) => ({
     });
     get().addLog(`⚡ ${u.name} 释放绝技【${u.ultimate.name}】！`, 'skill');
     for (const l of engineLogs) get().addLog(l.text, l.type);
+
+    // 输出击杀日志，让玩家看到结果
+    if (killedByCast > 0) {
+      for (let i = 0; i < units.length; i++) {
+        const before = units[i];
+        const after = afterCastUnits[i];
+        if (before && after && !before.dead && after.dead && after.isEnemy !== castAttackerWasEnemy) {
+          get().addLog(`💀 ${after.name} 被【${u.ultimate.name}】击杀！`, 'kill');
+        }
+      }
+    }
 
     const multi = multiSegmentSkills[regId];
     if (multi) {

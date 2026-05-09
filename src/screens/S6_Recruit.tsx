@@ -676,8 +676,11 @@ export const S6_Recruit: React.FC = () => {
       SaveSystem.save(1);
       navigate('/s8?round=2');
     } else if (poolRound === 2) {
+      // ★ 关键顺序：setChapter 内部会重置 recruitDone=false，必须在它之后再 markRecruitDone
+      //   否则筹备页会再次显示招募卡 → 玩家点击 → 又进入 S6b 死循环
       setChapter(4);
       setSegmentIndex(0);
+      markRecruitDone();
       SaveSystem.save(1);
       navigate('/s6');
     } else {
