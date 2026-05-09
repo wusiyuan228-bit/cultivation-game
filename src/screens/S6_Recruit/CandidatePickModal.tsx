@@ -60,8 +60,25 @@ export const CandidatePickModal: React.FC<Props> = ({ open, candidates, onPick }
                   </div>
                   {c.runSkill && (
                     <div className={styles.skill}>
-                      <div className={styles.skillName}>【{c.runSkill.name}】</div>
+                      <div className={styles.skillName}>【招募技能 · {c.runSkill.name}】</div>
                       <div className={styles.skillDesc}>{c.runSkill.desc}</div>
+                    </div>
+                  )}
+                  {c.battleSkill && (
+                    <div className={styles.skill}>
+                      <div className={styles.skillNameBattle}>【战斗技能 · {c.battleSkill.name}】</div>
+                      <div className={styles.skillDesc}>{c.battleSkill.desc}</div>
+                    </div>
+                  )}
+                  {c.ultimate && (
+                    <div className={styles.skill}>
+                      <div className={styles.skillNameUlt}>【绝技 · {c.ultimate.name}】</div>
+                      <div className={styles.skillDesc}>{c.ultimate.desc}</div>
+                    </div>
+                  )}
+                  {!c.runSkill && !c.battleSkill && !c.ultimate && (
+                    <div className={styles.skill}>
+                      <div className={styles.skillDesc} style={{ opacity: 0.5 }}>暂无技能</div>
                     </div>
                   )}
                 </motion.button>

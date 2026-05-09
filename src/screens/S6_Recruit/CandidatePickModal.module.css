@@ -37,7 +37,7 @@
 }
 
 .card {
-  width: 200px;
+  width: 240px;
   padding: 14px 12px;
   background: linear-gradient(180deg, rgba(25, 35, 55, 0.95), rgba(10, 18, 32, 0.98));
   border: 2px solid #888;
@@ -49,7 +49,7 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  min-height: 280px;
+  min-height: 320px;
 }
 .card:hover { box-shadow: 0 0 24px rgba(200, 168, 80, 0.5); }
 
@@ -86,12 +86,21 @@
 }
 
 .skill {
-  flex: 1;
   font-size: 11px;
   margin-top: 4px;
 }
 .skillName {
   color: #c8a4ff;
+  font-weight: 700;
+  margin-bottom: 3px;
+}
+.skillNameBattle {
+  color: #7ab8ff;
+  font-weight: 700;
+  margin-bottom: 3px;
+}
+.skillNameUlt {
+  color: #ffd65e;
   font-weight: 700;
   margin-bottom: 3px;
 }
