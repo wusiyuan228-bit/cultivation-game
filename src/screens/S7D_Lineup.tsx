@@ -30,6 +30,7 @@ import { useGameStore } from '@/stores/gameStore';
 import { HEROES_DATA } from '@/data/heroesData';
 import type { Hero } from '@/types/game';
 import { BackButton } from '@/components/BackButton';
+import { useReturnToMenu } from '@/hooks/useReturnToMenu';
 import { MusicToggle } from '@/components/MusicToggle';
 import { CommonHud } from '@/components/CommonHud';
 import { CollectionModal } from '@/components/CollectionModal';
@@ -160,6 +161,7 @@ function resolveHeroFaction(
 
 export const S7D_Lineup: React.FC<LineupProps> = (props) => {
   const navigate = useNavigate();
+  const returnToMenu = useReturnToMenu();
   const [searchParams] = useSearchParams();
 
   // 优先级：props.mode > URL query ?mode=... > 'starter'
@@ -328,7 +330,7 @@ export const S7D_Lineup: React.FC<LineupProps> = (props) => {
   if (!heroId) {
     return (
       <div className={styles.screen}>
-        <BackButton onClick={() => navigate('/menu')} />
+        <BackButton onClick={returnToMenu} />
         <div className={styles.empty}>尚未选择主角，无法进入登场界面。</div>
       </div>
     );
@@ -336,7 +338,7 @@ export const S7D_Lineup: React.FC<LineupProps> = (props) => {
 
   return (
     <div className={styles.screen}>
-      <BackButton onClick={() => navigate(isReinforce ? '/s7?mode=final' : '/s7d/deploy')} />
+      <BackButton onClick={returnToMenu} />
       <MusicToggle />
       <CommonHud chapter={5} />
 

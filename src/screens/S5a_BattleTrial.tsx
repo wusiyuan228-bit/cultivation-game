@@ -22,6 +22,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { BackButton } from '@/components/BackButton';
+import { useReturnToMenu } from '@/hooks/useReturnToMenu';
 import { MusicToggle } from '@/components/MusicToggle';
 import { CommonHud } from '@/components/CommonHud';
 import { RuleModal } from '@/components/RuleModal';
@@ -62,6 +63,7 @@ function rollDice(count: number): number[] {
 
 export const S5a_BattleTrial: React.FC = () => {
   const navigate = useNavigate();
+  const returnToMenu = useReturnToMenu();
   const heroId = useGameStore((s) => s.heroId);
   const heroName = useGameStore((s) => s.heroName);
   const addSpiritStones = useGameStore((s) => s.addSpiritStones);
@@ -302,7 +304,7 @@ export const S5a_BattleTrial: React.FC = () => {
       <div className={styles.bg} />
       <div className={styles.bgVeil} />
 
-      <BackButton onClick={() => navigate('/story')} />
+      <BackButton onClick={returnToMenu} />
       <MusicToggle />
       <CommonHud chapter={2} />
 

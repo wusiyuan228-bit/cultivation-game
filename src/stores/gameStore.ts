@@ -569,6 +569,8 @@ export const useGameStore = create<GameState>((set, get) => ({
 
 // === 存档接口 ===
 const SAVE_KEY_PREFIX = 'cardwar_save_';
+/** 自动存档槽位 ID（"返回主菜单"时自动写入；不与玩家手动槽位 1/2/3 冲突） */
+export const AUTO_SAVE_SLOT = 0;
 
 export const SaveSystem = {
   save(slot: number): void {
@@ -605,6 +607,19 @@ export const SaveSystem = {
     localStorage.setItem(`${SAVE_KEY_PREFIX}${slot}`, JSON.stringify(data));
   },
 
+  /**
+   * 自动存档：写入专用槽位 0（不影响玩家手动槽位 1/2/3）。
+   * 触发场景：玩家在游戏中任意页面点击"返回主菜单"。
+   * 若当前未选角（heroId 为空），则不存档（避免空数据覆盖）。
+   * @returns 是否成功写入
+   */
+  autoSave(): boolean {
+    const s = useGameStore.getState();
+    if (!s.heroId) return false;
+    this.save(AUTO_SAVE_SLOT);
+    return true;
+  },
+
   load(slot: number): SaveSlot | null {
     const raw = localStorage.getItem(`${SAVE_KEY_PREFIX}${slot}`);
     if (!raw) return null;
@@ -615,15 +630,21 @@ export const SaveSystem = {
     }
   },
 
+  /** 仅返回手动存档槽 1/2/3（与原行为保持兼容） */
   getAllSlots(): (SaveSlot | null)[] {
     return [1, 2, 3].map((s) => this.load(s));
   },
 
+  /** 读取自动存档（返回主菜单时写入的最近进度） */
+  getAutoSlot(): SaveSlot | null {
+    return this.load(AUTO_SAVE_SLOT);
+  },
+
   hasSaves(): boolean {
-    return this.getAllSlots().some((s) => s !== null);
+    return this.getAllSlots().some((s) => s !== null) || this.getAutoSlot() !== null;
   },
 
   delete(slot: number): void {
     localStorage.removeItem(`${SAVE_KEY_PREFIX}${slot}`);
   },
-};
+};

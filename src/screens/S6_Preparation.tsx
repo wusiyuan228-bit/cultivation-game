@@ -10,6 +10,7 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { BackButton } from '@/components/BackButton';
+import { useReturnToMenu } from '@/hooks/useReturnToMenu';
 import { MusicToggle } from '@/components/MusicToggle';
 import { CommonHud } from '@/components/CommonHud';
 import {
@@ -62,6 +63,7 @@ function resolveCard(id: string): Hero | null {
 
 export const S6_Preparation: React.FC = () => {
   const navigate = useNavigate();
+  const returnToMenu = useReturnToMenu();
   const heroId = useGameStore((s) => s.heroId);
   const heroName = useGameStore((s) => s.heroName);
   const spiritStones = useGameStore((s) => s.spiritStones);
@@ -186,7 +188,7 @@ export const S6_Preparation: React.FC = () => {
       <div className={styles.bg} />
       <div className={styles.bgVeil} />
 
-      <BackButton onClick={() => navigate('/s5c')} />
+      <BackButton onClick={returnToMenu} />
       <MusicToggle />
       <CommonHud chapter={chapter} />
 

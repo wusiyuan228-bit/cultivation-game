@@ -15,6 +15,7 @@ import { asset } from '@/utils/assetPath';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { BackButton } from '@/components/BackButton';
+import { useReturnToMenu } from '@/hooks/useReturnToMenu';
 import { MusicToggle } from '@/components/MusicToggle';
 import { CommonHud } from '@/components/CommonHud';
 import { getHeroById } from '@/hooks/useConfig';
@@ -36,6 +37,7 @@ function pickQuestions(all: QuizQuestion[], n: number): QuizQuestion[] {
 
 export const S5b_QuizTrial: React.FC = () => {
   const navigate = useNavigate();
+  const returnToMenu = useReturnToMenu();
   const heroId = useGameStore((s) => s.heroId);
   const knowledgeBonus = useGameStore((s) => s.knowledgeBonus);
   const cardBonuses = useGameStore((s) => s.cardBonuses);
@@ -148,7 +150,7 @@ export const S5b_QuizTrial: React.FC = () => {
     return (
       <div className={styles.screen}>
         <div className={styles.bg} />
-        <BackButton onClick={() => navigate('/s5a')} />
+        <BackButton onClick={returnToMenu} />
         <div className={styles.errorBox}>{loadError}</div>
       </div>
     );
@@ -158,7 +160,7 @@ export const S5b_QuizTrial: React.FC = () => {
     return (
       <div className={styles.screen}>
         <div className={styles.bg} />
-        <BackButton onClick={() => navigate('/s5a')} />
+        <BackButton onClick={returnToMenu} />
         <div className={styles.loadingBox}>长老备题中...</div>
       </div>
     );
@@ -169,7 +171,7 @@ export const S5b_QuizTrial: React.FC = () => {
       <div className={styles.bg} />
       <div className={styles.bgVeil} />
 
-      <BackButton onClick={() => navigate('/s5a')} />
+      <BackButton onClick={returnToMenu} />
       <MusicToggle />
       <CommonHud chapter={2} />
 

@@ -21,6 +21,7 @@ import { useGameStore } from '@/stores/gameStore';
 import { HEROES_DATA } from '@/data/heroesData';
 import type { HeroId, Hero } from '@/types/game';
 import { BackButton } from '@/components/BackButton';
+import { useReturnToMenu } from '@/hooks/useReturnToMenu';
 import { MusicToggle } from '@/components/MusicToggle';
 import { CommonHud } from '@/components/CommonHud';
 import { CollectionModal } from '@/components/CollectionModal';
@@ -103,6 +104,7 @@ function resolveCard(id: string): CardDisplayInfo | null {
 
 export const S7D_Deploy: React.FC = () => {
   const navigate = useNavigate();
+  const returnToMenu = useReturnToMenu();
   const heroId = useGameStore((s) => s.heroId);
   const heroName = useGameStore((s) => s.heroName);
   const ownedCardIds = useGameStore((s) => s.ownedCardIds);
@@ -246,7 +248,7 @@ export const S7D_Deploy: React.FC = () => {
   if (!heroId || !heroInfo) {
     return (
       <div className={styles.screen}>
-        <BackButton onClick={() => navigate('/menu')} />
+        <BackButton onClick={returnToMenu} />
         <div className={styles.empty}>尚未选择主角，无法进入备战。</div>
       </div>
     );
@@ -254,7 +256,7 @@ export const S7D_Deploy: React.FC = () => {
 
   return (
     <div className={styles.screen}>
-      <BackButton onClick={() => navigate('/s7d')} />
+      <BackButton onClick={returnToMenu} />
       <MusicToggle />
       <CommonHud chapter={5} />
 

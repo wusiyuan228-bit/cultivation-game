@@ -16,6 +16,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { BackButton } from '@/components/BackButton';
+import { useReturnToMenu } from '@/hooks/useReturnToMenu';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { MusicToggle } from '@/components/MusicToggle';
 import { CommonHud } from '@/components/CommonHud';
@@ -54,6 +55,7 @@ function useBattleMnd(heroId: HeroId | null): number {
 
 export const S8_Negotiation: React.FC = () => {
   const navigate = useNavigate();
+  const returnToMenu = useReturnToMenu();
   const [searchParams] = useSearchParams();
   const round = (Number(searchParams.get('round')) || 1) as 1 | 2 | 3;
 
@@ -249,7 +251,7 @@ export const S8_Negotiation: React.FC = () => {
   if (loadErr) {
     return (
       <div className={styles.screen}>
-        <BackButton onClick={() => navigate('/story')} />
+        <BackButton onClick={returnToMenu} />
         <div className={styles.container}>
           <div className={styles.panel}>
             <div className={styles.panelTitle}>配置加载失败</div>
@@ -274,7 +276,7 @@ export const S8_Negotiation: React.FC = () => {
   return (
     <div className={styles.screen}>
       <div className={styles.bgOverlay} />
-      <BackButton onClick={() => navigate('/story')} />
+      <BackButton onClick={returnToMenu} />
       <MusicToggle />
       <CommonHud chapter={round === 1 ? 3 : round === 2 ? 4 : 5} />
 

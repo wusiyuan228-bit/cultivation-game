@@ -15,6 +15,7 @@ import React, { useCallback, useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { BackButton } from '@/components/BackButton';
+import { useReturnToMenu } from '@/hooks/useReturnToMenu';
 import { MusicToggle } from '@/components/MusicToggle';
 import { CommonHud } from '@/components/CommonHud';
 import { useGameStore, SaveSystem } from '@/stores/gameStore';
@@ -25,6 +26,7 @@ import styles from './S5c_MentorshipChoice.module.css';
 
 export const S5c_MentorshipChoice: React.FC = () => {
   const navigate = useNavigate();
+  const returnToMenu = useReturnToMenu();
   const heroId = useGameStore((s) => s.heroId);
   const heroName = useGameStore((s) => s.heroName);
   const battleBonus = useGameStore((s) => s.battleBonus);
@@ -182,7 +184,7 @@ export const S5c_MentorshipChoice: React.FC = () => {
       <div className={styles.bg} />
       <div className={styles.bgVeil} />
 
-      <BackButton onClick={() => navigate('/s5b')} />
+      <BackButton onClick={returnToMenu} />
       <MusicToggle />
       <CommonHud chapter={2} />
 

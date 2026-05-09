@@ -8,6 +8,7 @@ import { asset } from '@/utils/assetPath';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { BackButton } from '@/components/BackButton';
+import { useReturnToMenu } from '@/hooks/useReturnToMenu';
 import { MusicToggle } from '@/components/MusicToggle';
 import { CommonHud } from '@/components/CommonHud';
 import { useS7BBattleStore, isCounter, MAP_ROWS, MAP_COLS } from '@/stores/s7bBattleStore';
@@ -422,6 +423,7 @@ function ResultPanel({
 
 export const S7B_Battle: React.FC = () => {
   const navigate = useNavigate();
+  const returnToMenu = useReturnToMenu();
   const heroId = useGameStore((s) => s.heroId);
   const heroName = useGameStore((s) => s.heroName);
   const ownedCardIds = useGameStore((s) => s.ownedCardIds);
@@ -1299,7 +1301,7 @@ export const S7B_Battle: React.FC = () => {
         <div className={styles.bgOverlay} />
         {/* sect 模式（宗门大比）下若跳 /story，会因第四章已读完再次自动跳回 S7C，形成循环。
             因此 sect 模式统一跳 /menu；测试/比武模式保留跳 /story 的原行为 */}
-        <BackButton onClick={() => navigate(battleMode === 'sect' ? '/menu' : '/story')} />
+        <BackButton onClick={returnToMenu} />
         <SelectPartner
           options={partnerOptions}
           partnerCount={partnerCount}
@@ -1315,11 +1317,8 @@ export const S7B_Battle: React.FC = () => {
     <div className={styles.screen}>
       <div className={styles.bgOverlay} />
       {/* 4件套常驻控件：返回按钮 + 音乐切换 + 右下角 HUD（下方） */}
-      {/* sect 模式（宗门大比）下退回会触发"剧情-战斗"死循环，统一跳 /menu */}
-      <BackButton onClick={() => {
-        if (battleMode === 'sect') navigate('/menu');
-        else navigate(-1);
-      }} />
+      {/* 统一行为：返回主菜单并自动存档（slot=0） */}
+      <BackButton onClick={returnToMenu} />
       <MusicToggle />
 
       {/* 战斗规则按钮（S7 专用，紧贴返回按钮下方，风格统一） */}

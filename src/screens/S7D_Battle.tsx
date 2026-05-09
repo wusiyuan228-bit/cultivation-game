@@ -24,6 +24,7 @@ import { asset } from '@/utils/assetPath';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { BackButton } from '@/components/BackButton';
+import { useReturnToMenu } from '@/hooks/useReturnToMenu';
 import { useGameStore } from '@/stores/gameStore';
 import { SaveSystem } from '@/stores/gameStore';
 import { useS7DBattleStore } from '@/stores/s7dBattleStore';
@@ -168,6 +169,7 @@ function getSkillCheck(
 
 export const S7D_Battle: React.FC = () => {
   const navigate = useNavigate();
+  const returnToMenu = useReturnToMenu();
 
   // ---- gameStore ----
   const heroId = useGameStore((s) => s.heroId);
@@ -847,7 +849,7 @@ export const S7D_Battle: React.FC = () => {
   if (loading) {
     return (
       <div className={styles.screen}>
-        <BackButton onClick={() => navigate('/s7d/lineup')} />
+        <BackButton onClick={returnToMenu} />
         <div className={styles.centerMsg}>
           <div className={styles.loadingSpinner}>⚔</div>
           <div>正在布置战场...</div>
@@ -858,7 +860,7 @@ export const S7D_Battle: React.FC = () => {
   if (error) {
     return (
       <div className={styles.screen}>
-        <BackButton onClick={() => navigate('/s7d/lineup')} />
+        <BackButton onClick={returnToMenu} />
         <div className={styles.centerMsg}>
           <div className={styles.errorIcon}>⚠</div>
           <div className={styles.errorText}>{error}</div>
@@ -872,7 +874,7 @@ export const S7D_Battle: React.FC = () => {
   if (!battleState) {
     return (
       <div className={styles.screen}>
-        <BackButton onClick={() => navigate('/menu')} />
+        <BackButton onClick={returnToMenu} />
         <div className={styles.centerMsg}>战场尚未初始化</div>
       </div>
     );
@@ -887,7 +889,7 @@ export const S7D_Battle: React.FC = () => {
 
   return (
     <div className={styles.screen}>
-      <BackButton onClick={() => navigate('/s7d/lineup')} />
+      <BackButton onClick={returnToMenu} />
 
       {/* 顶栏 */}
       <TopBar battleState={battleState} currentActor={currentActor} isPlayerTurn={isPlayerTurn} />

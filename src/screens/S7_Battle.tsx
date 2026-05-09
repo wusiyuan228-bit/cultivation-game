@@ -8,6 +8,7 @@ import { asset } from '@/utils/assetPath';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { BackButton } from '@/components/BackButton';
+import { useReturnToMenu } from '@/hooks/useReturnToMenu';
 import { MusicToggle } from '@/components/MusicToggle';
 import { CommonHud } from '@/components/CommonHud';
 import { useBattleStore, isCounter } from '@/stores/battleStore';
@@ -305,6 +306,7 @@ function ResultPanel({ killCount, onContinue }: { killCount: number; onContinue:
 
 export const S7_Battle: React.FC = () => {
   const navigate = useNavigate();
+  const returnToMenu = useReturnToMenu();
   const heroId = useGameStore((s) => s.heroId);
   const heroName = useGameStore((s) => s.heroName);
   const ownedCardIds = useGameStore((s) => s.ownedCardIds);
@@ -1005,7 +1007,7 @@ export const S7_Battle: React.FC = () => {
     return (
       <div className={styles.screen}>
         <div className={styles.bgOverlay} />
-        <BackButton onClick={() => navigate('/story')} />
+        <BackButton onClick={returnToMenu} />
         <SelectPartner options={partnerOptions} onConfirm={handleConfirmPartner} />
       </div>
     );
@@ -1015,7 +1017,7 @@ export const S7_Battle: React.FC = () => {
     <div className={styles.screen}>
       <div className={styles.bgOverlay} />
       {/* 4件套常驻控件：返回按钮 + 音乐切换 + 右下角 HUD（下方） */}
-      <BackButton onClick={() => navigate(-1)} />
+      <BackButton onClick={returnToMenu} />
       <MusicToggle />
 
       {/* 战斗规则按钮（S7 专用，紧贴返回按钮下方，风格统一） */}

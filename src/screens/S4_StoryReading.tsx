@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { BackButton } from '@/components/BackButton';
+import { useReturnToMenu } from '@/hooks/useReturnToMenu';
 import { MusicToggle } from '@/components/MusicToggle';
 import { useStory, getHeroById } from '@/hooks/useConfig';
 import { getPoolCardById } from '@/systems/recruit/cardPoolLoader';
@@ -44,6 +45,7 @@ const CHAPTER_DISPLAY: Record<number, string> = {
 
 export const S4_StoryReading: React.FC = () => {
   const navigate = useNavigate();
+  const returnToMenu = useReturnToMenu();
   const heroId = useGameStore((s) => s.heroId);
   const heroName = useGameStore((s) => s.heroName);
   const chapter = useGameStore((s) => s.chapter);
@@ -228,7 +230,7 @@ export const S4_StoryReading: React.FC = () => {
       <div className={styles.bg} style={{ backgroundImage: `url(${getCachedImage('s3_bg')})` }} />
       <div className={styles.bgVeil} />
 
-      <BackButton onClick={() => { SaveSystem.save(1); navigate('/select'); }} />
+      <BackButton onClick={returnToMenu} />
       <MusicToggle />
 
       {/* 书卷 */}

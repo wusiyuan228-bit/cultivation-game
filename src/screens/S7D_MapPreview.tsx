@@ -16,6 +16,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { BackButton } from '@/components/BackButton';
+import { useReturnToMenu } from '@/hooks/useReturnToMenu';
 import {
   generateS7DMap,
   S7D_MAP_COLS,
@@ -38,13 +39,14 @@ import styles from './S7D_MapPreview.module.css';
 
 export const S7D_MapPreview: React.FC = () => {
   const navigate = useNavigate();
+  const returnToMenu = useReturnToMenu();
   const [hover, setHover] = useState<{ row: number; col: number; tile: S7DTileType } | null>(null);
 
   const map = React.useMemo(() => generateS7DMap(), []);
 
   return (
     <div className={styles.screen}>
-      <BackButton onClick={() => navigate('/menu')} />
+      <BackButton onClick={returnToMenu} />
 
       {/* 标题 */}
       <motion.div

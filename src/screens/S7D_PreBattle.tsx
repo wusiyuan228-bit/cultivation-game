@@ -19,6 +19,7 @@ import { useGameStore } from '@/stores/gameStore';
 import { HEROES_DATA } from '@/data/heroesData';
 import type { Hero, HeroId } from '@/types/game';
 import { BackButton } from '@/components/BackButton';
+import { useReturnToMenu } from '@/hooks/useReturnToMenu';
 import { MusicToggle } from '@/components/MusicToggle';
 import { CommonHud } from '@/components/CommonHud';
 import { getCachedImage } from '@/utils/imageCache';
@@ -56,6 +57,7 @@ function resolveHeroFaction(
 
 export const S7D_PreBattle: React.FC = () => {
   const navigate = useNavigate();
+  const returnToMenu = useReturnToMenu();
   const heroId = useGameStore((s) => s.heroId);
   const finalFaction = useGameStore((s) => s.finalFaction);
   const swingAssignment = useGameStore((s) => s.swingAssignment);
@@ -148,7 +150,7 @@ export const S7D_PreBattle: React.FC = () => {
   return (
     <div className={styles.screen}>
       {/* 顶部通用控件 */}
-      <BackButton onClick={() => navigate('/menu')} />
+      <BackButton onClick={returnToMenu} />
       <MusicToggle />
       <CommonHud chapter={5} />
 
