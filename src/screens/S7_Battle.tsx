@@ -733,20 +733,43 @@ export const S7_Battle: React.FC = () => {
 
   // 使用技能（普通战斗技能 或 绝技）
   // 关键：技能/绝技均【不结束回合】，玩家仍可继续移动/进行普通攻击
+  // 阶段一升级：绝技走 performUltimate（接入 SkillRegistry，112 条技能完整生效）
   const handleUseSkill = useCallback(
     (type: 'battle' | 'ultimate') => {
       if (!selectedUnit) return;
       // 攻击完就锁死了，不允许再放技能
       if (selectedUnit.attackedThisTurn) return;
-      battle.useSkill(selectedUnit.id, type);
-      // 简化技能效果：大部分技能是额外骰子/伤害加成，统一解析为数值修正
-      const skill = type === 'ultimate' ? selectedUnit.ultimate : selectedUnit.battleSkill;
-      if (skill) {
-        const match = skill.desc.match(/额外投(?:掷)?(\d+)颗骰子/);
-        if (match) {
-          setPendingSkillMod((prev) => prev + parseInt(match[1]));
-        } else {
-          setPendingSkillMod((prev) => prev + 2); // 默认+2修正
+
+      if (type === 'ultimate') {
+        // —— 绝技：走 SkillRegistry 引擎 ——
+        if (!selectedUnit.ultimate || selectedUnit.ultimateUsed) return;
+        const pre = battle.ultimatePrecheck(selectedUnit.id);
+        if (!pre.ok) {
+          battle.addLog(`⚠ 无法发动【${selectedUnit.ultimate.name}】：${pre.reason ?? '条件不满足'}`, 'system');
+          return;
+        }
+        // S7A 中所有绝技要么 self / aoe / 自动选目标，要么是十字AOE等无需玩家点选的形式
+        // 直接调 performUltimate（targetIds 留空，由 selector 自行决定）
+        const ok = battle.performUltimate(selectedUnit.id, []);
+        if (!ok) {
+          battle.addLog(`⚠ 【${selectedUnit.ultimate.name}】发动失败`, 'system');
+          return;
+        }
+        // 绝技不再走"+2修正"兜底；真实效果由引擎施加
+        setPendingSkillMod(0);
+      } else {
+        // —— 普通战斗技能：保留旧 useSkill 路径 ——
+        // 大部分被动技能由 on_before_roll / on_after_hit hook 自动触发，
+        // 这里只标记本回合已用技能并做轻量数值修正（用于无 hook 的简单技能）
+        battle.useSkill(selectedUnit.id, type);
+        const skill = selectedUnit.battleSkill;
+        if (skill) {
+          const match = skill.desc.match(/额外投(?:掷)?(\d+)颗骰子/);
+          if (match) {
+            setPendingSkillMod((prev) => prev + parseInt(match[1]));
+          } else {
+            setPendingSkillMod((prev) => prev + 2); // 默认+2修正（兜底）
+          }
         }
       }
       // 技能使用后不结束回合，也不消耗步数；仅重算一下移动/攻击范围以刷新UI
