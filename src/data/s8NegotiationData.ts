@@ -2,7 +2,7 @@
  * S8 密谈（Negotiation）数据配置 · v2
  *
  * 规则（以用户最新口述为准，覆盖策划文档 §5.4 坦诚度旧设计）：
- *   - 本主角心境 ≥ 对方心境 → 必定从对方"已获取线索池"中抽一条（未被自己获取过的）
+ *   - 本主角心境 &gt; 对方心境 → 必定从对方"已获取线索池"中抽一条（未被自己获取过的）
  *   - 对方心境 > 本主角心境 → 50% 概率提供正确线索，50% 概率提供错误（伪造）线索
  *   - 密谈次数 = ⌈主角心境 ÷ 2⌉（策划文档 §5.1）
  *
@@ -231,8 +231,9 @@ export function judgeNegotiation(params: {
     const available = params.targetKnownClues.filter(
       (c) => !params.myOwnedClueTitles.includes(c),
     );
-    // 心境≥对方，或小舞儿发动妖力感知，或心心相印关系 → 可以从池子里强行抽一条
-    const canForce = params.myMnd >= params.targetMnd || params.askerIsXiaowu || params.specialPair;
+    // 心境>对方，或小舞儿发动妖力感知，或心心相印关系 → 可以从池子里强行抽一条
+    // ⚠ 心境持平不再属于"必得"，走下方 50% 真/假分支
+    const canForce = params.myMnd > params.targetMnd || params.askerIsXiaowu || params.specialPair;
     if (canForce && available.length > 0) {
       const picked = available[Math.floor(rng() * available.length)];
       const bonus = pickXunerBonus([picked]);
@@ -241,9 +242,9 @@ export function judgeNegotiation(params: {
         clueTitle: picked,
         honestAnswer: `（岔开话题）${params.honestAnswer}`,
         bonusClueTitle: bonus,
-        skillTag: params.specialPair && params.myMnd < params.targetMnd
+        skillTag: params.specialPair && params.myMnd <= params.targetMnd
           ? '💞 心心相印：默契直达本心，必得真话'
-          : params.askerIsXiaowu && params.myMnd < params.targetMnd
+          : params.askerIsXiaowu && params.myMnd <= params.targetMnd
             ? '🦊 妖力感知发动：直接感知到对方内心隐情'
             : bonus ? '🌸 古族血脉感应：洞察额外隐情' : undefined,
       };
@@ -251,13 +252,15 @@ export function judgeNegotiation(params: {
     return { kind: 'no_clue', evasiveAnswer: params.evasiveAnswer };
   }
 
-  // 核心规则：心境占优，或小舞儿发动妖力感知，或心心相印关系
-  const effectiveAdvantage = params.myMnd >= params.targetMnd || params.askerIsXiaowu || params.specialPair;
+  // 核心规则：心境严格大于对方，或小舞儿发动妖力感知，或心心相印关系
+  // ⚠ 心境持平按 50% 真/假处理（不再视为"必得"）
+  const effectiveAdvantage = params.myMnd > params.targetMnd || params.askerIsXiaowu || params.specialPair;
 
   if (effectiveAdvantage) {
     // 必定获得：若本条未被获取则返回本条；否则从对方池抽一条未获取的
-    const usingXiaowuSkill = params.askerIsXiaowu && params.myMnd < params.targetMnd;
-    const usingSpecialPair = params.specialPair && params.myMnd < params.targetMnd;
+    // 心境≤对方时，必得真言 = 来自小舞儿妖力感知 / 心心相印 的特殊机制
+    const usingXiaowuSkill = params.askerIsXiaowu && params.myMnd <= params.targetMnd;
+    const usingSpecialPair = params.specialPair && params.myMnd <= params.targetMnd;
     const buildSkillTag = (bonus: string | undefined) =>
       usingSpecialPair
         ? '💞 心心相印：默契直达本心，必得真话'

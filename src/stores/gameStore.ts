@@ -159,6 +159,15 @@ interface GameState {
    */
   s7dFinalResult: S7DFinalResult | null;
 
+  /**
+   * S6 招募 · AI 道友跨轮持久化快照
+   *   - key = AI 主角 id（不含玩家主角）
+   *   - 每轮 S6 结束时写入：灵石余额 + 已抽到的非主角卡 id 列表
+   *   - 下一轮 S6 初始化时优先读取，恢复 AI 的灵石 + 卡片，并叠加剿匪奖励
+   *   - 空对象 = 尚未经历过任何一轮招募（首次 S6a）
+   */
+  aiRecruitState: Record<string, { gems: number; ownedCardIds: string[] }>;
+
   setHero: (id: HeroId, name: string) => void;
   setChapter: (ch: number) => void;
   setSegmentIndex: (i: number) => void;
@@ -240,6 +249,9 @@ interface GameState {
    */
   setS7DFinalResult: (result: Omit<S7DFinalResult, 'timestamp'> | null) => void;
 
+  /** 写入 S6 招募结束后 AI 道友的灵石与已抽卡快照（跨轮继承用）。传入 null 或空对象清空。 */
+  setAiRecruitState: (state: Record<string, { gems: number; ownedCardIds: string[] }> | null) => void;
+
   loadFromSave: (s: SaveSlot) => void;
   reset: () => void;
 }
@@ -281,6 +293,7 @@ const initial = {
   s7dStarters: null as string[] | null,
   s7dAiLineups: null as Record<string, { heroId: HeroId; faction: 'A' | 'B'; deployedCards: string[]; starterCards: string[] }> | null,
   s7dFinalResult: null as S7DFinalResult | null,
+  aiRecruitState: {} as Record<string, { gems: number; ownedCardIds: string[] }>,
 };
 
 /** 境界提升统一消耗灵石数 */
@@ -490,6 +503,10 @@ export const useGameStore = create<GameState>((set, get) => ({
     s7dFinalResult: result ? { ...result, timestamp: Date.now() } : null,
   }),
 
+  setAiRecruitState: (state) => set({
+    aiRecruitState: state && typeof state === 'object' && !Array.isArray(state) ? { ...state } : {},
+  }),
+
   loadFromSave: (s) =>
     set({
       heroId: s.heroId,
@@ -541,6 +558,11 @@ export const useGameStore = create<GameState>((set, get) => ({
         }
         return null;
       })(),
+      aiRecruitState: (() => {
+        const v = (s as any).aiRecruitState;
+        if (v && typeof v === 'object' && !Array.isArray(v)) return { ...v };
+        return {};
+      })(),
     }),
   reset: () => set(initial),
 }));
@@ -578,6 +600,7 @@ export const SaveSystem = {
       finalFaction: s.finalFaction,
       swingAssignment: s.swingAssignment,
       s7dFinalResult: s.s7dFinalResult,
+      aiRecruitState: s.aiRecruitState,
     };
     localStorage.setItem(`${SAVE_KEY_PREFIX}${slot}`, JSON.stringify(data));
   },

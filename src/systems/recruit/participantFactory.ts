@@ -63,27 +63,55 @@ export function simulateAiGems(): number {
   return total;
 }
 
+/**
+ * 根据 S7A 剿匪击杀数计算灵石奖励
+ * 与 S7_Battle.ResultPanel 的奖励公式保持一致：
+ *   - 0 → 8 灵石（保底）
+ *   - 1~2 → 15
+ *   - 3~4 → 22
+ *   - 5~6 → 30
+ */
+function banditKillReward(kills: number): number {
+  if (kills <= 0) return 8;
+  if (kills <= 2) return 15;
+  if (kills <= 4) return 22;
+  return 30;
+}
+
 /** AI 风格分配 */
 const AI_STYLES: Array<'aggressive' | 'conservative' | 'balanced'> = [
   'aggressive', 'conservative', 'balanced', 'aggressive', 'balanced',
 ];
 
+/** 跨轮 AI 历史快照 */
+export interface AiRecruitSnapshot {
+  gems: number;
+  ownedCardIds: string[];
+}
+
 /**
  * 根据玩家选的主角，生成 6 名参与者（玩家 + 5AI）
- * AI 使用剩余的 5 个主角
+ *
  * @param playerHeroId 玩家主角 id
  * @param playerName 玩家显示名
- * @param playerEarnedGems 玩家通过战斗/理论/拜师累积获得的灵石（来自 gameStore.spiritStones）
- *   不再额外添加初始10灵石，灵石全部来自跑团环节的实际获取
+ * @param playerEarnedGems 玩家当前灵石（来自 gameStore.spiritStones）
  * @param playerBanditKillCount 玩家在 S7A 剿匪战的真实击杀数：
  *   - -1：尚未经历剿匪（S6a 使用）→ AI 也全部用 -1，排序回落到心境值
- *   - 0~8：已经历剿匪（S6b 使用）→ AI 使用各自 hero.s7aKillMock 预设
+ *   - 0~6：已经历剿匪（S6b 使用）→ AI 使用各自 hero.s7aKillMock 预设（4~6 区间）
+ * @param poolCards 本轮卡池（用于将历史 ownedCardIds 还原为 PoolCard 对象）
+ * @param playerOwnedCardIds 玩家已持有的非主角卡 id 列表（跨轮继承，从 gameStore.ownedCardIds 传入）
+ * @param aiSnapshot 上一轮结束时记录的 AI 灵石 + 卡片快照（首轮传空对象）
+ *   - 若提供且命中 heroId：AI 灵石 = snapshot.gems + 剿匪奖励（若刚打完 S7A）
+ *   - 未命中：AI 重新走 simulateAiGems() 模拟前期流程
  */
 export function createParticipants(
   playerHeroId: HeroId,
   playerName: string,
   playerEarnedGems: number = 0,
   playerBanditKillCount: number = -1,
+  poolCards: PoolCard[] = [],
+  playerOwnedCardIds: string[] = [],
+  aiSnapshot: Record<string, AiRecruitSnapshot> = {},
 ): Participant[] {
   const allHeroIds: HeroId[] = [
     'hero_tangsan',
@@ -94,10 +122,24 @@ export function createParticipants(
     'hero_wanglin',
   ];
 
+  // 卡池索引：用于 id → PoolCard 回填
+  const poolIndex = new Map<string, PoolCard>();
+  poolCards.forEach((c) => poolIndex.set(c.id, c));
+
   const participants: Participant[] = [];
 
-  // 玩家：灵石 = 战斗考核 + 理论考核 + 拜师奖励（不含额外初始灵石）
+  // ========== 玩家 ==========
   const playerCard = heroToActiveCard(playerHeroId);
+  // 还原玩家在之前几轮招募中抽到的非主角卡
+  const playerOwned: PoolCard[] = [playerCard];
+  playerOwnedCardIds.forEach((id) => {
+    if (id === playerHeroId) return; // 跳过主角
+    const c = poolIndex.get(id);
+    if (c) playerOwned.push(c);
+    // 若不在本轮卡池中（如 S6b 读取 S6a 抽到的 N/R 卡），忽略即可——
+    // 这些历史卡会在 gameStore.ownedCardIds 中继续保留，不影响其他系统
+  });
+
   participants.push({
     id: playerHeroId,
     name: playerName,
@@ -110,7 +152,7 @@ export function createParticipants(
     skipUsed: 0,
     skipLimit: 3,
     activeCardId: playerHeroId,
-    ownedCards: [playerCard],
+    ownedCards: playerOwned,
     hasSwitchedThisTurn: false,
     rCardsDrawnThisTurn: [],
     skillUseCount: {},
@@ -118,14 +160,41 @@ export function createParticipants(
     returnForGemUsedThisBigRound: 0,
   });
 
-  // 5 AI —— 每个 AI 独立模拟前期流程获得灵石
+  // ========== 5 AI ==========
   const aiHeroIds = allHeroIds.filter((id) => id !== playerHeroId);
   aiHeroIds.forEach((heroId, i) => {
     const aiCard = heroToActiveCard(heroId);
     const hero = HEROES_DATA.find((h) => h.id === heroId)!;
-    const aiGems = simulateAiGems();
-    // 剿匪击杀数：如果玩家已打过剿匪(>=0)，AI 使用各自预设值；否则保持 -1
+    const snap = aiSnapshot[heroId];
+
+    // ---- 灵石 ----
+    let aiGems: number;
+    if (snap) {
+      // 继承上轮剩余灵石
+      aiGems = Math.max(0, snap.gems);
+      // 如果是首次进入 S6b（玩家刚打完剿匪），给 AI 补发一次剿匪奖励
+      // 用 s7aRewardGranted 语义：快照中没有 rewarded 标记，且 playerBanditKillCount >= 0 → 补发
+      if (playerBanditKillCount >= 0 && !(snap as any).s7aRewardGranted) {
+        aiGems += banditKillReward(hero.s7aKillMock ?? 5);
+      }
+    } else {
+      // 首轮（S6a）：模拟前期跑团流程获得 20~30 灵石
+      aiGems = simulateAiGems();
+    }
+
+    // ---- 已持卡片 ----
+    const aiOwned: PoolCard[] = [aiCard];
+    if (snap) {
+      snap.ownedCardIds.forEach((id) => {
+        if (id === heroId) return;
+        const c = poolIndex.get(id);
+        if (c) aiOwned.push(c);
+      });
+    }
+
+    // ---- 剿匪击杀（用于抽卡顺序排序） ----
     const aiKill = playerBanditKillCount >= 0 ? (hero.s7aKillMock ?? 5) : -1;
+
     participants.push({
       id: heroId,
       name: hero.name,
@@ -139,7 +208,7 @@ export function createParticipants(
       skipUsed: 0,
       skipLimit: 3,
       activeCardId: heroId,
-      ownedCards: [aiCard],
+      ownedCards: aiOwned,
       hasSwitchedThisTurn: false,
       rCardsDrawnThisTurn: [],
       skillUseCount: {},

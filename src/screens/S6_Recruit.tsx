@@ -76,8 +76,10 @@ export const S6_Recruit: React.FC = () => {
   const playerHeroId = useGameStore((s) => s.heroId);
   const playerName = useGameStore((s) => s.heroName);
   const storeSpiritStones = useGameStore((s) => s.spiritStones);
+  const storeOwnedCardIds = useGameStore((s) => s.ownedCardIds);
   const lastBanditKillCount = useGameStore((s) => s.lastBanditKillCount);
   const pool2RemainingSr = useGameStore((s) => s.pool2RemainingSr);
+  const aiRecruitStateStore = useGameStore((s) => s.aiRecruitState);
   const addSpiritStones = useGameStore((s) => s.addSpiritStones);
   const addCard = useGameStore((s) => s.addCard);
   const markPhaseDone = useGameStore((s) => s.markPhaseDone);
@@ -85,6 +87,7 @@ export const S6_Recruit: React.FC = () => {
   const setChapter = useGameStore((s) => s.setChapter);
   const setSegmentIndex = useGameStore((s) => s.setSegmentIndex);
   const setPool2RemainingSr = useGameStore((s) => s.setPool2RemainingSr);
+  const setAiRecruitState = useGameStore((s) => s.setAiRecruitState);
 
   // ===== audioStore（仅占位，未来接入 BGM） =====
   const bgmEnabled = useAudioStore((s) => s.bgmEnabled);
@@ -210,6 +213,9 @@ export const S6_Recruit: React.FC = () => {
           // S6b/S6c（pool=2/3）使用玩家真实击杀数作为排序主键（S6c 暂复用剿匪名次）；
           // S6a（pool=1）传 -1 → 回落到心境排序
           poolRound >= 2 ? lastBanditKillCount : -1,
+          poolCards,
+          storeOwnedCardIds,
+          aiRecruitStateStore,
         );
         initialize({ participants: list, pool: poolCards });
         setLoading(false);
@@ -638,12 +644,33 @@ export const S6_Recruit: React.FC = () => {
         console.warn('[S6b] 写入剩余SR失败', e);
       }
     }
+
+    // ★ 写入 AI 道友快照（灵石 + 持卡），供下一轮招募继承使用
+    try {
+      const nextSnapshot: Record<string, { gems: number; ownedCardIds: string[]; s7aRewardGranted?: boolean }> = {};
+      participants.forEach((p) => {
+        if (p.isPlayer) return;
+        nextSnapshot[p.id] = {
+          gems: Math.max(0, p.gems),
+          ownedCardIds: p.ownedCards
+            .filter((c) => !c.isHeroBattleCard)
+            .map((c) => c.id),
+          // 一旦玩家进过剿匪（即 poolRound>=2 的那一轮），本轮已给 AI 补发过剿匪奖励
+          // 标记为 true，防止下一轮（如 S6c）重复发奖
+          s7aRewardGranted: poolRound >= 2 || !!(aiRecruitStateStore[p.id] as any)?.s7aRewardGranted,
+        };
+      });
+      setAiRecruitState(nextSnapshot);
+    } catch (e) {
+      console.warn('[S6] 写入AI招募快照失败', e);
+    }
+
     markRecruitDone();
     // pool=1 → 第二章招募完成；pool=2 → 第三章招募完成；pool=3 → 第四章招募完成
     markPhaseDone(poolRound === 3 ? 4 : poolRound === 2 ? 3 : 2);
     SaveSystem.save(1);
     // 招募3（S6c）完成 → 进入二次密谈 S8?round=2
-    // 招募2（S6b）完成 → 切换到第四章剧情起点再跳 /story（后续衔接比武）
+    // 招募2（S6b）完成 → 切换到第四章并回到筹备页（而非直接跳剧情）
     // 招募1（S6a）完成 → 回筹备页 S6
     if (poolRound === 3) {
       SaveSystem.save(1);
@@ -652,7 +679,7 @@ export const S6_Recruit: React.FC = () => {
       setChapter(4);
       setSegmentIndex(0);
       SaveSystem.save(1);
-      navigate('/story');
+      navigate('/s6');
     } else {
       navigate('/s6');
     }
@@ -1169,7 +1196,7 @@ export const S6_Recruit: React.FC = () => {
             </div>
             <button className={styles.finishBtn} onClick={handleFinishRecruit}>
               {poolRound === 3 ? '进入二次密谈' :
-               poolRound === 2 ? '阅读第四章剧情' : '返回筹备阶段'}
+               poolRound === 2 ? '返回筹备阶段' : '返回筹备阶段'}
             </button>
           </div>
         </div>

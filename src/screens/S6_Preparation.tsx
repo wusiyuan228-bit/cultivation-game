@@ -146,10 +146,13 @@ export const S6_Preparation: React.FC = () => {
   }, [navigate, recruitDone]);
 
   const handleNextRound = useCallback(() => {
-    markPhaseDone(2);
+    const ch = useGameStore.getState().chapter;
+    // 当前 chapter 的玩法环节收尾
+    markPhaseDone(ch);
     SaveSystem.save(1);
-    if (canEnterChapter(3)) {
-      setChapter(3);
+    // 允许进入下一章
+    if (canEnterChapter(ch + 1)) {
+      setChapter(ch + 1);
     }
     navigate('/story');
   }, [markPhaseDone, canEnterChapter, setChapter, navigate]);

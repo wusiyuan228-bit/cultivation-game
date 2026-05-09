@@ -366,16 +366,17 @@
   transform: translateX(-50%) translateY(0);
 }
 
-/* ========================= 中央 · 抽卡后技能响应 ========================= */
+/* ========================= 中央 · 抽卡后技能响应 =========================
+ * Q1：弹窗顶部需贴近"小舞儿"底边（约屏幕 26% 处），所以放弃垂直居中 */
 .postDrawPanel {
   position: absolute;
   left: 50%;
-  top: 50%;
+  top: 26%;
   width: 580px;
-  max-height: 86vh;
+  max-height: 70vh;
   overflow-y: auto;
   margin-left: -290px;
-  transform: translateY(-50%);
+  transform: none;
   padding: 24px;
   background: linear-gradient(180deg, rgba(30, 40, 60, 0.98), rgba(10, 18, 32, 0.99));
   border: 2px solid #c8a850;

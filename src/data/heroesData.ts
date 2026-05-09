@@ -22,7 +22,7 @@ export const HEROES_DATA: Hero[] = [
   {
     id: 'hero_tangsan', name: '塘散', tribute: '唐三', rarity: '主角', ip: '斗罗大陆',
     type: '灵修', gender: '男', faction: 'A', realm: '筑基', realm_level: 2, max_realm: '结丹', max_realm_level: 3,
-    s7aKillMock: 7,
+    s7aKillMock: 6,
     run_card: {
       hp: 6, atk: 5, mnd: 4,
       skills: {
@@ -51,7 +51,7 @@ export const HEROES_DATA: Hero[] = [
   {
     id: 'hero_xiaowu', name: '小舞儿', tribute: '小舞', rarity: '主角', ip: '斗罗大陆',
     type: '妖修', gender: '女', faction: 'A', realm: '筑基', realm_level: 2, max_realm: '结丹', max_realm_level: 3,
-    s7aKillMock: 6,
+    s7aKillMock: 5,
     run_card: {
       hp: 5, atk: 4, mnd: 5,
       skills: {
@@ -80,7 +80,7 @@ export const HEROES_DATA: Hero[] = [
   {
     id: 'hero_xiaoyan', name: '萧焱', tribute: '萧炎', rarity: '主角', ip: '斗破苍穹',
     type: '法修', gender: '男', faction: 'B', realm: '筑基', realm_level: 2, max_realm: '结丹', max_realm_level: 3,
-    s7aKillMock: 8,
+    s7aKillMock: 6,
     run_card: {
       hp: 5, atk: 6, mnd: 4,
       skills: {
@@ -109,7 +109,7 @@ export const HEROES_DATA: Hero[] = [
   {
     id: 'hero_xuner', name: '薰儿', tribute: '薰儿', rarity: '主角', ip: '斗破苍穹',
     type: '灵修', gender: '女', faction: 'B', realm: '筑基', realm_level: 2, max_realm: '结丹', max_realm_level: 3,
-    s7aKillMock: 6,
+    s7aKillMock: 5,
     run_card: {
       hp: 5, atk: 4, mnd: 6,
       skills: {
@@ -138,7 +138,7 @@ export const HEROES_DATA: Hero[] = [
   {
     id: 'hero_hanli', name: '寒立', tribute: '韩立', rarity: '主角', ip: '凡人修仙传',
     type: '剑修', gender: '男', faction: '摇摆', realm: '筑基', realm_level: 2, max_realm: '结丹', max_realm_level: 3,
-    s7aKillMock: 7,
+    s7aKillMock: 5,
     run_card: {
       hp: 5, atk: 5, mnd: 5,
       skills: {
@@ -167,7 +167,7 @@ export const HEROES_DATA: Hero[] = [
   {
     id: 'hero_wanglin', name: '旺林', tribute: '王林', rarity: '主角', ip: '仙逆',
     type: '法修', gender: '男', faction: '摇摆', realm: '筑基', realm_level: 2, max_realm: '结丹', max_realm_level: 3,
-    s7aKillMock: 6,
+    s7aKillMock: 4,
     run_card: {
       hp: 4, atk: 5, mnd: 5,
       skills: {

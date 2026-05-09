@@ -327,6 +327,8 @@ export const S8_Negotiation: React.FC = () => {
               onPick={handlePickHero}
               onEndEarly={handleEndEarly}
               remaining={maxCount - usedCount}
+              round={round}
+              myOwnedTitles={clueEntries.map((e) => e.title)}
             />
           )}
 
@@ -403,7 +405,7 @@ const IntroPanel: React.FC<{
           <li>本次密谈可进行 <b>{maxCount}</b> 次（心境 {myMnd} ÷ 2）</li>
       <li>每次选一位其他主角密谈，从其预设话题中选一题发问</li>
       <li>
-        <b style={{ color: '#a8e6c4' }}>你心境 ≥ 对方</b>：必从对方已获线索中得一条真话
+<b style={{ color: '#a8e6c4' }}>你心境 &gt; 对方</b>：必从对方已获线索中得一条真话
       </li>
       <li>
         <b style={{ color: '#ffb86a' }}>对方心境 &gt; 你</b>：50% 真话 / 50% <b>错误线索</b>（需谨慎甄别！）
@@ -442,7 +444,9 @@ const PickHeroPanel: React.FC<{
   onPick: (hid: HeroId) => void;
   onEndEarly: () => void;
   remaining: number;
-}> = ({ heroes, myMnd, askerHeroId, onPick, onEndEarly, remaining }) => {
+  round: 1 | 2 | 3;
+  myOwnedTitles: string[];
+}> = ({ heroes, myMnd, askerHeroId, onPick, onEndEarly, remaining, round, myOwnedTitles }) => {
   const cardBonuses = useGameStore((s) => s.cardBonuses);
   const isXiaowu = askerHeroId === 'hero_xiaowu';
   return (
@@ -460,13 +464,16 @@ const PickHeroPanel: React.FC<{
           const bonus = cardBonuses[h.id]?.mnd ?? 0;
           const targetMnd = base + bonus;
           const isPair = isSpecialPair(askerHeroId, h.id);
+          // 该 NPC 当前可问的"剩余真线索数" = NPC 累积线索池 - 玩家已持有
+          const npcPool = getAccumulatedClueTitles(h.id, round);
+          const remainingClues = npcPool.filter((c) => !myOwnedTitles.includes(c)).length;
           let advantage: { text: string; cls: string };
           if (isPair) {
             advantage = { text: '💞 心心相印 · 必得真言', cls: styles.advHigh };
           } else if (myMnd > targetMnd) {
             advantage = { text: '心境占优 · 必得真言', cls: styles.advHigh };
           } else if (myMnd === targetMnd) {
-            advantage = { text: '心境持平 · 必得真言', cls: styles.advEq };
+            advantage = { text: '心境持平 · 50% 可能假情报', cls: styles.advLow };
           } else if (isXiaowu) {
             advantage = { text: '🦊 妖力感知覆盖 · 必得真言', cls: styles.advHigh };
           } else {
@@ -481,6 +488,9 @@ const PickHeroPanel: React.FC<{
               <div className={styles.heroName}>{h.name}</div>
               <div className={styles.heroCandor}>
                 心境 <b>{targetMnd}</b>
+                <span className={styles.heroClueRest}>
+                  ｜余 <b>{remainingClues}</b> 条线索
+                </span>
               </div>
               <div className={`${styles.advBadge} ${advantage.cls}`}>
                 {advantage.text}
