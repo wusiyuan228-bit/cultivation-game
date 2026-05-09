@@ -1009,6 +1009,10 @@ export const useS7BBattleStore = create<BattleState>((set, get) => ({
     // ═══ 阶段 C · 觉醒扫描（关键节点：hp 变化后 + 击杀后） ═══
     get().checkAndTriggerAwakening();
 
+    // ═══ 阶段 D · 立即结算检查（2026-05-10）═══
+    // 击杀最后一个敌方/玩家全灭时立刻结束战斗，无需等所有单位都按"结束回合"
+    get().checkBattleEnd();
+
     return result;
   },
 
@@ -1443,6 +1447,10 @@ export const useS7BBattleStore = create<BattleState>((set, get) => ({
 
     // ═══ 阶段 C · 觉醒扫描（绝技结算后，可能触发击杀/气血变化类觉醒） ═══
     get().checkAndTriggerAwakening();
+
+    // ═══ 阶段 D · 立即结算检查（2026-05-10）═══
+    // 绝技击杀最后一个敌方时立刻结束战斗
+    get().checkBattleEnd();
 
     return true;
   },
