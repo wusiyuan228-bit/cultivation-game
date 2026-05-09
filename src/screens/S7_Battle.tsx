@@ -140,18 +140,13 @@ function RuleModal({ onClose }: { onClose: () => void }) {
         <h3 className={styles.ruleH}>战斗规则</h3>
         <div className={styles.ruleSec}>
           <h4>🎯 目标</h4>
-          <p>8回合内击败尽可能多的劫匪
+          <p>8回合内击败尽可能多的劫匪，以获得灵石与线索
 0→0灵石 | 1-2→15灵石+1线索 | 3-4→22灵石+2线索 | 5-6→30灵石+3线索</p>
-        </div>
-        <div className={styles.ruleSec}>
-          <h4>🎲 伤害判定</h4>
-          <p>双方投骰子，数量=修为值，每颗0/1/2
-伤害 = 攻方点数和 − 守方点数和 + 技能/克制加成（最少1点）</p>
         </div>
         <div className={styles.ruleSec}>
           <h4>⚔ 行动与移动</h4>
           <p>心境值=本回合可移动格数；攻击距离固定=相邻1格
-回合流程：技能→移动→攻击→结束；攻击后行动轮立即结束</p>
+攻击后行动轮立即结束；释放绝技不会立刻结束行动轮次</p>
         </div>
         <div className={styles.ruleSec}>
           <h4>⚡ 克制加伤</h4>
@@ -159,13 +154,7 @@ function RuleModal({ onClose }: { onClose: () => void }) {
         </div>
         <div className={styles.ruleSec}>
           <h4>🗡 劫匪行为</h4>
-          <p>劫匪据守不动，也不会反击——放心靠近、专心输出</p>
-        </div>
-        <div className={styles.ruleSec}>
-          <h4>💧 地形</h4>
-          <p>灵泉💧 / 灵脉⚔ / 悟道🧘：停留到下回合生效对应+1
-魔气☠：踏入即各属性-1，停留额外扣血
-裂缝⬛：不可通行</p>
+          <p>劫匪据守不动，也不会反击</p>
         </div>
         <button className={styles.ruleClose} onClick={onClose}>关闭</button>
       </motion.div>
