@@ -1388,7 +1388,12 @@ export const S7B_Battle: React.FC = () => {
         SaveSystem.save(1);
         if (matchNo === 1) {
           // 第一场胜利 → 继续打第二场 3v3
+          // ⚠ 不能仅靠 navigate：当前路由 /s7c → 同一个 S7B_Battle 组件，
+          //    React Router 不会卸载组件，导致 store(battleOver=true) / showResult / showSelect
+          //    等状态全部残留，UI 一直停留在"首场告捷"结算面板，按钮看似无响应。
+          //    解决方案：跳转后强制 reload，让组件完全重新挂载（与失败重试分支保持一致）。
           navigate('/s7c?sect2');
+          setTimeout(() => window.location.reload(), 50);
         } else {
           // 第二场胜利 → 标记第四章phase完成 → 进入 S6c 精英招募
           markPhaseDone(4);
