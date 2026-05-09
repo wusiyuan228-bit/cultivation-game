@@ -467,8 +467,9 @@ export const S7_Battle: React.FC = () => {
             hp: poolCard.hp + bonus.hp,
             atk: poolCard.atk + bonus.atk,
             mnd: poolCard.mnd + bonus.mnd,
-            battleSkill: null,  // R/N卡暂无战斗技能
-            ultimate: null,
+            // SR/SSR 的战斗技能与绝技从卡池数据读取；R/N 卡 poolCard.battleSkill 本就是 null
+            battleSkill: poolCard.battleSkill ? { name: poolCard.battleSkill.name, desc: poolCard.battleSkill.desc } : null,
+            ultimate: poolCard.ultimate ? { name: poolCard.ultimate.name, desc: poolCard.ultimate.desc } : null,
             portrait: getCachedImage(poolCard.id),
           };
         }

@@ -71,6 +71,7 @@ export const S6_Preparation: React.FC = () => {
   const knowledgeBonus = useGameStore((s) => s.knowledgeBonus);
   const cardBonuses = useGameStore((s) => s.cardBonuses);
   const recruitDone = useGameStore((s) => s.recruitDone);
+  const chapter = useGameStore((s) => s.chapter);
   const upgradeCardRealm = useGameStore((s) => s.upgradeCardRealm);
   const markPhaseDone = useGameStore((s) => s.markPhaseDone);
   const setChapter = useGameStore((s) => s.setChapter);
@@ -178,7 +179,7 @@ export const S6_Preparation: React.FC = () => {
 
       <BackButton onClick={() => navigate('/s5c')} />
       <MusicToggle />
-      <CommonHud chapter={3} />
+      <CommonHud chapter={chapter} />
 
       {/* 标题 */}
       <div className={styles.header}>
@@ -223,33 +224,26 @@ export const S6_Preparation: React.FC = () => {
           <div className={styles.cardFoot}>未达结丹的角色均可提升</div>
         </motion.button>
 
-        {/* ② 招募道友 */}
-        <motion.button
-          type="button"
-          className={`${styles.card} ${styles.cardRecruit} ${recruitDone ? styles.cardDim : ''}`}
-          onClick={handleRecruit}
-          whileHover={recruitDone ? {} : { y: -6 }}
-          whileTap={recruitDone ? {} : { scale: 0.97 }}
-          disabled={recruitDone}
-        >
-          <div className={styles.cardIcon}>🎴</div>
-          <div className={styles.cardName}>招 募 道 友</div>
-          <div className={styles.cardDesc}>
-            {recruitDone ? (
-              <>
-                <div style={{ color: '#c8a850' }}>✅ 本轮招募已完成</div>
-              </>
-            ) : (
-              <>
-                <div>消耗灵石抽取卡牌</div>
-                <div className={styles.costLine}>NR池 · 5 灵石/抽</div>
-              </>
-            )}
-          </div>
-          <div className={styles.cardFoot}>
-            {recruitDone ? '' : '玩家 + 5 AI 轮流抽卡'}
-          </div>
-        </motion.button>
+        {/* ② 招募道友（已完成则隐藏整卡） */}
+        {!recruitDone && (
+          <motion.button
+            type="button"
+            className={`${styles.card} ${styles.cardRecruit}`}
+            onClick={handleRecruit}
+            whileHover={{ y: -6 }}
+            whileTap={{ scale: 0.97 }}
+          >
+            <div className={styles.cardIcon}>🎴</div>
+            <div className={styles.cardName}>招 募 道 友</div>
+            <div className={styles.cardDesc}>
+              <div>消耗灵石抽取卡牌</div>
+              <div className={styles.costLine}>NR池 · 5 灵石/抽</div>
+            </div>
+            <div className={styles.cardFoot}>
+              玩家 + 5 AI 轮流抽卡
+            </div>
+          </motion.button>
+        )}
 
         {/* ③ 进入下一回合 */}
         <motion.button

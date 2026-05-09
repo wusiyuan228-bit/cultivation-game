@@ -5,6 +5,7 @@
 import type { Participant, PoolCard, RunSkillDef } from '@/types/recruit';
 import type { HeroId } from '@/types/game';
 import { HEROES_DATA } from '@/data/heroesData';
+import { getPoolCardById } from './cardPoolLoader';
 
 /** 将主角的 battle_card 转为 PoolCard 形式（用于抽卡系统内部统一处理） */
 export function heroToActiveCard(heroId: HeroId): PoolCard {
@@ -23,6 +24,16 @@ export function heroToActiveCard(heroId: HeroId): PoolCard {
     };
   }
 
+  // 主角的战斗技能与绝技（UI 层按 showBattleSkill 决定是否显示）
+  const rawBattleSkill = bc.skills.battle_skill as any;
+  const battleSkill = rawBattleSkill
+    ? { name: rawBattleSkill.name, desc: rawBattleSkill.desc, type: rawBattleSkill.type, category: rawBattleSkill.category }
+    : null;
+  const rawUltimate = (bc.skills as any).ultimate;
+  const ultimate = rawUltimate
+    ? { name: rawUltimate.name, desc: rawUltimate.desc, type: rawUltimate.type, category: rawUltimate.category }
+    : null;
+
   return {
     id: hero.id,
     name: hero.name,
@@ -36,6 +47,8 @@ export function heroToActiveCard(heroId: HeroId): PoolCard {
     atk: bc.atk,
     mnd: bc.mnd,
     runSkill,
+    battleSkill,
+    ultimate,
     isHeroBattleCard: true,
   };
 }
@@ -134,10 +147,12 @@ export function createParticipants(
   const playerOwned: PoolCard[] = [playerCard];
   playerOwnedCardIds.forEach((id) => {
     if (id === playerHeroId) return; // 跳过主角
-    const c = poolIndex.get(id);
+    // 优先本轮卡池；本轮不在则从全局已加载卡池中找（跨轮继承的关键）
+    const c = poolIndex.get(id) ?? getPoolCardById(id);
     if (c) playerOwned.push(c);
-    // 若不在本轮卡池中（如 S6b 读取 S6a 抽到的 N/R 卡），忽略即可——
-    // 这些历史卡会在 gameStore.ownedCardIds 中继续保留，不影响其他系统
+    else {
+      console.warn(`[participantFactory] 玩家历史卡 ${id} 在任何已加载卡池中都未找到，已忽略`);
+    }
   });
 
   participants.push({
@@ -187,7 +202,8 @@ export function createParticipants(
     if (snap) {
       snap.ownedCardIds.forEach((id) => {
         if (id === heroId) return;
-        const c = poolIndex.get(id);
+        // 跨池查找：先本轮卡池，再全局缓存
+        const c = poolIndex.get(id) ?? getPoolCardById(id);
         if (c) aiOwned.push(c);
       });
     }

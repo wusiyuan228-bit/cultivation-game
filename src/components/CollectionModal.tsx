@@ -245,8 +245,9 @@ export const CollectionModal: React.FC<Props> = ({
                         </div>
                         <div className={styles.detailDivider} />
                         {/* ===== 技能展示（按阶段可见性分类） =====
-                             chapter<5: 显示密谈+招募；战斗/觉醒 → 暂未揭晓
-                             chapter>=5（最终决战章）: 隐藏密谈+招募；显示战斗真实技能，觉醒仍锁定（或已揭晓） */}
+                             chapter<3: 显示招募技能；战斗/觉醒 → 暂未揭晓
+                             chapter>=3（S7A 剿匪战起）: 揭晓战斗技能和绝技（从此进入战斗环节，玩家需要参考）
+                             chapter>=5（最终决战章）: 额外显示决战卡属性 */}
                         {chapter < 5 && (
                           <>
                             <div className={styles.detailSection}>
@@ -264,7 +265,7 @@ export const CollectionModal: React.FC<Props> = ({
                           <h3 className={styles.sectionTitle}>战斗技能</h3>
                           {((hero.rarity as string) === 'N' || (hero.rarity as string) === 'R') ? (
                             <div className={styles.skillNone}>此卡无战斗技能（仅数值上阵）</div>
-                          ) : chapter < 5 ? (
+                          ) : chapter < 3 ? (
                             <div className={styles.awakeningHidden}>
                               <span className={styles.lockIcon}>🔒</span>
                               <span>战斗环节揭晓</span>

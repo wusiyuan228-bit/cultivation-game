@@ -13,6 +13,13 @@ interface Props {
   open: boolean;
   participant: Participant | null;
   onClose: () => void;
+  /**
+   * 是否显示战斗技能与绝技。
+   * - S6 招募阶段：false（玩家还没进战斗，避免信息过载）
+   * - S7A 及之后：true（战斗环节已开启，玩家需要参考技能描述）
+   * 默认 false。
+   */
+  showBattleSkill?: boolean;
 }
 
 const RARITY_COLOR: Record<string, string> = {
@@ -23,7 +30,7 @@ const RARITY_COLOR: Record<string, string> = {
   UR: '#a83b3b',
 };
 
-export const ViewDeckModal: React.FC<Props> = ({ open, participant, onClose }) => {
+export const ViewDeckModal: React.FC<Props> = ({ open, participant, onClose, showBattleSkill = false }) => {
   return (
     <AnimatePresence>
       {open && participant && (
@@ -85,13 +92,13 @@ export const ViewDeckModal: React.FC<Props> = ({ open, participant, onClose }) =
                       ) : (
                         <div className={styles.noSkill}>（无招募技能）</div>
                       )}
-                      {c.battleSkill && (
+                      {showBattleSkill && c.battleSkill && (
                         <div className={styles.battleSkill}>
                           <div className={styles.battleSkillName}>【战斗·{c.battleSkill.name}】</div>
                           <div className={styles.battleSkillDesc}>{c.battleSkill.desc}</div>
                         </div>
                       )}
-                      {c.ultimate && (
+                      {showBattleSkill && c.ultimate && (
                         <div className={styles.ultimate}>
                           <div className={styles.ultimateName}>【绝技·{c.ultimate.name}】</div>
                           <div className={styles.ultimateDesc}>{c.ultimate.desc}</div>

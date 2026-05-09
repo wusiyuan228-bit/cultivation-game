@@ -1143,6 +1143,7 @@ export const S6_Recruit: React.FC = () => {
         open={!!viewDeckOf}
         participant={viewDeckOf}
         onClose={() => setViewDeckOf(null)}
+        showBattleSkill={(useGameStore.getState().chapter ?? 1) >= 3}
       />
 
       {/* ==================== 卡池详情弹窗 ==================== */}
