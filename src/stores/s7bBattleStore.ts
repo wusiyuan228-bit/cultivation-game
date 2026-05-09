@@ -210,12 +210,15 @@ function computeFengShuLandingPos(
  */
 function mapUnitToEngine(u: BattleUnit): EngineUnit {
   const mkBox = (n: number): StatBox => ({ base: n, current: n, initial: n });
+  // ⚠ 关键修复（2026-05-10）：hp.initial 必须 = maxHp（开场满血），否则
+  // 依赖"已损失气血"语义的技能（小舞儿八段摔·断魂、玄古天地等）会永远算出 0 伤害。
+  const hpBox: StatBox = { base: u.maxHp, current: u.hp, initial: u.maxHp };
   return {
     id: u.id,
     name: u.name,
     type: u.type,
     owner: u.isEnemy ? 'P2' : 'P1',
-    hp: mkBox(u.hp),
+    hp: hpBox,
     atk: mkBox(u.atk),
     mnd: mkBox(u.mnd),
     hpCap: u.maxHp,

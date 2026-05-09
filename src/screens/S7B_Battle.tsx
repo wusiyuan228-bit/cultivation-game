@@ -1203,7 +1203,10 @@ export const S7B_Battle: React.FC = () => {
     (type: 'battle' | 'ultimate') => {
       if (!selectedUnit) return;
       // 攻击完就锁死了，不允许再放技能
-      if (selectedUnit.attackedThisTurn) return;
+      if (selectedUnit.attackedThisTurn) {
+        battle.addLog('⚠ 本回合已普攻，技能不可再发动（请下回合再用）', 'system');
+        return;
+      }
 
       /* ──────────── 绝技分支（D2 新路径） ──────────── */
       if (type === 'ultimate') {

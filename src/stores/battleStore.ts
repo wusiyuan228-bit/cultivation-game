@@ -132,12 +132,16 @@ function manhattan(r1: number, c1: number, r2: number, c2: number): number {
 /** 把 store 的 BattleUnit 映射成新引擎的 EngineUnit */
 function mapUnitToEngine(u: BattleUnit): EngineUnit {
   const mkBox = (n: number): StatBox => ({ base: n, current: n, initial: n });
+  // ⚠ 关键修复（2026-05-10）：hp.initial 必须 = maxHp（开场满血），否则
+  // 依赖"已损失气血"语义的技能（小舞儿八段摔·断魂、玄古天地等）会永远算出 0 伤害。
+  // 同时 hp.base 也以 maxHp 为基线（最大上限），current 才是当前血量。
+  const hpBox: StatBox = { base: u.maxHp, current: u.hp, initial: u.maxHp };
   return {
     id: u.id,
     name: u.name,
     type: u.type,
     owner: u.isEnemy ? 'P2' : 'P1',
-    hp: mkBox(u.hp),
+    hp: hpBox,
     atk: mkBox(u.atk),
     mnd: mkBox(u.mnd),
     hpCap: u.maxHp,

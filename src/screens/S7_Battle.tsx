@@ -866,11 +866,21 @@ export const S7_Battle: React.FC = () => {
     (type: 'battle' | 'ultimate') => {
       if (!selectedUnit) return;
       // 攻击完就锁死了，不允许再放技能
-      if (selectedUnit.attackedThisTurn) return;
+      if (selectedUnit.attackedThisTurn) {
+        battle.addLog('⚠ 本回合已普攻，技能不可再发动（请下回合再用）', 'system');
+        return;
+      }
 
       if (type === 'ultimate') {
         // —— 绝技：走 SkillRegistry 引擎 ——
-        if (!selectedUnit.ultimate || selectedUnit.ultimateUsed) return;
+        if (!selectedUnit.ultimate) {
+          battle.addLog('⚠ 该单位未装备绝技', 'system');
+          return;
+        }
+        if (selectedUnit.ultimateUsed) {
+          battle.addLog(`⚠ 【${selectedUnit.ultimate.name}】已在本场战斗使用过`, 'system');
+          return;
+        }
         const pre = battle.ultimatePrecheck(selectedUnit.id);
         if (!pre.ok) {
           battle.addLog(`⚠ 无法发动【${selectedUnit.ultimate.name}】：${pre.reason ?? '条件不满足'}`, 'system');
