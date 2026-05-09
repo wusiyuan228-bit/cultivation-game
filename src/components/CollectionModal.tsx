@@ -86,7 +86,15 @@ function resolveCard(id: string): Hero | null {
     max_realm: '结丹',
     max_realm_level: 3,
     run_card: { hp: poolCard.hp, atk: poolCard.atk, mnd: poolCard.mnd, skills: { run_skill: poolCard.runSkill ? { name: poolCard.runSkill.name, desc: poolCard.runSkill.desc, type: 'recruit' } : null, battle_skill: null } },
-    battle_card: { hp: poolCard.hp, atk: poolCard.atk, mnd: poolCard.mnd, skills: { run_skill: poolCard.runSkill ? { name: poolCard.runSkill.name, desc: poolCard.runSkill.desc, type: 'recruit', category: poolCard.runSkill.category, params: poolCard.runSkill.params } : null, battle_skill: null, ultimate: null } },
+    battle_card: {
+      hp: poolCard.hp, atk: poolCard.atk, mnd: poolCard.mnd,
+      skills: {
+        run_skill: poolCard.runSkill ? { name: poolCard.runSkill.name, desc: poolCard.runSkill.desc, type: 'recruit', category: poolCard.runSkill.category, params: poolCard.runSkill.params } : null,
+        // ★ 修复：SR/SSR 卡的战斗技能 / 绝技必须从 poolCard 读取，否则 CollectionModal 里千仞雪等卡永远显示"无"
+        battle_skill: poolCard.battleSkill ? { name: poolCard.battleSkill.name, desc: poolCard.battleSkill.desc, type: poolCard.battleSkill.type as any } : null,
+        ultimate: poolCard.ultimate ? { name: poolCard.ultimate.name, desc: poolCard.ultimate.desc, type: poolCard.ultimate.type as any } : null,
+      },
+    },
     awakening: null,
   } as any;
 }

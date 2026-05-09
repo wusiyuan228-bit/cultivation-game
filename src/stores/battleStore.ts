@@ -441,22 +441,9 @@ export const useBattleStore = create<BattleState>((set, get) => ({
       stepsUsedThisTurn: prev.stepsUsedThisTurn + stepCost,
     };
 
-    const terrain = map[toRow][toCol].terrain;
-    const u = updated[idx];
-
-    if (terrain === 'miasma') {
-      updated[idx] = {
-        ...u,
-        atk: Math.max(1, u.atk - 1),
-        mnd: Math.max(1, u.mnd - 1),
-        hp: Math.max(0, u.hp - 1),
-        dead: u.hp - 1 <= 0,
-      };
-      get().addLog(`☠ ${u.name} 踏入魔气侵蚀区，各属性-1！`, 'damage');
-      if (u.hp - 1 <= 0) {
-        get().addLog(`💀 ${u.name} 因瘴气而倒下！`, 'kill');
-      }
-    }
+    // ★ 修复：路过瘴气格子不再立刻扣血/降三维。
+    //   仅在 startNewRound 里检测"上回合末停留位置=瘴气" → 扣 1 点 hp。
+    //   旧逻辑会在 movePath 时立扣 hp/atk/mnd 各 1，与"停留下回合扣"的设计不符。
 
     set({ units: updated, moveRange: [] });
     get().calcAttackRange(unitId);
@@ -699,6 +686,10 @@ export const useBattleStore = create<BattleState>((set, get) => ({
     if (killed) {
       get().addLog(`💀 ${defender.name} 被击杀！`, 'kill');
     }
+
+    // ★ Q4 修复：每次攻击后立即检测胜利条件——只要敌方全灭立刻结算，
+    //   不再等所有玩家手动 endUnitTurn 才走 advanceAction → checkBattleEnd。
+    get().checkBattleEnd();
 
     return result;
   },
@@ -1000,6 +991,9 @@ export const useBattleStore = create<BattleState>((set, get) => ({
       }
     }
 
+    // ★ Q4 修复：绝技释放后也立刻检测胜利（旺林天地崩、千仞雪天使圣剑等都在这里收尾）
+    get().checkBattleEnd();
+
     return true;
   },
 
@@ -1174,21 +1168,7 @@ export const useBattleStore = create<BattleState>((set, get) => ({
       col: toCol,
       stepsUsedThisTurn: prev.stepsUsedThisTurn + 1,
     };
-    const terrain = map[toRow][toCol].terrain;
-    const u = updated[idx];
-    if (terrain === 'miasma') {
-      updated[idx] = {
-        ...u,
-        atk: Math.max(1, u.atk - 1),
-        mnd: Math.max(1, u.mnd - 1),
-        hp: Math.max(0, u.hp - 1),
-        dead: u.hp - 1 <= 0,
-      };
-      get().addLog(`☠ ${u.name} 踏入魔气侵蚀区，各属性-1！`, 'damage');
-      if (u.hp - 1 <= 0) {
-        get().addLog(`💀 ${u.name} 因瘴气而倒下！`, 'kill');
-      }
-    }
+    // ★ 修复：单步 moveOneStep 同样不在路过时扣血，统一由 startNewRound 处理"停留扣血"
     set({ units: updated });
   },
 }));

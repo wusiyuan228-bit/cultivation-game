@@ -24,6 +24,7 @@ import {
   hasAdjacentEnemyOf,
   hasAnyLivingEnemyOf,
 } from '@/systems/battle/skillCastability';
+import { SkillRegistry } from '@/systems/battle/skillRegistry';
 import styles from './S7_Battle.module.css';
 
 /* ======== 地图格子尺寸常量 ======== */
@@ -47,6 +48,46 @@ function getSkillCheck(
     hasAdjacentEnemy: hasAdjacentEnemyOf(unit as any, allUnits as any),
     hasAnyEnemy: hasAnyLivingEnemyOf(unit as any, allUnits as any),
   });
+}
+
+/** 阶段Q1 · 按单位的 ultimate.name 反查 SkillRegistry 的技能 id。
+ *  返回 null 表示该绝技未在新引擎中登记（仍可被 performUltimate 兜底处理）。 */
+function findUltimateRegistryId(unit: BattleUnit): string | null {
+  if (!unit.ultimate) return null;
+  const id = SkillRegistry.findIdByName(unit.ultimate.name);
+  if (!id) return null;
+  const reg = SkillRegistry.get(id);
+  return reg?.isActive ? id : null;
+}
+
+/** 瞄准态交互提示文案（按候选集精确推断目标归属） */
+function describeSelectorHint(
+  kind: string,
+  info?: { candidateIds?: string[]; units?: Array<{ id: string; isEnemy: boolean }>; casterId?: string },
+): string {
+  if (info?.candidateIds && info.units && info.casterId) {
+    const caster = info.units.find((u) => u.id === info.casterId);
+    if (caster) {
+      const cands = info.candidateIds
+        .map((id) => info.units!.find((u) => u.id === id))
+        .filter(Boolean) as Array<{ id: string; isEnemy: boolean }>;
+      const casterSide = caster.isEnemy;
+      const allFriendly = cands.every((c) => c.isEnemy === casterSide);
+      const allHostile = cands.every((c) => c.isEnemy !== casterSide);
+      if (allFriendly && cands.length > 0) return '点击任意友军单位为目标';
+      if (allHostile && cands.length > 0) return '点击任意敌方单位为目标';
+    }
+  }
+  switch (kind) {
+    case 'single_any_enemy':      return '点击任意敌方单位为目标';
+    case 'single_line_enemy':     return '点击同行或同列的敌方单位为目标';
+    case 'single_adjacent_enemy': return '点击相邻（上下左右）的敌方单位为目标';
+    case 'single_any_character':  return '点击目标单位';
+    case 'single_ally':           return '点击任意己方单位（不含自身）';
+    case 'single_any_ally':       return '点击任意己方单位（含自身）';
+    case 'position_pick':         return '点击棋盘任意空格子放置障碍';
+    default:                       return '点击目标';
+  }
 }
 
 /* ======== 技能可发动判定：见上方 getSkillCheck，委托给 @/systems/battle/skillCastability ======== */
@@ -300,6 +341,28 @@ export const S7_Battle: React.FC = () => {
   // 后续技能引擎 on_skill_cast 钩子触发时，往这个集合里加 unit.id+'_battle' / unit.id+'_ultimate'
   // 一经揭示则永久可见（同场战斗内）
   const [revealedEnemySkills] = useState<Set<string>>(() => new Set());
+
+  /* === Q1 修复 · 绝技瞄准态（移植自 S7B） ===
+   * ultimateTargeting !== null 时，玩家正在给绝技选目标。
+   *   - kind：目标选择器种类，决定哪些格子高亮、哪些点击合法
+   *   - casterId：施法者 id（从 state 快照）
+   *   - candidateIds：合法目标 id 集合（precheck 返回）
+   *   - regSkillId：注册表技能 id（用于描述/面板）
+   */
+  const [ultimateTargeting, setUltimateTargeting] = useState<{
+    kind:
+      | 'single_any_enemy'
+      | 'single_line_enemy'
+      | 'single_adjacent_enemy'
+      | 'single_any_character'
+      | 'single_ally'
+      | 'single_any_ally'
+      | 'self_only'
+      | 'position_pick';
+    casterId: string;
+    candidateIds: string[];
+    regSkillId: string;
+  } | null>(null);
 
   /* === 地图拖动 & 缩放 —— 直接操作DOM，绕过React重渲染 === */
   const mapAreaRef = useRef<HTMLDivElement>(null);
@@ -630,12 +693,78 @@ export const S7_Battle: React.FC = () => {
     return path.length === maxSteps ? path : null;
   }, [selectedUnit, hoverCell, battle.moveRange, battle.map, battle.units, canMove]);
 
+  /* ──────────── Q1 · 瞄准态：确认目标 & 取消（必须在 handleCellClick 之前定义） ──────────── */
+  const handleUltimateAim = useCallback(
+    (targetId: string) => {
+      const cur = ultimateTargeting;
+      if (!cur) return;
+      if (!cur.candidateIds.includes(targetId)) {
+        battle.addLog('⚠️ 非法目标：不在技能可选择范围内', 'system');
+        return;
+      }
+      const ok = battle.performUltimate(cur.casterId, [targetId]);
+      setUltimateTargeting(null);
+      if (ok) {
+        setTimeout(() => {
+          useBattleStore.getState().calcMoveRange(cur.casterId);
+          useBattleStore.getState().calcAttackRange(cur.casterId);
+        }, 0);
+      }
+    },
+    [ultimateTargeting, battle],
+  );
+
+  const handleCancelAim = useCallback(() => {
+    if (!ultimateTargeting) return;
+    battle.addLog('🎯 取消目标选择', 'system');
+    setUltimateTargeting(null);
+  }, [ultimateTargeting, battle]);
+
+  // 键盘 ESC 取消瞄准
+  useEffect(() => {
+    if (!ultimateTargeting) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') handleCancelAim();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [ultimateTargeting, handleCancelAim]);
+
   // 点击格子
   const handleCellClick = useCallback(
     (row: number, col: number) => {
       if (isDragging()) return; // 拖动中不触发点击
       if (!selectedUnit || battle.battleOver) return;
       if (movingPath) return; // 正在移动动画中
+
+      /* ──────────── Q1 · 绝技瞄准态拦截 ──────────── */
+      if (ultimateTargeting) {
+        // position_pick：点击空格子（非障碍、无存活单位）即 commit
+        if (ultimateTargeting.kind === 'position_pick') {
+          const cell = battle.map[row]?.[col];
+          const occupied = battle.units.some(
+            (u) => !u.dead && u.row === row && u.col === col,
+          );
+          if (!cell) { battle.addLog('⚠️ 越界格子', 'system'); return; }
+          if (cell.terrain === 'obstacle') { battle.addLog('⚠️ 该位置已是阻碍物，请选择空格', 'system'); return; }
+          if (occupied) { battle.addLog('⚠️ 该位置已有角色，请选择空格', 'system'); return; }
+          const casterId = ultimateTargeting.casterId;
+          const ok = battle.performUltimate(casterId, [], { row, col });
+          setUltimateTargeting(null);
+          if (ok) {
+            setTimeout(() => {
+              useBattleStore.getState().calcMoveRange(casterId);
+              useBattleStore.getState().calcAttackRange(casterId);
+            }, 0);
+          }
+          return;
+        }
+        // 默认（单位选择）模式：点击格子上的合法目标
+        const target = battle.units.find((u) => !u.dead && u.row === row && u.col === col);
+        if (target) handleUltimateAim(target.id);
+        // 点击空格子不取消（右键或 ESC 才取消）
+        return;
+      }
 
       // 检查是否可移动 —— 改为逐格动画移动
       if (canMove && battle.moveRange.some((r) => r.row === row && r.col === col)) {
@@ -692,7 +821,7 @@ export const S7_Battle: React.FC = () => {
         }
       }
     },
-    [selectedUnit, battle, canMove, canAttack, pendingSkillMod, isDragging, hoverPath, movingPath],
+    [selectedUnit, battle, canMove, canAttack, pendingSkillMod, isDragging, hoverPath, movingPath, ultimateTargeting, handleUltimateAim],
   );
 
   // 选择单位
@@ -724,6 +853,7 @@ export const S7_Battle: React.FC = () => {
   // 使用技能（普通战斗技能 或 绝技）
   // 关键：技能/绝技均【不结束回合】，玩家仍可继续移动/进行普通攻击
   // 阶段一升级：绝技走 performUltimate（接入 SkillRegistry，112 条技能完整生效）
+  // Q1 修复：单体目标的绝技（single_any_enemy 等）会进入瞄准态，玩家可点选目标
   const handleUseSkill = useCallback(
     (type: 'battle' | 'ultimate') => {
       if (!selectedUnit) return;
@@ -738,8 +868,42 @@ export const S7_Battle: React.FC = () => {
           battle.addLog(`⚠ 无法发动【${selectedUnit.ultimate.name}】：${pre.reason ?? '条件不满足'}`, 'system');
           return;
         }
-        // S7A 中所有绝技要么 self / aoe / 自动选目标，要么是十字AOE等无需玩家点选的形式
-        // 直接调 performUltimate（targetIds 留空，由 selector 自行决定）
+
+        // 查 registry 获取 targetSelector，判断是否需要点选目标
+        const regId = findUltimateRegistryId(selectedUnit);
+        const reg = regId ? SkillRegistry.get(regId) : undefined;
+        const selectorKind = reg?.targetSelector?.kind;
+
+        // 需要玩家选目标的 selector → 进入瞄准态（不直接 performUltimate）
+        const NEEDS_TARGET: Record<string, boolean> = {
+          single_any_enemy: true,
+          single_line_enemy: true,
+          single_adjacent_enemy: true,
+          single_any_character: true,
+          single_ally: true,
+          single_any_ally: true,
+          position_pick: true,
+        };
+        if (selectorKind && NEEDS_TARGET[selectorKind]) {
+          setUltimateTargeting({
+            kind: selectorKind as any,
+            casterId: selectedUnit.id,
+            candidateIds: pre.candidateIds ?? [],
+            regSkillId: regId!,
+          });
+          const hintText = describeSelectorHint(selectorKind, {
+            candidateIds: pre.candidateIds ?? [],
+            units: battle.units,
+            casterId: selectedUnit.id,
+          });
+          battle.addLog(
+            `🎯 【${selectedUnit.ultimate.name}】进入目标选择（${hintText}），按 ESC 或右键取消`,
+            'system',
+          );
+          return;
+        }
+
+        // 无需选目标（AOE / 自动全场 / none）→ 直接施放
         const ok = battle.performUltimate(selectedUnit.id, []);
         if (!ok) {
           battle.addLog(`⚠ 【${selectedUnit.ultimate.name}】发动失败`, 'system');
@@ -892,7 +1056,16 @@ export const S7_Battle: React.FC = () => {
         <div className={styles.mapBgLayer} aria-hidden="true" />
         {/* 氛围渐变层：替代原 inset box-shadow，零成本画面压暗 */}
         <div className={styles.mapVignette} aria-hidden="true" />
-        <div className={styles.mapGrid}>
+        <div
+          className={styles.mapGrid}
+          onContextMenu={(e) => {
+            // Q1 · 右键取消瞄准
+            if (ultimateTargeting) {
+              e.preventDefault();
+              handleCancelAim();
+            }
+          }}
+        >
       {battle.map.map((row, r) =>
             row.map((cell, c) => {
               const isMovable = battle.moveRange.some((m) => m.row === r && m.col === c);
@@ -1037,15 +1210,22 @@ export const S7_Battle: React.FC = () => {
           // 敌人（劫匪）使用瓦片图渲染
           if (unit.isEnemy) {
             const isInAttackRange = canAttack && battle.attackRange.some((a) => a.row === unit.row && a.col === unit.col);
+            // Q1 · 瞄准态：候选敌人发光
+            const isAimTarget = !!ultimateTargeting && ultimateTargeting.candidateIds.includes(unit.id);
             return (
               <div
                 key={unit.id}
-                className={`${styles.unitEnemyTile} ${unit.dead ? styles.unitEnemyDying : ''} ${isInAttackRange ? styles.unitEnemyAttackable : ''}`}
+                className={`${styles.unitEnemyTile} ${unit.dead ? styles.unitEnemyDying : ''} ${isInAttackRange ? styles.unitEnemyAttackable : ''} ${isAimTarget ? styles.unitAimTarget : ''}`}
                 style={{
                   top: unit.row * CELL_SIZE + 4,
                   left: unit.col * CELL_SIZE + 4,
                 }}
                 onClick={() => {
+                  // 瞄准态下：直接当作目标点击处理
+                  if (ultimateTargeting) {
+                    handleUltimateAim(unit.id);
+                    return;
+                  }
                   if (isInAttackRange && selectedUnit) {
                     handleCellClick(unit.row, unit.col);
                   }
@@ -1090,6 +1270,7 @@ export const S7_Battle: React.FC = () => {
                 styles.unit,
                 unit.dead ? styles.unitDead : '',
                 playerStateCls,
+                ultimateTargeting && ultimateTargeting.candidateIds.includes(unit.id) ? styles.unitAimTarget : '',
               ]
                 .filter(Boolean)
                 .join(' ')}
@@ -1097,7 +1278,16 @@ export const S7_Battle: React.FC = () => {
                 top: unit.row * CELL_SIZE + UNIT_OFFSET,
                 left: unit.col * CELL_SIZE + UNIT_OFFSET,
               }}
-              onClick={() => handleSelectUnit(unit.id)}
+              onClick={() => {
+                // 瞄准态下：友方单位也作为目标处理（如 single_any_character / single_ally）
+                if (ultimateTargeting) {
+                  if (ultimateTargeting.candidateIds.includes(unit.id)) {
+                    handleUltimateAim(unit.id);
+                  }
+                  return;
+                }
+                handleSelectUnit(unit.id);
+              }}
               onMouseEnter={(e) => {
                 setHoverUnitId(unit.id);
                 setMousePos({ x: e.clientX, y: e.clientY });
@@ -1408,6 +1598,26 @@ export const S7_Battle: React.FC = () => {
 
       {/* 右下角常驻 HUD（灵石 + 已收集角色）：与 S4 完全一致的4件套常驻控件 */}
       <CommonHud chapter={3} />
+
+      {/* Q1 · 绝技瞄准提示条 */}
+      {ultimateTargeting && (() => {
+        const caster = battle.units.find((x) => x.id === ultimateTargeting.casterId);
+        const skillName = caster?.ultimate?.name ?? '绝技';
+        const hint = describeSelectorHint(ultimateTargeting.kind, {
+          candidateIds: ultimateTargeting.candidateIds,
+          units: battle.units,
+          casterId: ultimateTargeting.casterId,
+        });
+        return (
+          <div className={styles.aimBar}>
+            <span>🎯 【{skillName}】· {hint}</span>
+            <span style={{ fontSize: 12, opacity: 0.8 }}>
+              合法目标 {ultimateTargeting.candidateIds.length} 个｜ESC 或右键取消
+            </span>
+            <button className={styles.aimBarCancel} onClick={handleCancelAim}>取消</button>
+          </div>
+        );
+      })()}
 
       {/* 地形hover气泡：Portal 挂到 body，永远在最顶层（不会被单位/瓦片遮挡） */}
       {hoverCell && hoverCell.rect && !hoverUnitId && (() => {
