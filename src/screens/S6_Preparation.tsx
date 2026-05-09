@@ -151,7 +151,16 @@ export const S6_Preparation: React.FC = () => {
     // 当前 chapter 的玩法环节收尾
     markPhaseDone(ch);
     SaveSystem.save(1);
-    // 允许进入下一章
+    // 章节推进策略：
+    // - ch=2（S5c→首次筹备）：S6a 招募后 → 推进到第3章剧情（S7A 在剧情后触发）
+    // - ch=4（S6b 招募后第二次筹备）：保持 ch=4，进入第4章剧情
+    //   后续由 S4_StoryReading 自然衔接：第4章剧情 → S7B 首场 → 次场 → 排名 → S6c → S8b → 第5章
+    // - 其它情况按既有 canEnterChapter 规则推进，避免跳章
+    if (ch === 4) {
+      // 第二次筹备：不推进章节，让玩家进入第4章剧情，由后续流程驱动 chapter 演进
+      navigate('/story');
+      return;
+    }
     if (canEnterChapter(ch + 1)) {
       setChapter(ch + 1);
     }

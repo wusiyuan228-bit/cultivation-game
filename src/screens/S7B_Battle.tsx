@@ -1927,7 +1927,7 @@ export const S7B_Battle: React.FC = () => {
       </AnimatePresence>
 
       {/* 右下角常驻 HUD（灵石 + 已收集角色）：与 S4 完全一致的4件套常驻控件 */}
-      <CommonHud chapter={3} />
+      <CommonHud chapter={4} />
 
       {/* 阶段 D · 绝技瞄准提示条 */}
       {ultimateTargeting && (() => {
