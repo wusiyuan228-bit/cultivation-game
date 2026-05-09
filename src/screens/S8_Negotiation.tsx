@@ -31,6 +31,7 @@ import {
   getAccumulatedClueTitles,
   judgeNegotiation,
   calcNegotiationCount,
+  isSpecialPair,
   type NpcDialogueQuestion,
   type NpcDialoguesFile,
   type NegotiationResult,
@@ -136,6 +137,7 @@ export const S8_Negotiation: React.FC = () => {
       hiddenInfo: q.hidden_info,
       askerIsXiaowu: heroId === 'hero_xiaowu',
       askerIsXuner: heroId === 'hero_xuner',
+      specialPair: isSpecialPair(heroId, selectedHero),
     });
 
     // 结果写入
@@ -242,10 +244,7 @@ export const S8_Negotiation: React.FC = () => {
 
   // ====== 渲染 ======
 
-  const roundTitle =
-    round === 1 ? '首次密谈 · S8a' :
-    round === 2 ? '二次密谈 · S8b' :
-    '最终密谈 · S8c';
+  const roundTitle = '密谈环节';
 
   if (loadErr) {
     return (
@@ -283,7 +282,7 @@ export const S8_Negotiation: React.FC = () => {
         <div className={styles.topTitle}>{roundTitle}</div>
         <div className={styles.topInfo}>
           <span className={styles.infoChip}>
-            主角 · <b>{heroName || '—'}</b> · 战斗心境 <b>{myMnd}</b>
+            <b>{heroName || '—'}</b> · 心境 <b>{myMnd}</b>
           </span>
           {heroId === 'hero_xiaowu' && (
             <span className={`${styles.infoChip} ${styles.skillChipXiaowu}`}>
@@ -399,9 +398,9 @@ const IntroPanel: React.FC<{
     animate={{ opacity: 1, y: 0 }}
     exit={{ opacity: 0, y: -20 }}
   >
-    <div className={styles.panelTitle}>道友约谈 · 规则说明</div>
+        <div className={styles.panelTitle}>规则说明</div>
     <ul className={styles.ruleList}>
-      <li>本次密谈可进行 <b>{maxCount}</b> 次（公式：⌈战斗心境 {myMnd} ÷ 2⌉）</li>
+          <li>本次密谈可进行 <b>{maxCount}</b> 次（心境 {myMnd} ÷ 2）</li>
       <li>每次选一位其他主角密谈，从其预设话题中选一题发问</li>
       <li>
         <b style={{ color: '#a8e6c4' }}>你心境 ≥ 对方</b>：必从对方已获线索中得一条真话
@@ -460,8 +459,11 @@ const PickHeroPanel: React.FC<{
           const base = full?.battle_card?.mnd ?? 0;
           const bonus = cardBonuses[h.id]?.mnd ?? 0;
           const targetMnd = base + bonus;
+          const isPair = isSpecialPair(askerHeroId, h.id);
           let advantage: { text: string; cls: string };
-          if (myMnd > targetMnd) {
+          if (isPair) {
+            advantage = { text: '💞 心心相印 · 必得真言', cls: styles.advHigh };
+          } else if (myMnd > targetMnd) {
             advantage = { text: '心境占优 · 必得真言', cls: styles.advHigh };
           } else if (myMnd === targetMnd) {
             advantage = { text: '心境持平 · 必得真言', cls: styles.advEq };
@@ -478,7 +480,7 @@ const PickHeroPanel: React.FC<{
               />
               <div className={styles.heroName}>{h.name}</div>
               <div className={styles.heroCandor}>
-                战斗心境 <b>{targetMnd}</b>
+                心境 <b>{targetMnd}</b>
               </div>
               <div className={`${styles.advBadge} ${advantage.cls}`}>
                 {advantage.text}
@@ -628,7 +630,11 @@ const AnswerPanel: React.FC<{
         animate={{ opacity: 1 }}
         transition={{ delay: 0.6 }}
       >
-        ⚠ 对方对此话题没有新情报可给。
+        ⚠ 这次没问到新情报。<br />
+        <span style={{ fontSize: '12px', opacity: 0.8, display: 'block', marginTop: '6px', lineHeight: 1.6 }}>
+          可能原因：对方对此话题不知情，或你的心境劣势导致无法套话。<br />
+          💡 心境占优 / 心心相印（如塘散 × 小舞、萧炎 × 薰儿）可必得真言。
+        </span>
       </motion.div>
     );
   }
@@ -679,8 +685,8 @@ const AllDonePanel: React.FC<{
   onConfirm: () => void;
 }> = ({ round, used, maxCount, onConfirm }) => {
   const nextText =
-    round === 1 ? '前往招募·SR独立池 (S6b)' :
-    round === 2 ? '前往第五章剧情' :
+    round === 1 ? '前往新一轮招募道友环节' :
+    round === 2 ? '前往新一轮剧情阅读' :
     '前往决战准备';
   return (
     <motion.div

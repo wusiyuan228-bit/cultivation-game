@@ -17,8 +17,8 @@ import styles from './S4_StoryReading.module.css';
 const RARITY_COLOR: Record<string, string> = {
   N: '#8a8a8a',
   R: '#4a9a6a',
-  SR: '#3b6fa8',
-  SSR: '#c8a14b',
+  SR: '#b47bff',
+  SSR: '#ffd65e',
   UR: '#a83b3b',
 };
 
@@ -810,8 +810,8 @@ const BoundRewardModal: React.FC<{
 
         {reward ? (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, padding: '10px 0 18px' }}>
-            <RewardCardBlock id={reward.ssrId} name={reward.ssrName} rarity="SSR" color="#c8a14b" />
-            <RewardCardBlock id={reward.srId} name={reward.srName} rarity="SR" color="#3b6fa8" />
+            <RewardCardBlock id={reward.ssrId} name={reward.ssrName} rarity="SSR" color="#ffd65e" />
+            <RewardCardBlock id={reward.srId} name={reward.srName} rarity="SR" color="#b47bff" />
           </div>
         ) : (
           <div style={{ color: '#c08080', textAlign: 'center', padding: 18 }}>

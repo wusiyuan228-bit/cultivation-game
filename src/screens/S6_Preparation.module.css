@@ -311,18 +311,26 @@
 }
 
 /* ============ Toast ============ */
+/* 注意：不能用 left: 50% + transform: translateX(-50%) 居中，
+   因为 framer-motion 的 animate 会生成 inline transform 覆盖该声明，
+   导致 toast 向右偏移。改用 flex 容器式居中更稳妥。 */
 .toast {
   position: absolute;
   bottom: 110px;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  width: fit-content;
+  max-width: min(680px, 90vw);
   padding: 12px 28px;
   border-radius: 6px;
   font-family: var(--font-body-kaiti);
   font-size: 18px;
   letter-spacing: 2px;
+  text-align: center;
   z-index: 50;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
 }
 
 .toastOk {

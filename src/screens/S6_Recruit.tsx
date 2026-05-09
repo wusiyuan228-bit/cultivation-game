@@ -49,14 +49,20 @@ import styles from './S6_Recruit.module.css';
 const BASE_COST = 5;
 
 // ===== AI 步骤基础延迟（单位 ms），倍速 1x=原值，2x=一半 =====
+// 2026-05-09 调整：目标 AI 每步约 0.8s，保证玩家能看清每步变化，整体提速 ~30%
 const AI_DELAY = {
-  TURN_START: 1200,      // 回合开始后 → 决策
-  AFTER_SKIP: 800,       // 跳过后 → 下一回合
-  AFTER_SWITCH: 800,     // 替换后 → 抽卡
-  AFTER_NORMAL_DRAW: 1000,   // 抽卡后 → post_draw 判断
-  AFTER_SKILL: 1000,     // 技能后 → post_draw
-  AFTER_POST_DRAW: 1200, // 保留/放回后 → 下一回合
-  CANDIDATE_PICK: 1000,  // AI 挑候选卡
+  TURN_START: 800,       // 回合开始后 → 决策（玩家需看到高亮切换）
+  AFTER_SKIP: 600,       // 跳过后 → 下一回合（信息量少，可稍快）
+  AFTER_SWITCH: 800,     // 替换后 → 抽卡（切立绘需要看清）
+  AFTER_NORMAL_DRAW: 800,// 抽卡后 → post_draw 判断
+  AFTER_SKILL: 800,      // 技能后 → post_draw
+  AFTER_POST_DRAW: 800,  // 保留/放回后 → 下一回合
+  CANDIDATE_PICK: 800,   // AI 挑候选卡
+  // —— 玩家操作后推进延迟（也跟随倍速） ——
+  PLAYER_AFTER_SKIP: 500,
+  PLAYER_AFTER_PICK: 700,
+  PLAYER_AFTER_POSTDRAW: 500,
+  PLAYER_AUTO_KEEP: 900, // 玩家抽完无需决策时自动保留的延迟
 };
 
 export const S6_Recruit: React.FC = () => {
@@ -120,6 +126,32 @@ export const S6_Recruit: React.FC = () => {
   const speedRef = useRef(speed);
   useEffect(() => { speedRef.current = speed; }, [speed]);
   const aiDelay = (base: number) => Math.max(100, Math.round(base / speedRef.current));
+
+  // ===== 玩家操作锁（防止快速双击重复触发） =====
+  // 点击任一操作按钮后立即上锁，直到 advanceTurn 完成后自动解锁
+  const [playerActionLock, setPlayerActionLock] = useState(false);
+  const unlockTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lockPlayerAction = useCallback((unlockAfterMs: number) => {
+    setPlayerActionLock(true);
+    if (unlockTimerRef.current) clearTimeout(unlockTimerRef.current);
+    unlockTimerRef.current = setTimeout(() => {
+      setPlayerActionLock(false);
+      unlockTimerRef.current = null;
+    }, unlockAfterMs + 150); // 比推进延迟多 150ms 作保险
+  }, []);
+  // 回合切换时强制解锁（防止异常卡死）
+  useEffect(() => {
+    setPlayerActionLock(false);
+    if (unlockTimerRef.current) {
+      clearTimeout(unlockTimerRef.current);
+      unlockTimerRef.current = null;
+    }
+  }, [currentTurnIndex, bigRound]);
+  useEffect(() => {
+    return () => {
+      if (unlockTimerRef.current) clearTimeout(unlockTimerRef.current);
+    };
+  }, []);
 
   // 每个座位的"最近抽到闪现卡"（1 秒后清空）
   const [recentFlash, setRecentFlash] = useState<Record<string, PoolCard | null>>({});
@@ -472,12 +504,16 @@ export const S6_Recruit: React.FC = () => {
 
   const handlePlayerDraw = () => {
     if (!isPlayerTurn || !currentParticipant) return;
+    if (playerActionLock) return;
     if (currentParticipant.gems < playerEffectiveCost) return;
+    // 抽卡后续推进由 drawing phase 的 useEffect 处理，这里只锁到那时
+    lockPlayerAction(aiDelay(AI_DELAY.PLAYER_AUTO_KEEP));
     performNormalDraw();
   };
 
   const handlePlayerUseSkill = () => {
     if (!isPlayerTurn || !playerActiveSkill) return;
+    if (playerActionLock) return;
     const ctx = { participant: currentParticipant!, pool, baseCost: BASE_COST };
     const skill = playerActiveSkill;
 
@@ -485,6 +521,7 @@ export const S6_Recruit: React.FC = () => {
       case 'preview_2':
       case 'preview_3': {
         if (currentParticipant!.gems < playerEffectiveCost) return;
+        lockPlayerAction(1500); // 预览弹窗打开到玩家二次选择前，锁定所有其他按钮
         applySkillExecResult(execPreview(ctx, skill));
         setShowCandidatePick(true);
         break;
@@ -492,35 +529,41 @@ export const S6_Recruit: React.FC = () => {
       case 'extra_draw_paid': {
         const total = playerEffectiveCost + (skill.params?.extraCost ?? 5);
         if (currentParticipant!.gems < total) return;
+        lockPlayerAction(aiDelay(AI_DELAY.PLAYER_AUTO_KEEP));
         applySkillExecResult(execExtraDrawPaid(ctx, skill));
         break;
       }
       case 'guarantee_highest': {
         const total = playerEffectiveCost + (skill.params?.extraCost ?? 3);
         if (currentParticipant!.gems < total) return;
+        lockPlayerAction(aiDelay(AI_DELAY.PLAYER_AUTO_KEEP));
         applySkillExecResult(execGuaranteeHighest(ctx, skill));
         break;
       }
       case 'designate_paid': {
         const cost = skill.params?.extraCost ?? 20;
         if (currentParticipant!.gems < cost) return;
+        lockPlayerAction(1500);
         setShowDesignatePick(true);
         break;
       }
       case 'same_ip_first': {
         if (currentParticipant!.gems < playerEffectiveCost) return;
+        lockPlayerAction(aiDelay(AI_DELAY.PLAYER_AUTO_KEEP));
         applySkillExecResult(execSameIpFirst(ctx, skill));
         break;
       }
       case 'prefer_female':
       case 'prefer_male': {
         if (currentParticipant!.gems < playerEffectiveCost) return;
+        lockPlayerAction(aiDelay(AI_DELAY.PLAYER_AUTO_KEEP));
         applySkillExecResult(execPreferGender(ctx, skill));
         break;
       }
       case 'free_draw_once': {
         // 整个招募环节仅限使用1次
         if (currentParticipant!.usedOneshotSkills.includes(skill.name)) return;
+        lockPlayerAction(aiDelay(AI_DELAY.PLAYER_AUTO_KEEP));
         applySkillExecResult(execFreeDrawOnce(ctx, skill));
         break;
       }
@@ -529,30 +572,41 @@ export const S6_Recruit: React.FC = () => {
 
   const handlePlayerSkip = () => {
     if (!isPlayerTurn) return;
+    if (playerActionLock) return;
     if (currentParticipant!.skipUsed >= currentParticipant!.skipLimit) return;
+    const delay = aiDelay(AI_DELAY.PLAYER_AFTER_SKIP);
+    lockPlayerAction(delay);
     performSkip();
-    setTimeout(() => advanceTurn(), 600);
+    setTimeout(() => advanceTurn(), delay);
   };
 
   const handlePlayerPickCandidate = (cardId: string) => {
+    if (playerActionLock && !showCandidatePick) return; // 候选弹窗打开时本身就是锁定，允许通过
+    const delay = aiDelay(AI_DELAY.PLAYER_AFTER_PICK);
+    lockPlayerAction(delay);
     pickFromCandidates(cardId);
     setShowCandidatePick(false);
-    // 玩家选完候选后没有后续操作 → 自动进入下一回合（延迟 800ms 让闪现卡飘起来）
-    setTimeout(() => advanceTurn(), 800);
+    // 玩家选完候选后没有后续操作 → 自动进入下一回合（延迟让闪现卡飘起来）
+    setTimeout(() => advanceTurn(), delay);
   };
 
   const handlePlayerDesignate = (cardId: string) => {
+    const delay = aiDelay(AI_DELAY.PLAYER_AFTER_PICK);
+    lockPlayerAction(delay);
     const skill = playerActiveSkill!;
     const ctx = { participant: currentParticipant!, pool, baseCost: BASE_COST };
     applySkillExecResult(execDesignatePaid(ctx, skill, cardId));
     setShowDesignatePick(false);
-    setTimeout(() => advanceTurn(), 800);
+    setTimeout(() => advanceTurn(), delay);
   };
 
   const handlePlayerAfterDraw = (action: 'return' | 'keep') => {
+    if (playerActionLock) return;
+    const delay = aiDelay(AI_DELAY.PLAYER_AFTER_POSTDRAW);
+    lockPlayerAction(delay);
     if (action === 'return') postDrawReturn();
     else postDrawKeep();
-    setTimeout(() => advanceTurn(), 500);
+    setTimeout(() => advanceTurn(), delay);
   };
 
   const handlePlayerSwitch = (newCardId: string) => {
@@ -640,16 +694,20 @@ export const S6_Recruit: React.FC = () => {
   const playerParticipant = participants.find((p) => p.isPlayer);
   const playerHasLeft = !!playerParticipant?.hasLeft;
 
-  // 玩家已离场时直接结算：把玩家的卡同步到 gameStore 并推进到招募结束覆盖层
+  // 玩家已离场时的正确语义：
+  //   - 不再直接 set phase=ended（那会让 AI 全部停摆）
+  //   - 改为：拉高倍速到 4x + 强制 autoPlay=true，让剩余 AI 快速跑完流程
+  //   - 等 AI 自然触发所有人 hasLeft/灵石耗尽 → store 自己会 phase='ended'
+  // 这样玩家能看到剩余 AI 抽完卡后的最终结算（公平也透明）
   const handleLeaveEarly = useCallback(() => {
-    // 标记 phase=ended，让结束覆盖层展示
-    useRecruitStore.setState({ phase: 'ended', lastDrawnCard: null, pendingReveal: null, candidates: [] });
+    setSpeed(4);
+    setAutoPlay(true);
     useRecruitStore.getState().pushLog({
       type: 'system',
       actor: 'system',
-      text: '玩家选择提前离场，抽卡环节结束。',
+      text: '玩家选择提前离场，其余道友将快速抽完剩余回合……',
     });
-  }, []);
+  }, [setAutoPlay]);
 
   // ====== 玩家 drawing phase 自动推进 ======
   // 玩家若没有 post_draw 技能响应需求（非塘散"放回换灵石"场景），抽完自动进入下一回合
@@ -663,7 +721,7 @@ export const S6_Recruit: React.FC = () => {
     const t = setTimeout(() => {
       postDrawKeep();   // ← 先保留卡牌到 ownedCards
       advanceTurn();
-    }, 900);
+    }, aiDelay(AI_DELAY.PLAYER_AUTO_KEEP));
     return () => clearTimeout(t);
   }, [phase, isPlayerTurn, shouldShowPostDrawSkillPrompt, showCandidatePick, showDesignatePick, lastDrawnCard, advanceTurn]);
 
@@ -890,6 +948,7 @@ export const S6_Recruit: React.FC = () => {
               className={styles.actionBtn}
               onClick={() => setShowSwitchModal(true)}
               disabled={
+                playerActionLock ||
                 currentParticipant?.hasSwitchedThisTurn ||
                 (participants.find((p) => p.id === currentParticipant?.id)?.ownedCards.length ?? 0) < 2
               }
@@ -900,6 +959,7 @@ export const S6_Recruit: React.FC = () => {
               <button
                 className={`${styles.actionBtn} ${styles.actionBtnSkill} ${styles.hasTooltip}`}
                 onClick={handlePlayerUseSkill}
+                disabled={playerActionLock}
                 data-tooltip={`【${playerActiveSkill.name}】${playerActiveSkill.desc}`}
               >
                 使用技能：{playerActiveSkill.name}
@@ -908,14 +968,14 @@ export const S6_Recruit: React.FC = () => {
             <button
               className={`${styles.actionBtn} ${styles.actionBtnDraw}`}
               onClick={handlePlayerDraw}
-              disabled={!currentParticipant || currentParticipant.gems < playerEffectiveCost}
+              disabled={playerActionLock || !currentParticipant || currentParticipant.gems < playerEffectiveCost}
             >
               抽卡（{playerEffectiveCost} 灵石）
             </button>
             <button
               className={`${styles.actionBtn} ${styles.hasTooltip}`}
               onClick={handlePlayerSkip}
-              disabled={!currentParticipant || currentParticipant.skipUsed >= currentParticipant.skipLimit}
+              disabled={playerActionLock || !currentParticipant || currentParticipant.skipUsed >= currentParticipant.skipLimit}
               data-tooltip="保留灵石，给未来更多选择"
             >
               跳过（{currentParticipant?.skipUsed ?? 0}/{currentParticipant?.skipLimit ?? 3}）
@@ -998,12 +1058,14 @@ export const S6_Recruit: React.FC = () => {
               <button
                 className={styles.postDrawBtnOk}
                 onClick={() => handlePlayerAfterDraw('return')}
+                disabled={playerActionLock}
               >
                 放回换 {playerActiveSkill!.params?.reward ?? 7} 灵石
               </button>
               <button
                 className={styles.postDrawBtnSkip}
                 onClick={() => handlePlayerAfterDraw('keep')}
+                disabled={playerActionLock}
               >
                 保留此卡
               </button>
@@ -1062,8 +1124,8 @@ export const S6_Recruit: React.FC = () => {
             >
               <h2>卡池剩余</h2>
               <div className={styles.poolDetailStats}>
-                {rarityCounts.SSR > 0 && <div><span style={{ color: '#ffd974' }}>SSR</span>：{rarityCounts.SSR} 张</div>}
-                {rarityCounts.SR > 0 && <div><span style={{ color: '#d4a4ff' }}>SR</span>：{rarityCounts.SR} 张</div>}
+                {rarityCounts.SSR > 0 && <div><span style={{ color: '#ffd65e' }}>SSR</span>：{rarityCounts.SSR} 张</div>}
+                {rarityCounts.SR > 0 && <div><span style={{ color: '#b47bff' }}>SR</span>：{rarityCounts.SR} 张</div>}
                 {rarityCounts.R > 0 && <div><span style={{ color: '#8ac7ff' }}>R</span>：{rarityCounts.R} 张</div>}
                 {rarityCounts.N > 0 && <div><span style={{ color: '#a7c9a0' }}>N</span>：{rarityCounts.N} 张</div>}
               </div>

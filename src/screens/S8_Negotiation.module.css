@@ -8,8 +8,8 @@
   width: 1920px;
   height: 1080px;
   background:
-    radial-gradient(ellipse at 20% 20%, rgba(80, 60, 30, 0.25) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 80%, rgba(40, 20, 60, 0.3) 0%, transparent 55%),
+    linear-gradient(rgba(10, 13, 21, 0.55), rgba(10, 13, 21, 0.55)),
+    url('/images/bg/s6_hall.jpg') center / cover no-repeat,
     radial-gradient(ellipse at center, #1a1f2e 0%, #0a0d15 100%);
   overflow: hidden;
   font-family: var(--font-cn, 'Noto Serif SC', serif);

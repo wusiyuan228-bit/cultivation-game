@@ -170,6 +170,20 @@ export type NegotiationResult =
   | { kind: 'fake'; fakeClueText: string; evasiveAnswer: string }   // 50%不中，给假线索
   | { kind: 'no_clue'; evasiveAnswer: string };                     // 对方没有可给的新线索
 
+/** 心心相印必得真言关系（双向 pair）：直接对话 100% 真线索，无视心境差 */
+export const SPECIAL_PAIRS: ReadonlyArray<readonly [string, string]> = [
+  ['hero_tangsan', 'hero_xiaowu'],
+  ['hero_xiaoyan', 'hero_xuner'],
+] as const;
+
+/** 判断两位主角是否为心心相印关系（双向） */
+export function isSpecialPair(askerId: string | null | undefined, targetId: string | null | undefined): boolean {
+  if (!askerId || !targetId) return false;
+  return SPECIAL_PAIRS.some(
+    ([a, b]) => (askerId === a && targetId === b) || (askerId === b && targetId === a),
+  );
+}
+
 /**
  * 按用户口述规则进行密谈判定
  * @param myMnd             主角战斗卡心境（含加成）
@@ -181,6 +195,7 @@ export type NegotiationResult =
  * @param hiddenInfo        该话题的 hidden_info（线索标题）
  * @param askerIsXiaowu     发起者是否小舞儿（妖力感知：心境劣势也必得真话）
  * @param askerIsXuner      发起者是否薰儿（古族血脉感应：得真话时额外再抽一条）
+ * @param specialPair       是否为"心心相印"必得真言关系（如 唐三↔小舞、萧炎↔薰儿）
  */
 export function judgeNegotiation(params: {
   myMnd: number;
@@ -193,6 +208,7 @@ export function judgeNegotiation(params: {
   rng?: () => number;
   askerIsXiaowu?: boolean;
   askerIsXuner?: boolean;
+  specialPair?: boolean;
 }): NegotiationResult {
   const rng = params.rng ?? Math.random;
 
@@ -215,8 +231,8 @@ export function judgeNegotiation(params: {
     const available = params.targetKnownClues.filter(
       (c) => !params.myOwnedClueTitles.includes(c),
     );
-    // 心境≥对方，或小舞儿发动妖力感知 → 可以从池子里强行抽一条
-    const canForce = params.myMnd >= params.targetMnd || params.askerIsXiaowu;
+    // 心境≥对方，或小舞儿发动妖力感知，或心心相印关系 → 可以从池子里强行抽一条
+    const canForce = params.myMnd >= params.targetMnd || params.askerIsXiaowu || params.specialPair;
     if (canForce && available.length > 0) {
       const picked = available[Math.floor(rng() * available.length)];
       const bonus = pickXunerBonus([picked]);
@@ -225,20 +241,29 @@ export function judgeNegotiation(params: {
         clueTitle: picked,
         honestAnswer: `（岔开话题）${params.honestAnswer}`,
         bonusClueTitle: bonus,
-        skillTag: params.askerIsXiaowu && params.myMnd < params.targetMnd
-          ? '🦊 妖力感知发动：直接感知到对方内心隐情'
-          : bonus ? '🌸 古族血脉感应：洞察额外隐情' : undefined,
+        skillTag: params.specialPair && params.myMnd < params.targetMnd
+          ? '💞 心心相印：默契直达本心，必得真话'
+          : params.askerIsXiaowu && params.myMnd < params.targetMnd
+            ? '🦊 妖力感知发动：直接感知到对方内心隐情'
+            : bonus ? '🌸 古族血脉感应：洞察额外隐情' : undefined,
       };
     }
     return { kind: 'no_clue', evasiveAnswer: params.evasiveAnswer };
   }
 
-  // 核心规则：心境占优，或小舞儿发动妖力感知
-  const effectiveAdvantage = params.myMnd >= params.targetMnd || params.askerIsXiaowu;
+  // 核心规则：心境占优，或小舞儿发动妖力感知，或心心相印关系
+  const effectiveAdvantage = params.myMnd >= params.targetMnd || params.askerIsXiaowu || params.specialPair;
 
   if (effectiveAdvantage) {
     // 必定获得：若本条未被获取则返回本条；否则从对方池抽一条未获取的
     const usingXiaowuSkill = params.askerIsXiaowu && params.myMnd < params.targetMnd;
+    const usingSpecialPair = params.specialPair && params.myMnd < params.targetMnd;
+    const buildSkillTag = (bonus: string | undefined) =>
+      usingSpecialPair
+        ? '💞 心心相印：默契直达本心，必得真话'
+        : usingXiaowuSkill
+          ? '🦊 妖力感知发动：直接感知到对方内心隐情'
+          : bonus ? '🌸 古族血脉感应：洞察额外隐情' : undefined;
     if (!alreadyOwned) {
       const bonus = pickXunerBonus([params.hiddenInfo]);
       return {
@@ -246,9 +271,7 @@ export function judgeNegotiation(params: {
         clueTitle: params.hiddenInfo,
         honestAnswer: params.honestAnswer,
         bonusClueTitle: bonus,
-        skillTag: usingXiaowuSkill
-          ? '🦊 妖力感知发动：直接感知到对方内心隐情'
-          : bonus ? '🌸 古族血脉感应：洞察额外隐情' : undefined,
+        skillTag: buildSkillTag(bonus),
       };
     }
     const fallback = params.targetKnownClues.filter(
@@ -264,9 +287,7 @@ export function judgeNegotiation(params: {
       clueTitle: picked,
       honestAnswer: `（继续追问后）${params.honestAnswer}`,
       bonusClueTitle: bonus,
-      skillTag: usingXiaowuSkill
-        ? '🦊 妖力感知发动：直接感知到对方内心隐情'
-        : bonus ? '🌸 古族血脉感应：洞察额外隐情' : undefined,
+      skillTag: buildSkillTag(bonus),
     };
   } else {
     // 对方心境 > 我（且非小舞儿），50% 真 / 50% 假

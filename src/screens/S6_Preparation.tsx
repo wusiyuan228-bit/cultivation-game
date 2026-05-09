@@ -30,8 +30,8 @@ import styles from './S6_Preparation.module.css';
 const RARITY_COLOR: Record<string, string> = {
   N: '#8a8a8a',
   R: '#4a9a6a',
-  SR: '#3b6fa8',
-  SSR: '#c8a14b',
+  SR: '#b47bff',
+  SSR: '#ffd65e',
   UR: '#a83b3b',
 };
 
