@@ -681,7 +681,7 @@ export const S7B_Battle: React.FC = () => {
             portrait: getCachedImage(h.id),
           };
         }
-        // 非主角卡（R/N/SR/SSR）
+        // 非主角卡（R/N/SR/SSR）—— 从 poolCard 读取战斗技能与绝技
         const poolCard = getPoolCardById(id);
         if (poolCard) {
           return {
@@ -691,8 +691,12 @@ export const S7B_Battle: React.FC = () => {
             hp: poolCard.hp + bonus.hp,
             atk: poolCard.atk + bonus.atk,
             mnd: poolCard.mnd + bonus.mnd,
-            battleSkill: null,  // R/N卡暂无战斗技能
-            ultimate: null,
+            battleSkill: poolCard.battleSkill
+              ? { name: poolCard.battleSkill.name, desc: poolCard.battleSkill.desc }
+              : null,
+            ultimate: poolCard.ultimate
+              ? { name: poolCard.ultimate.name, desc: poolCard.ultimate.desc }
+              : null,
             portrait: getCachedImage(poolCard.id),
           };
         }

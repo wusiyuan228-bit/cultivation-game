@@ -313,11 +313,12 @@ export async function runAiTurnForUnit(unitId: string): Promise<void> {
   const freshState = store.getState();
   const freshUnit = freshState.units.find((u) => u.id === unitId);
   if (!freshUnit || freshUnit.dead || freshUnit.acted) {
-    // 绝技致死或已结束，直接 end
+    // 绝技致死或已结束 —— 仍需推进流程，否则 AI 行动后会卡在原地
+    // BUGFIX（2026-05-09）：寒立等 AI 行动后流程卡死的根因——以前这里直接 return 不 advance
     if (freshUnit && !freshUnit.acted && !freshUnit.dead) {
       store.getState().endUnitTurn(unitId);
-      store.getState().advanceAction();
     }
+    store.getState().advanceAction();
     return;
   }
   if (freshState.battleOver) return;
