@@ -58,7 +58,7 @@ export interface Hero {
   max_realm: string;
   max_realm_level: number;
   /**
-   * 宗门剿匪（S7A）假设击杀数（5~8），仅用于 S6b 抽卡顺序排序。
+ * 宗门剿匪（S7A）假设击杀数（6~8），仅用于 S6b 抽卡顺序排序。
    * 玩家角色以 gameStore.lastBanditKillCount 的真实击杀数覆盖此预设。
    */
   s7aKillMock?: number;

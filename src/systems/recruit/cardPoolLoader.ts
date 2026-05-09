@@ -30,6 +30,7 @@ interface RawCard {
   skills?: {
     run_skill?: RawSkill | null;
     battle_skill?: RawSkill | null;
+    ultimate?: RawSkill | null;
   };
 }
 
@@ -61,6 +62,17 @@ function mapRunSkill(raw: RawSkill | null | undefined): RunSkillDef | null {
   };
 }
 
+/** 战斗技能/绝技仅做展示映射，不参与战斗逻辑（战斗逻辑由 SkillRegistry 驱动） */
+function mapBattleSkill(raw: RawSkill | null | undefined) {
+  if (!raw) return null;
+  return {
+    name: raw.name,
+    desc: raw.desc,
+    type: raw.type,
+    category: raw.category,
+  };
+}
+
 function mapCard(raw: RawCard): PoolCard {
   return {
     id: raw.id,
@@ -75,6 +87,8 @@ function mapCard(raw: RawCard): PoolCard {
     atk: raw.atk,
     mnd: raw.mnd,
     runSkill: mapRunSkill(raw.skills?.run_skill),
+    battleSkill: mapBattleSkill(raw.skills?.battle_skill),
+    ultimate: mapBattleSkill(raw.skills?.ultimate),
   };
 }
 

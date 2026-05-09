@@ -370,10 +370,12 @@
 .postDrawPanel {
   position: absolute;
   left: 50%;
-  top: 55%;
+  top: 50%;
   width: 580px;
+  max-height: 86vh;
+  overflow-y: auto;
   margin-left: -290px;
-  margin-top: -160px;
+  transform: translateY(-50%);
   padding: 24px;
   background: linear-gradient(180deg, rgba(30, 40, 60, 0.98), rgba(10, 18, 32, 0.99));
   border: 2px solid #c8a850;
@@ -452,6 +454,44 @@
 .postDrawSkillDesc {
   font-size: 11px;
   color: rgba(235, 220, 180, 0.8);
+  line-height: 1.4;
+}
+/* 战斗技能 — 蓝青色调 */
+.postDrawBattleSkill {
+  margin-top: 4px;
+  padding: 6px 8px;
+  background: rgba(80, 140, 200, 0.14);
+  border: 1px solid rgba(130, 180, 230, 0.32);
+  border-radius: 4px;
+}
+.postDrawBattleSkillName {
+  font-size: 12px;
+  font-weight: 700;
+  color: #8ec8ff;
+  margin-right: 4px;
+}
+.postDrawBattleSkillDesc {
+  font-size: 11px;
+  color: rgba(235, 220, 180, 0.8);
+  line-height: 1.4;
+}
+/* 绝技 — 金色调 */
+.postDrawUltimate {
+  margin-top: 4px;
+  padding: 6px 8px;
+  background: rgba(200, 168, 80, 0.14);
+  border: 1px solid rgba(255, 217, 116, 0.45);
+  border-radius: 4px;
+}
+.postDrawUltimateName {
+  font-size: 12px;
+  font-weight: 700;
+  color: #ffd974;
+  margin-right: 4px;
+}
+.postDrawUltimateDesc {
+  font-size: 11px;
+  color: rgba(235, 220, 180, 0.85);
   line-height: 1.4;
 }
 .postDrawGems {
@@ -552,7 +592,7 @@
   pointer-events: auto;
 }
 .startPanel {
-  width: 640px;
+  width: 880px;
   max-width: 94vw;
   padding: 28px 32px 26px;
   background: linear-gradient(180deg, rgba(20, 30, 52, 0.98), rgba(10, 18, 32, 0.99));
@@ -592,13 +632,12 @@
 }
 .startOrderRow {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   justify-content: center;
   align-items: center;
-  gap: 6px;
+  gap: 8px 6px;
   margin-bottom: 22px;
   padding: 0 2px;
-  overflow: hidden;
 }
 .startOrderChip {
   display: inline-flex;

@@ -1044,6 +1044,18 @@ export const S6_Recruit: React.FC = () => {
                     <span className={styles.postDrawSkillDesc}>{lastDrawnCard.runSkill.desc}</span>
                   </div>
                 )}
+                {lastDrawnCard.battleSkill && (
+                  <div className={styles.postDrawBattleSkill}>
+                    <span className={styles.postDrawBattleSkillName}>【战斗·{lastDrawnCard.battleSkill.name}】</span>
+                    <span className={styles.postDrawBattleSkillDesc}>{lastDrawnCard.battleSkill.desc}</span>
+                  </div>
+                )}
+                {lastDrawnCard.ultimate && (
+                  <div className={styles.postDrawUltimate}>
+                    <span className={styles.postDrawUltimateName}>【绝技·{lastDrawnCard.ultimate.name}】</span>
+                    <span className={styles.postDrawUltimateDesc}>{lastDrawnCard.ultimate.desc}</span>
+                  </div>
+                )}
               </div>
             </div>
 

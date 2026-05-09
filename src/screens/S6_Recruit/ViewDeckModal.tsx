@@ -79,11 +79,23 @@ export const ViewDeckModal: React.FC<Props> = ({ open, participant, onClose }) =
                       </div>
                       {c.runSkill ? (
                         <div className={styles.skill}>
-                          <div className={styles.skillName}>【{c.runSkill.name}】</div>
+                          <div className={styles.skillName}>【招募·{c.runSkill.name}】</div>
                           <div className={styles.skillDesc}>{c.runSkill.desc}</div>
                         </div>
                       ) : (
-                        <div className={styles.noSkill}>（无抽卡技能）</div>
+                        <div className={styles.noSkill}>（无招募技能）</div>
+                      )}
+                      {c.battleSkill && (
+                        <div className={styles.battleSkill}>
+                          <div className={styles.battleSkillName}>【战斗·{c.battleSkill.name}】</div>
+                          <div className={styles.battleSkillDesc}>{c.battleSkill.desc}</div>
+                        </div>
+                      )}
+                      {c.ultimate && (
+                        <div className={styles.ultimate}>
+                          <div className={styles.ultimateName}>【绝技·{c.ultimate.name}】</div>
+                          <div className={styles.ultimateDesc}>{c.ultimate.desc}</div>
+                        </div>
                       )}
                     </div>
                   );

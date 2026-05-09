@@ -51,7 +51,7 @@ export const HEROES_DATA: Hero[] = [
   {
     id: 'hero_xiaowu', name: '小舞儿', tribute: '小舞', rarity: '主角', ip: '斗罗大陆',
     type: '妖修', gender: '女', faction: 'A', realm: '筑基', realm_level: 2, max_realm: '结丹', max_realm_level: 3,
-    s7aKillMock: 5,
+    s7aKillMock: 6,
     run_card: {
       hp: 5, atk: 4, mnd: 5,
       skills: {
@@ -109,7 +109,7 @@ export const HEROES_DATA: Hero[] = [
   {
     id: 'hero_xuner', name: '薰儿', tribute: '薰儿', rarity: '主角', ip: '斗破苍穹',
     type: '灵修', gender: '女', faction: 'B', realm: '筑基', realm_level: 2, max_realm: '结丹', max_realm_level: 3,
-    s7aKillMock: 5,
+    s7aKillMock: 6,
     run_card: {
       hp: 5, atk: 4, mnd: 6,
       skills: {

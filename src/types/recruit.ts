@@ -71,6 +71,17 @@ export interface RunSkillDef {
   };
 }
 
+/**
+ * 战斗技能/绝技 — 仅用于 UI 展示，不参与战斗逻辑
+ * 真实战斗技能注册在 SkillRegistry 中，此处只承载文案
+ */
+export interface BattleSkillDisplay {
+  name: string;
+  desc: string;
+  type?: string;       // passive / active / ultimate / autoModifier
+  category?: string;
+}
+
 /** 一张完整的抽卡池中的卡牌（pool_1_nr中的每一张） */
 export interface PoolCard {
   id: string;                     // 如 "R-1" "N-5"
@@ -86,6 +97,10 @@ export interface PoolCard {
   mnd: number;
   /** 跑团技能（N卡可能无，R/SSR有） */
   runSkill: RunSkillDef | null;
+  /** 战斗技能（SR/SSR 有，仅展示用） */
+  battleSkill?: BattleSkillDisplay | null;
+  /** 主动绝技（SSR/部分SR 有，仅展示用） */
+  ultimate?: BattleSkillDisplay | null;
   /** 是否为主角卡的战斗形态（对应6个主角） */
   isHeroBattleCard?: boolean;
 }
@@ -108,7 +123,7 @@ export interface Participant {
   /**
    * 宗门剿匪（S7A）击杀数：
    *   - 玩家：使用 gameStore.lastBanditKillCount 的真实值
-   *   - AI：使用 hero.s7aKillMock 的假设值（5~8）
+ *   - AI：使用 hero.s7aKillMock 的假设值（6~8）
    *   - 未经历过剿匪（例如 S6a）：全员 -1
    * 仅 S6b（pool=2）使用该字段决定抽卡顺序。
    */
