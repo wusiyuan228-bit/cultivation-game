@@ -51,6 +51,8 @@ export interface BattleUnit {
   /** 绝技（每场1次） */
   ultimate: { name: string; desc: string } | null;
   ultimateUsed: boolean;
+  /** 主动战斗技能是否已使用（每场1次，用于藤化原·天鬼搜身等 isActive=true 的 battle_skill） */
+  battleSkillUsed?: boolean;
   acted: boolean;
   stepsUsedThisTurn: number;
   attackedThisTurn: boolean;
@@ -227,6 +229,10 @@ interface BattleState {
   useSkill: (unitId: string, skillType: 'battle' | 'ultimate') => void;
   performUltimate: (unitId: string, targetIds: string[], pickedPosition?: { row: number; col: number }) => boolean;
   ultimatePrecheck: (unitId: string) => { ok: boolean; reason?: string; candidateIds?: string[] };
+  /** 主动战斗技能（2026-05-10 新增），用于 isActive=true 的 battle_skill（如藤化原·天鬼搜身） */
+  performBattleSkillActive: (unitId: string, targetIds: string[]) => boolean;
+  /** 主动战斗技能前置检查 */
+  battleSkillPrecheck: (unitId: string) => { ok: boolean; reason?: string; candidateIds?: string[] };
   endUnitTurn: (unitId: string) => void;
   advanceAction: () => void;
   startNewRound: () => void;
@@ -994,6 +1000,109 @@ export const useBattleStore = create<BattleState>((set, get) => ({
     // ★ Q4 修复：绝技释放后也立刻检测胜利（旺林天地崩、千仞雪天使圣剑等都在这里收尾）
     get().checkBattleEnd();
 
+    return true;
+  },
+
+  /* ═════════════════════════════════════════════════════════════ */
+  /*  主动战斗技能（2026-05-10 新增 / 藤化原天鬼搜身等）             */
+  /* ═════════════════════════════════════════════════════════════ */
+  battleSkillPrecheck: (unitId) => {
+    const { units } = get();
+    const u = units.find((x) => x.id === unitId);
+    if (!u) return { ok: false, reason: '单位不存在' };
+    if (!u.battleSkill) return { ok: false, reason: '未装备战斗技能' };
+    if (u.battleSkillUsed) return { ok: false, reason: '战斗技能本场已使用' };
+    const regId = resolveSkillRegId(u.battleSkill.name);
+    if (!regId) return { ok: false, reason: '该战斗技能不是主动技' };
+    const skill = SkillRegistry.get(regId);
+    if (!skill) return { ok: false, reason: '该战斗技能不是主动技' };
+    if (!skill.isActive) return { ok: false, reason: '该战斗技能为被动技，自动触发' };
+    if (!skill.precheck) return { ok: true };
+    const adapter = {
+      getEnemiesOf: (_s: any) => units.filter((x) => x.isEnemy !== u.isEnemy && !x.dead).map(mapUnitToEngine),
+      getAlliesOf: (_s: any) => units.filter((x) => x.isEnemy === u.isEnemy && x.id !== u.id && !x.dead).map(mapUnitToEngine),
+      getAllUnits: () => units.filter((x) => !x.dead).map(mapUnitToEngine),
+      getUnit: (id: string) => { const x = units.find((v) => v.id === id); return x ? mapUnitToEngine(x) : undefined; },
+    } as any;
+    return skill.precheck(mapUnitToEngine(u), adapter);
+  },
+
+  performBattleSkillActive: (unitId, targetIds) => {
+    const { units } = get();
+    const uIdx = units.findIndex((x) => x.id === unitId);
+    if (uIdx < 0) return false;
+    const u = units[uIdx];
+    if (!u.battleSkill || u.battleSkillUsed) return false;
+
+    const regId = resolveSkillRegId(u.battleSkill.name);
+    if (!regId) return false;
+    const skill = SkillRegistry.get(regId);
+    if (!skill || !skill.isActive || !skill.activeCast) return false;
+
+    // 适配器 —— 仅日志收集 + 查询
+    const engineLogs: BattleLog[] = [];
+    const addEngineLog = (text: string, type: BattleLog['type'] = 'skill') => {
+      engineLogs.push({ round: get().round, text, type });
+    };
+    const adapter = {
+      getUnit: (id: string) => {
+        const x = units.find((v) => v.id === id);
+        return x ? mapUnitToEngine(x) : undefined;
+      },
+      getAllUnits: () => units.filter((x) => !x.dead).map(mapUnitToEngine),
+      getAlliesOf: (s: any) =>
+        units.filter((x) => x.isEnemy === s.isEnemy && x.id !== s.id && !x.dead).map(mapUnitToEngine),
+      getEnemiesOf: (s: any) =>
+        units.filter((x) => x.isEnemy !== s.isEnemy && !x.dead).map(mapUnitToEngine),
+      emit: (kind: string, _payload: any, narrative: string, opts?: { severity?: string }) => {
+        const type: BattleLog['type'] = kind === 'skill_active_cast' ? 'skill' : 'system';
+        if (opts?.severity !== 'debug') addEngineLog(narrative, type);
+      },
+      changeStat: () => 0,
+      attachModifier: () => {},
+      queryModifiers: () => [],
+      detachModifier: () => {},
+      fireHook: () => {},
+      fireTurnHook: () => {},
+      getRound: () => get().round,
+      nextSeq: () => 0,
+      getCurrentActorId: () => unitId,
+      triggerAwakening: () => {},
+    } as any;
+
+    if (skill.precheck) {
+      const pre = skill.precheck(mapUnitToEngine(u), adapter);
+      if (!pre.ok) {
+        get().addLog(`⚠️ ${pre.reason ?? '战斗技能发动失败'}`, 'skill');
+        return false;
+      }
+    }
+
+    const result = skill.activeCast(mapUnitToEngine(u), targetIds, adapter);
+    if (!result.consumed) return false;
+
+    // store 层执行实际效果（按 regId 路由）
+    if (regId === 'sr_tenghuayuan.battle') {
+      const targetId = targetIds[0];
+      const cur = get().units;
+      const si = cur.findIndex((x) => x.id === unitId);
+      const ti = cur.findIndex((x) => x.id === targetId);
+      if (si < 0 || ti < 0) return false;
+      const us = [...cur];
+      const sRow = us[si].row, sCol = us[si].col;
+      us[si] = { ...us[si], row: us[ti].row, col: us[ti].col, battleSkillUsed: true };
+      us[ti] = { ...us[ti], row: sRow, col: sCol };
+      set({ units: us });
+    } else {
+      const us = [...get().units];
+      const si = us.findIndex((x) => x.id === unitId);
+      if (si >= 0) {
+        us[si] = { ...us[si], battleSkillUsed: true };
+      }
+      set({ units: us });
+    }
+
+    for (const l of engineLogs) get().addLog(l.text, l.type);
     return true;
   },
 

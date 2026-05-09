@@ -66,6 +66,8 @@ export interface BattleUnit {
   ultimate: { name: string; desc: string } | null;
   /** 绝技是否已使用 */
   ultimateUsed: boolean;
+  /** 主动战斗技能是否已使用（每场1次，用于藤化原·天鬼搜身等 isActive=true 的 battle_skill） */
+  battleSkillUsed?: boolean;
   /** 本回合是否已行动 */
   acted: boolean;
   /** 本回合已移动步数（上限 = mnd） */
@@ -422,6 +424,22 @@ interface BattleState {
     reason?: string;
     candidateIds?: string[];
   };
+  /**
+   * 主动战斗技能执行（2026-05-10 新增）
+   * 用于 isActive=true 且 kind='battle_skill' 的技能（如藤化原·天鬼搜身）
+   * @param unitId    发动者 id
+   * @param targetIds 目标 id 列表
+   * @returns         是否消耗了"主动战斗技"次数（false = 前置未过）
+   */
+  performBattleSkillActive: (unitId: string, targetIds: string[]) => boolean;
+  /**
+   * 查询某单位主动战斗技能的前置检查结果（供 UI 按钮置灰/高亮候选目标）
+   */
+  battleSkillPrecheck: (unitId: string) => {
+    ok: boolean;
+    reason?: string;
+    candidateIds?: string[];
+  };
   endUnitTurn: (unitId: string) => void;
   advanceAction: () => void;
   startNewRound: () => void;
@@ -489,6 +507,7 @@ export const useS7BBattleStore = create<BattleState>((set, get) => ({
         acted: false,
         dead: false,
         ultimateUsed: false,
+        battleSkillUsed: false,
         immobilized: false,
         stunned: false,
         lastTerrain: null,
@@ -513,6 +532,7 @@ export const useS7BBattleStore = create<BattleState>((set, get) => ({
         acted: false,
         dead: false,
         ultimateUsed: false,
+        battleSkillUsed: false,
         immobilized: false,
         stunned: false,
         lastTerrain: null,
@@ -1427,6 +1447,116 @@ export const useS7BBattleStore = create<BattleState>((set, get) => ({
     return true;
   },
 
+  /* ═════════════════════════════════════════════════════════════ */
+  /*  主动战斗技能（2026-05-10 新增 / Q-S7B-A1 藤化原天鬼搜身）       */
+  /* ═════════════════════════════════════════════════════════════ */
+  battleSkillPrecheck: (unitId: string) => {
+    const { units } = get();
+    const u = units.find((x) => x.id === unitId);
+    if (!u) return { ok: false, reason: '单位不存在' };
+    if (!u.battleSkill) return { ok: false, reason: '未装备战斗技能' };
+    if (u.battleSkillUsed) return { ok: false, reason: '战斗技能本场已使用' };
+    const regId = resolveSkillRegId(u.battleSkill.name);
+    if (!regId) return { ok: false, reason: '该战斗技能不是主动技' };
+    const skill = SkillRegistry.get(regId);
+    if (!skill) return { ok: false, reason: '该战斗技能不是主动技' };
+    if (!skill.isActive) return { ok: false, reason: '该战斗技能为被动技，自动触发' };
+    if (!skill.precheck) return { ok: true };
+    const adapter = {
+      getEnemiesOf: (_s: any) => units.filter((x) => x.isEnemy !== u.isEnemy && !x.dead).map((x) => mapUnitToEngine(x)),
+      getAlliesOf: (_s: any) => units.filter((x) => x.isEnemy === u.isEnemy && x.id !== u.id && !x.dead).map((x) => mapUnitToEngine(x)),
+      getAllUnits: () => units.filter((x) => !x.dead).map(mapUnitToEngine),
+      getUnit: (id: string) => { const x = units.find((v) => v.id === id); return x ? mapUnitToEngine(x) : undefined; },
+    } as any;
+    return skill.precheck(mapUnitToEngine(u), adapter);
+  },
+
+  performBattleSkillActive: (unitId: string, targetIds: string[]) => {
+    const { units } = get();
+    const uIdx = units.findIndex((x) => x.id === unitId);
+    if (uIdx < 0) return false;
+    const u = units[uIdx];
+    if (!u.battleSkill || u.battleSkillUsed) return false;
+
+    const regId = resolveSkillRegId(u.battleSkill.name);
+    if (!regId) return false;
+    const skill = SkillRegistry.get(regId);
+    if (!skill || !skill.isActive || !skill.activeCast) return false;
+
+    // —— 适配器（仅记录日志 + 提供查询接口） ——
+    const engineLogs: BattleLog[] = [];
+    const addEngineLog = (text: string, type: BattleLog['type'] = 'skill') => {
+      engineLogs.push({ round: get().round, text, type });
+    };
+    const adapter = {
+      getUnit: (id: string) => {
+        const x = units.find((v) => v.id === id);
+        return x ? mapUnitToEngine(x) : undefined;
+      },
+      getAllUnits: () => units.filter((x) => !x.dead).map(mapUnitToEngine),
+      getAlliesOf: (s: any) =>
+        units.filter((x) => x.isEnemy === s.isEnemy && x.id !== s.id && !x.dead).map(mapUnitToEngine),
+      getEnemiesOf: (s: any) =>
+        units.filter((x) => x.isEnemy !== s.isEnemy && !x.dead).map(mapUnitToEngine),
+      emit: (kind: string, _payload: any, narrative: string, opts?: { severity?: string }) => {
+        const type: BattleLog['type'] =
+          kind === 'skill_active_cast' ? 'skill' : 'system';
+        if (opts?.severity !== 'debug') addEngineLog(narrative, type);
+      },
+      changeStat: () => 0,
+      attachModifier: () => {},
+      queryModifiers: () => [],
+      detachModifier: () => {},
+      fireHook: () => {},
+      fireTurnHook: () => {},
+      getRound: () => get().round,
+      nextSeq: () => 0,
+      getCurrentActorId: () => unitId,
+      triggerAwakening: () => {},
+    } as any;
+
+    // —— 前置检查 ——
+    if (skill.precheck) {
+      const pre = skill.precheck(mapUnitToEngine(u), adapter);
+      if (!pre.ok) {
+        get().addLog(`⚠️ ${pre.reason ?? '战斗技能发动失败'}`, 'skill');
+        return false;
+      }
+    }
+
+    // —— 执行主体（active handler 通常只 emit 事件） ——
+    const result = skill.activeCast(mapUnitToEngine(u), targetIds, adapter);
+    if (!result.consumed) return false;
+
+    // —— store 层执行实际效果（按 regId 路由） ——
+    if (regId === 'sr_tenghuayuan.battle') {
+      // 天鬼搜身：与目标交换位置
+      const targetId = targetIds[0];
+      const cur = get().units;
+      const si = cur.findIndex((x) => x.id === unitId);
+      const ti = cur.findIndex((x) => x.id === targetId);
+      if (si < 0 || ti < 0) return false;
+      const us = [...cur];
+      const sRow = us[si].row, sCol = us[si].col;
+      us[si] = { ...us[si], row: us[ti].row, col: us[ti].col, battleSkillUsed: true };
+      us[ti] = { ...us[ti], row: sRow, col: sCol };
+      set({ units: us, skillUsedThisTurn: true, lastSkillEvent: { unitId, skillType: 'battle', ts: Date.now() } });
+    } else {
+      // 通用兜底：仅标记 battleSkillUsed
+      const us = [...get().units];
+      const si = us.findIndex((x) => x.id === unitId);
+      if (si >= 0) {
+        us[si] = { ...us[si], battleSkillUsed: true };
+      }
+      set({ units: us, skillUsedThisTurn: true, lastSkillEvent: { unitId, skillType: 'battle', ts: Date.now() } });
+    }
+
+    // —— 写入战报 ——
+    for (const l of engineLogs) get().addLog(l.text, l.type);
+
+    return true;
+  },
+
   endUnitTurn: (unitId) => {
     const { units, map } = get();
     const idx = units.findIndex((u) => u.id === unitId);
@@ -1462,35 +1592,8 @@ export const useS7BBattleStore = create<BattleState>((set, get) => ({
       const nextActorId = get().getCurrentActorId();
       const nextActor = nextActorId ? state.units.find((u) => u.id === nextActorId) : null;
       if (nextActor) {
-        // E2 · 藤化原 · 天鬼搜身 —— 行动开始时与最近敌方交换位置
-        if (
-          !nextActor.dead &&
-          (nextActor.registrySkills ?? []).includes('sr_tenghuayuan.battle')
-        ) {
-          const cur = get().units;
-          const self = cur.find((x) => x.id === nextActor.id)!;
-          const enemies = cur
-            .filter((x) => !x.dead && x.isEnemy !== self.isEnemy)
-            .sort(
-              (a, b) =>
-                manhattan(self.row, self.col, a.row, a.col) -
-                manhattan(self.row, self.col, b.row, b.col),
-            );
-          const t = enemies[0];
-          if (t) {
-            const us = [...cur];
-            const si = us.findIndex((x) => x.id === self.id);
-            const ti = us.findIndex((x) => x.id === t.id);
-            const sRow = us[si].row, sCol = us[si].col;
-            us[si] = { ...us[si], row: us[ti].row, col: us[ti].col };
-            us[ti] = { ...us[ti], row: sRow, col: sCol };
-            set({ units: us });
-            get().addLog(
-              `🫥 天鬼搜身：${self.name} ⇄ ${t.name} 位置互换`,
-              'skill',
-            );
-          }
-        }
+        // E2 · 藤化原 · 天鬼搜身 —— 已改为主动战斗技（玩家在自己行动轮点按钮 → 选目标），
+        // 此处不再硬编码自动触发；保留兼容：如果 AI 携带本技能且未使用，AI 决策层会调用 performBattleSkillActive
 
         // E2 · Q-E2-3 方案A：红蝶蛊惑消费 —— 行动开始时剥夺控制权
         if (nextActor.charmedNextTurn && !nextActor.dead) {

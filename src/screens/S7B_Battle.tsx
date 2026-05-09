@@ -434,6 +434,8 @@ export const S7B_Battle: React.FC = () => {
   const addCard = useGameStore((s) => s.addCard);
   const addSpiritStones = useGameStore((s) => s.addSpiritStones);
   const markPhaseDone = useGameStore((s) => s.markPhaseDone);
+  /** ★ 2026-05-10：读取 S6a/S6b 后保存的 AI 招募快照，用于生成对手阵容 */
+  const aiRecruitState = useGameStore((s) => s.aiRecruitState);
 
   // ====== URL 参数解析：区分「单机测试 / 宗门大比」以及「第一场 2v2 / 第二场 3v3」 ======
   // 统一从 hash query 读取，兼容 HashRouter 场景
@@ -519,6 +521,8 @@ export const S7B_Battle: React.FC = () => {
     casterId: string;
     candidateIds: string[];
     regSkillId: string;
+    /** 'ultimate' = 绝技路径 / 'battle' = 主动战斗技路径（2026-05-10 新增） */
+    skillSlot?: 'ultimate' | 'battle';
   } | null>(null);
 
   // ====== 敌方技能揭示订阅 ======
@@ -763,38 +767,107 @@ export const S7B_Battle: React.FC = () => {
       /** AI 阵容需要的总人数（= 玩家阵容数，双方对等） */
       const aiUnitCount = playerUnits.length;
 
-      // === AI 敌方阵容：从主角池随机挑选 aiUnitCount 个非玩家主角 ===
+      // ═══════════════════════════════════════════════════════════
+      // === AI 敌方阵容（2026-05-10 改造）：
+      //     1) 随机选 1 名非玩家主角作为对手 AI
+      //     2) 该 AI 在 S6a/S6b 招募中获得的卡，挑 (aiUnitCount-1) 张作为搭档
+      //        优先 SR > R > N（让对手强度更接近主战场期望）
+      // ═══════════════════════════════════════════════════════════
       const otherHeroes = HEROES_DATA.filter((h) => h.id !== hero.id);
-      const shuffled = [...otherHeroes].sort(() => Math.random() - 0.5);
+      const shuffledHeroes = [...otherHeroes].sort(() => Math.random() - 0.5);
+      const aiHero = shuffledHeroes[0]; // 随机抽 1 名作为对手 AI
 
-      const makeAiUnit = (h: typeof otherHeroes[0], idx: number) => {
-        const bsc = h.battle_card;
-        return {
-          id: `ai_${h.id}_${idx}`,
-          name: h.name,
-          type: h.type,
-          hp: bsc.hp,
-          maxHp: bsc.hp,
-          atk: bsc.atk,
-          mnd: bsc.mnd,
+      // 取该 AI 的招募卡牌（不含主角自身的战斗卡）
+      const aiSnapshot = aiRecruitState[aiHero.id];
+      const aiOwnedCardIds = aiSnapshot?.ownedCardIds ?? [];
+
+      // 按稀有度排序：SR > R > N，从优挑选搭档
+      const RARITY_RANK: Record<string, number> = { SSR: 4, SR: 3, R: 2, N: 1 };
+      const aiPartnerCards = aiOwnedCardIds
+        .map((cid) => getPoolCardById(cid))
+        .filter((c): c is NonNullable<ReturnType<typeof getPoolCardById>> => !!c)
+        .sort((a, b) => (RARITY_RANK[b.rarity] ?? 0) - (RARITY_RANK[a.rarity] ?? 0))
+        .slice(0, aiUnitCount - 1);
+
+      // ── 主角单元 ──
+      const aiHeroBC = aiHero.battle_card;
+      const aiHeroUnit = {
+        id: `ai_${aiHero.id}`,
+        name: aiHero.name,
+        type: aiHero.type,
+        hp: aiHeroBC.hp,
+        maxHp: aiHeroBC.hp,
+        atk: aiHeroBC.atk,
+        mnd: aiHeroBC.mnd,
+        isEnemy: true,
+        row: 0,
+        col: 0,
+        battleSkill: aiHeroBC.skills.battle_skill
+          ? { name: aiHeroBC.skills.battle_skill.name, desc: aiHeroBC.skills.battle_skill.desc }
+          : null,
+        ultimate: aiHeroBC.skills.ultimate
+          ? { name: aiHeroBC.skills.ultimate.name, desc: aiHeroBC.skills.ultimate.desc }
+          : null,
+        portrait: getCachedImage(aiHero.id),
+        skillId: aiHeroBC.skills.battle_skill
+          ? SKILL_ID_MAP[aiHeroBC.skills.battle_skill.name]
+          : undefined,
+      };
+
+      // ── AI 搭档单元（来自其招募的卡） ──
+      const aiPartnerUnits = aiPartnerCards.map((pc, i) => ({
+        id: `ai_${aiHero.id}_partner_${pc.id}_${i}`,
+        name: pc.name,
+        type: (pc.type as CultivationType) ?? aiHero.type,
+        hp: pc.hp,
+        maxHp: pc.hp,
+        atk: pc.atk,
+        mnd: pc.mnd,
+        isEnemy: true,
+        row: 0,
+        col: 0,
+        battleSkill: pc.battleSkill
+          ? { name: pc.battleSkill.name, desc: pc.battleSkill.desc }
+          : null,
+        ultimate: pc.ultimate
+          ? { name: pc.ultimate.name, desc: pc.ultimate.desc }
+          : null,
+        portrait: getCachedImage(pc.id),
+        skillId: pc.battleSkill ? SKILL_ID_MAP[pc.battleSkill.name] : undefined,
+      }));
+
+      const aiUnits = [aiHeroUnit, ...aiPartnerUnits];
+
+      // 防御性：如果 AI 卡牌不够（理论上 S6 后一定够），用其他主角的战斗卡兜底
+      while (aiUnits.length < aiUnitCount) {
+        const fillHero = shuffledHeroes[aiUnits.length] ?? shuffledHeroes[0];
+        const fbc = fillHero.battle_card;
+        aiUnits.push({
+          id: `ai_fill_${fillHero.id}_${aiUnits.length}`,
+          name: fillHero.name,
+          type: fillHero.type,
+          hp: fbc.hp,
+          maxHp: fbc.hp,
+          atk: fbc.atk,
+          mnd: fbc.mnd,
           isEnemy: true,
           row: 0,
           col: 0,
-          battleSkill: bsc.skills.battle_skill ? { name: bsc.skills.battle_skill.name, desc: bsc.skills.battle_skill.desc } : null,
-          ultimate: bsc.skills.ultimate ? { name: bsc.skills.ultimate.name, desc: bsc.skills.ultimate.desc } : null,
-          portrait: getCachedImage(h.id),
-          skillId: bsc.skills.battle_skill ? SKILL_ID_MAP[bsc.skills.battle_skill.name] : undefined,
-        };
-      };
-
-      const aiUnits = shuffled
-        .slice(0, aiUnitCount)
-        .map((h, i) => makeAiUnit(h, i));
+          battleSkill: fbc.skills.battle_skill
+            ? { name: fbc.skills.battle_skill.name, desc: fbc.skills.battle_skill.desc }
+            : null,
+          ultimate: fbc.skills.ultimate
+            ? { name: fbc.skills.ultimate.name, desc: fbc.skills.ultimate.desc }
+            : null,
+          portrait: getCachedImage(fillHero.id),
+          skillId: fbc.skills.battle_skill ? SKILL_ID_MAP[fbc.skills.battle_skill.name] : undefined,
+        });
+      }
 
       battle.initBattle(playerUnits, aiUnits);
       setShowSelect(false);
     },
-    [hero, heroId, heroName, battleBonus, knowledgeBonus, cardBonuses, partnerOptions, battle],
+    [hero, heroId, heroName, battleBonus, knowledgeBonus, cardBonuses, partnerOptions, battle, aiRecruitState],
   );
 
   // 获取当前选中的单位
@@ -943,7 +1016,11 @@ export const S7B_Battle: React.FC = () => {
         battle.addLog('⚠️ 非法目标：不在技能可选择范围内', 'system');
         return;
       }
-      const ok = battle.performUltimate(cur.casterId, [targetId]);
+      // ★ 2026-05-10：根据 skillSlot 走不同路径（默认 ultimate）
+      const ok =
+        cur.skillSlot === 'battle'
+          ? battle.performBattleSkillActive(cur.casterId, [targetId])
+          : battle.performUltimate(cur.casterId, [targetId]);
       setUltimateTargeting(null);
       if (ok) {
         setTimeout(() => {
@@ -1115,7 +1192,7 @@ export const S7B_Battle: React.FC = () => {
   // 关键：技能/绝技均【不结束回合】，玩家仍可继续移动/进行普通攻击
   //
   // 阶段 D 改造：
-  //   - 战斗技（battle）：走老 useSkill 路径（攻击附加，MVP 三技能 + 文案解析兜底）
+  //   - 战斗技（battle）：先尝试新引擎"主动战斗技"路径（如藤化原·天鬼搜身），否则走老 useSkill 路径
   //   - 绝技（ultimate）：走新 performUltimate 路径（新引擎实装的 11+ 条主动绝技）
   //     · 无需选目标的 selector（all_enemies / all_allies_incl_self / cross_adjacent_enemies /
   //       all_adjacent_enemies）→ 直接施放
@@ -1155,6 +1232,7 @@ export const S7B_Battle: React.FC = () => {
             casterId: selectedUnit.id,
             candidateIds: pre.candidateIds ?? [],
             regSkillId: regId!,
+            skillSlot: 'ultimate',
           });
           const hintText = describeSelectorHint(selectorKind, {
             candidateIds: pre.candidateIds ?? [],
@@ -1179,7 +1257,57 @@ export const S7B_Battle: React.FC = () => {
         return;
       }
 
-      /* ──────────── 战斗技分支（保留老 useSkill 路径） ──────────── */
+      /* ──────────── 战斗技分支 ──────────── */
+      // ★ 2026-05-10：先尝试"主动战斗技能"新路径（如藤化原·天鬼搜身）
+      if (selectedUnit.battleSkill) {
+        const regId = SkillRegistry.findIdByName(selectedUnit.battleSkill.name);
+        const reg = regId ? SkillRegistry.get(regId) : undefined;
+        if (reg && reg.isActive) {
+          // 主动战斗技
+          const pre = battle.battleSkillPrecheck(selectedUnit.id);
+          if (!pre.ok) {
+            battle.addLog(`⚠️ ${pre.reason ?? '战斗技能发动失败'}`, 'skill');
+            return;
+          }
+          const selectorKind = reg.targetSelector?.kind;
+          const NEEDS_TARGET: Record<string, boolean> = {
+            single_any_enemy: true,
+            single_line_enemy: true,
+            single_adjacent_enemy: true,
+            single_any_character: true,
+            position_pick: true,
+          };
+          if (selectorKind && NEEDS_TARGET[selectorKind]) {
+            setUltimateTargeting({
+              kind: selectorKind as any,
+              casterId: selectedUnit.id,
+              candidateIds: pre.candidateIds ?? [],
+              regSkillId: regId!,
+              skillSlot: 'battle',
+            });
+            const hintText = describeSelectorHint(selectorKind, {
+              candidateIds: pre.candidateIds ?? [],
+              units: battle.units,
+              casterId: selectedUnit.id,
+            });
+            battle.addLog(
+              `🎯 【${selectedUnit.battleSkill.name}】进入目标选择（${hintText}），按 ESC 或右键取消`,
+              'system',
+            );
+            return;
+          }
+          // 无需选目标
+          const ok = battle.performBattleSkillActive(selectedUnit.id, []);
+          if (!ok) return;
+          setTimeout(() => {
+            useS7BBattleStore.getState().calcMoveRange(selectedUnit.id);
+            useS7BBattleStore.getState().calcAttackRange(selectedUnit.id);
+          }, 0);
+          return;
+        }
+      }
+
+      /* ──────────── 老战斗技分支（保留） ──────────── */
       const result = battle.useSkill(selectedUnit.id, type);
       if (!result) return;
 

@@ -364,6 +364,8 @@ export const S7_Battle: React.FC = () => {
     casterId: string;
     candidateIds: string[];
     regSkillId: string;
+    /** 'ultimate' = 绝技路径 / 'battle' = 主动战斗技路径（2026-05-10 新增） */
+    skillSlot?: 'ultimate' | 'battle';
   } | null>(null);
 
   /* === 地图拖动 & 缩放 —— 直接操作DOM，绕过React重渲染 === */
@@ -704,7 +706,11 @@ export const S7_Battle: React.FC = () => {
         battle.addLog('⚠️ 非法目标：不在技能可选择范围内', 'system');
         return;
       }
-      const ok = battle.performUltimate(cur.casterId, [targetId]);
+      // ★ 2026-05-10：根据 skillSlot 走不同路径（默认 ultimate）
+      const ok =
+        cur.skillSlot === 'battle'
+          ? battle.performBattleSkillActive(cur.casterId, [targetId])
+          : battle.performUltimate(cur.casterId, [targetId]);
       setUltimateTargeting(null);
       if (ok) {
         setTimeout(() => {
@@ -914,7 +920,62 @@ export const S7_Battle: React.FC = () => {
         // 绝技不再走"+2修正"兜底；真实效果由引擎施加
         setPendingSkillMod(0);
       } else {
-        // —— 普通战斗技能：保留旧 useSkill 路径 ——
+        // —— 普通战斗技能 ——
+        // ★ 2026-05-10：先尝试"主动战斗技能"新路径（如藤化原·天鬼搜身）
+        if (selectedUnit.battleSkill) {
+          const regId = SkillRegistry.findIdByName(selectedUnit.battleSkill.name);
+          const reg = regId ? SkillRegistry.get(regId) : undefined;
+          if (reg && reg.isActive) {
+            const pre = battle.battleSkillPrecheck(selectedUnit.id);
+            if (!pre.ok) {
+              battle.addLog(`⚠ 无法发动【${selectedUnit.battleSkill.name}】：${pre.reason ?? '条件不满足'}`, 'system');
+              return;
+            }
+            const selectorKind = reg.targetSelector?.kind;
+            const NEEDS_TARGET: Record<string, boolean> = {
+              single_any_enemy: true,
+              single_line_enemy: true,
+              single_adjacent_enemy: true,
+              single_any_character: true,
+              single_ally: true,
+              single_any_ally: true,
+              position_pick: true,
+            };
+            if (selectorKind && NEEDS_TARGET[selectorKind]) {
+              setUltimateTargeting({
+                kind: selectorKind as any,
+                casterId: selectedUnit.id,
+                candidateIds: pre.candidateIds ?? [],
+                regSkillId: regId!,
+                skillSlot: 'battle',
+              });
+              const hintText = describeSelectorHint(selectorKind, {
+                candidateIds: pre.candidateIds ?? [],
+                units: battle.units,
+                casterId: selectedUnit.id,
+              });
+              battle.addLog(
+                `🎯 【${selectedUnit.battleSkill.name}】进入目标选择（${hintText}），按 ESC 或右键取消`,
+                'system',
+              );
+              return;
+            }
+            const ok = battle.performBattleSkillActive(selectedUnit.id, []);
+            if (!ok) {
+              battle.addLog(`⚠ 【${selectedUnit.battleSkill.name}】发动失败`, 'system');
+              return;
+            }
+            setPendingSkillMod(0);
+            // 仅刷新移动/攻击范围
+            setTimeout(() => {
+              useBattleStore.getState().calcMoveRange(selectedUnit.id);
+              useBattleStore.getState().calcAttackRange(selectedUnit.id);
+            }, 0);
+            return;
+          }
+        }
+
+        // —— 老战斗技路径（保留：被动 hook + 文案兜底加修正） ——
         // 大部分被动技能由 on_before_roll / on_after_hit hook 自动触发，
         // 这里只标记本回合已用技能并做轻量数值修正（用于无 hook 的简单技能）
         battle.useSkill(selectedUnit.id, type);

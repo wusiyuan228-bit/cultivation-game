@@ -34,6 +34,8 @@ export interface SkillCheckUnit {
   id: string;
   attackedThisTurn?: boolean;
   ultimateUsed: boolean;
+  /** 主动战斗技能是否已使用（每场1次，2026-05-10 新增） */
+  battleSkillUsed?: boolean;
   ultimate: { name: string; desc: string } | null;
   battleSkill: { name: string; desc: string } | null;
 }
@@ -101,6 +103,15 @@ export function checkSkillCastability(
         reason: '绝技已在本场战斗使用过',
       };
     }
+  }
+  // 主动战斗技（如藤化原·天鬼搜身）：每场1次（2026-05-10）
+  if (skillType === 'battle' && isActive && unit.battleSkillUsed) {
+    return {
+      hasCharges: false,
+      interactable: false,
+      isPassive: false,
+      reason: '战斗技能已在本场战斗使用过',
+    };
   }
   if (ctx.skillUsedThisTurn) {
     return {

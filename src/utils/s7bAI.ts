@@ -285,12 +285,50 @@ export async function runAiTurnForUnit(unitId: string): Promise<void> {
 
   await sleep(400);
 
+  /* ═══════════════ 阶段 -1：主动战斗技（2026-05-10 新增）═══════════════
+   * 当前唯一的主动战斗技：藤化原·天鬼搜身（与最近敌方交换位置）
+   * AI 默认在自己行动轮开始时立即使用（每场1次）
+   */
+  if (!state.skillUsedThisTurn && !unit.battleSkillUsed && unit.battleSkill) {
+    const battleRegId = SkillRegistry.findIdByName(unit.battleSkill.name);
+    const battleReg = battleRegId ? SkillRegistry.get(battleRegId) : undefined;
+    if (battleReg && battleReg.isActive) {
+      const pre = store.getState().battleSkillPrecheck(unitId);
+      if (pre.ok && pre.candidateIds && pre.candidateIds.length > 0) {
+        // 简化策略：藤化原 → 与最近敌方交换；其它主动战斗技后续按需扩展
+        let chosenTargetId: string | undefined;
+        if (battleRegId === 'sr_tenghuayuan.battle') {
+          const enemies = state.units
+            .filter((u) => !u.dead && u.isEnemy !== unit.isEnemy)
+            .sort((a, b) => {
+              const da = Math.abs(a.row - unit.row) + Math.abs(a.col - unit.col);
+              const db = Math.abs(b.row - unit.row) + Math.abs(b.col - unit.col);
+              return da - db;
+            });
+          chosenTargetId = enemies[0]?.id;
+        } else {
+          // 其他技能：默认取候选第一个
+          chosenTargetId = pre.candidateIds[0];
+        }
+        if (chosenTargetId) {
+          store.getState().addLog(`🤖 ${unit.name} 发动战斗技【${unit.battleSkill.name}】`, 'action');
+          await sleep(300);
+          store.getState().performBattleSkillActive(unitId, [chosenTargetId]);
+          await sleep(500);
+        }
+      }
+    }
+  }
+
   /* ═══════════════ 阶段 0：评估绝技（D3 档位②）═══════════════
    * 若当前局面满足绝技收益阈值，先放绝技再考虑普攻/移动。
    * 注意：放绝技本身不消耗行动，绝技发动后仍会走普攻/移动流程。
    */
-  if (!state.skillUsedThisTurn) {
-    const evalUlt = evaluateUltimate(unit, state.units);
+  // 读最新 state（前面可能已发过主动战斗技，刷新 skillUsedThisTurn）
+  const stateAfterBattleSkill = store.getState();
+  const unitAfterBattleSkill = stateAfterBattleSkill.units.find((u) => u.id === unitId) ?? unit;
+  if (!stateAfterBattleSkill.skillUsedThisTurn) {
+    const evalUlt = evaluateUltimate(unitAfterBattleSkill, stateAfterBattleSkill.units);
     if (evalUlt.shouldCast) {
       const pre = store.getState().ultimatePrecheck(unitId);
       if (pre.ok) {
