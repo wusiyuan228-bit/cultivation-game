@@ -6,9 +6,34 @@ import { FooterSlogan } from '@/components/FooterSlogan';
 import { VersionLabel } from '@/components/VersionLabel';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { SaveSystem, useGameStore } from '@/stores/gameStore';
+import { useRecruitStore } from '@/stores/recruitStore';
+import { useBattleStore } from '@/stores/battleStore';
+import { useS7BBattleStore } from '@/stores/s7bBattleStore';
 import { getCachedImage } from '@/utils/imageCache';
 import type { SaveSlot } from '@/types/game';
 import styles from './S2_MainMenu.module.css';
+
+/**
+ * 开始一局全新游戏：清空所有运行期状态，避免上一次游戏的卡牌/进度残留。
+ * 注意：保留 localStorage 中的存档槽（自动 0 + 手动 1/2/3），玩家原有存档不受影响。
+ */
+function startFreshGame() {
+  // 1) 重置所有 zustand store 到初始状态
+  try { useGameStore.getState().reset(); } catch { /* ignore */ }
+  try { useRecruitStore.getState().reset(); } catch { /* ignore */ }
+  try { useBattleStore.getState().reset(); } catch { /* ignore */ }
+  try { useS7BBattleStore.getState().reset(); } catch { /* ignore */ }
+
+  // 2) 清掉宗门大比等运行期 sessionStorage（key 前缀 cardwar:）
+  try {
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < sessionStorage.length; i++) {
+      const k = sessionStorage.key(i);
+      if (k && k.startsWith('cardwar:')) keysToRemove.push(k);
+    }
+    keysToRemove.forEach((k) => sessionStorage.removeItem(k));
+  } catch { /* ignore */ }
+}
 
 /**
  * S2 主菜单
@@ -26,8 +51,9 @@ export const S2_MainMenu: React.FC = () => {
   const slots = SaveSystem.getAllSlots();          // [slot1, slot2, slot3]
   const autoSlot = SaveSystem.getAutoSlot();       // slot 0（自动存档）
 
-  /** 载入存档：写入 store 后跳剧情页（与原行为一致） */
+  /** 载入存档：先重置运行期状态，再写入 store 后跳剧情页 */
   const handleLoadSlot = (s: SaveSlot) => {
+    startFreshGame();
     loadFromSave(s);
     setShowLoadModal(false);
     navigate('/story');
@@ -54,7 +80,7 @@ export const S2_MainMenu: React.FC = () => {
 
       {/* z4: 三按钮（最上层） */}
       <div className={styles.buttons}>
-        <PrimaryButton label="开始游戏" onClick={() => navigate('/select')} />
+        <PrimaryButton label="开始游戏" onClick={() => { startFreshGame(); navigate('/select'); }} />
         <PrimaryButton label="载入游戏" onClick={() => setShowLoadModal(true)} />
         <PrimaryButton label="游戏设置" onClick={() => setShowSettingsModal(true)} />
       </div>
