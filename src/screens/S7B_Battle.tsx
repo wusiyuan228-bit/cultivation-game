@@ -469,13 +469,24 @@ export const S7B_Battle: React.FC = () => {
   /** 每场比武的灵石奖励 */
   const sectReward = matchNo === 1 ? 10 : 20;
 
-  // ====== 测试门：URL包含?mode=test或?mode=sect且无heroId，自动注入默认阵容 ======
+  // ====== 测试门：仅 ?mode=test 显式开启时生效（开发自测专用）======
+  // ★ 2026-05-10：移除 isSect 触发条件！正常宗门大比流程必有 heroId（来自 S3 选角），
+  //   原条件 (isTest||isSect)&&!heroId 会在以下场景误触：
+  //   ① 多 tab 打开同一 URL（zustand 是 tab 局部状态）
+  //   ② 浏览器刷新但未及时恢复存档
+  //   ③ 任何瞬间 heroId 为 null 的时机
+  //   一旦触发就会把主角强制改写为"塘散"，导致用户开局选的小舞/萧炎等被覆盖。
   useEffect(() => {
-    if ((urlParams.isTest || urlParams.isSect) && !heroId) {
-      // 默认主角：塘散
+    if (urlParams.isTest && !heroId) {
+      // 仅显式 ?mode=test 测试入口才注入默认阵容
       setHero('hero_tangsan' as HeroId, '塘散');
-      // 默认拥有的其他主角卡（供阵容选择作为副卡候选）
       ['hero_xiaowu', 'hero_xiaoyan', 'hero_wanglin', 'hero_hanli', 'hero_xuner'].forEach((id) => addCard(id));
+    }
+    // 宗门大比模式但 heroId 为空 —— 数据异常，仅警告不改写主角
+    if (urlParams.isSect && !heroId) {
+      console.error(
+        '[S7B] 进入宗门大比但 heroId 为空 —— 主角数据丢失。请回主菜单从存档载入或重新开始游戏。'
+      );
     }
   }, [heroId, setHero, addCard, urlParams.isTest, urlParams.isSect]);
 
