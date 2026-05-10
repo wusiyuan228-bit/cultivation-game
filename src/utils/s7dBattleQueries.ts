@@ -130,11 +130,12 @@ export function buildOccupancyMap(state: S7DBattleState): Map<string, string> {
 /**
  * 计算某单位的可达格子（曼哈顿距离 + 路径连通）
  *
- * 规则：
- *   - 步数上限 = u.mnd - u.stepsUsedThisTurn
- *   - 不能穿过障碍/河（非桥）/敌方单位
- *   - 可以穿过友方单位但不能终止于其上
- *   - 出生点视为普通可通行格
+ * 规则（与 S7A/S7B/S7C 一致）：
+ *   - 步数上限 = u.mnd - u.stepsUsedThisTurn（每移动 1 格消耗 1 心境值）
+ *   - 只能上下左右四方向移动
+ *   - 障碍物/河（非桥）阻挡通行
+ *   - **任何存活的其他单位（含友方与敌方）都视为障碍物，不能跨越**
+ *   - 不能停在已被占用的格子上
  */
 export function getReachableCells(
   state: S7DBattleState,
@@ -153,7 +154,7 @@ export function getReachableCells(
   const startKey = `${start.row},${start.col}`;
   visited.set(startKey, 0);
 
-  // BFS
+  // BFS（仅四方向）
   const queue: Array<{ row: number; col: number; steps: number }> = [
     { row: start.row, col: start.col, steps: 0 },
   ];
@@ -174,12 +175,10 @@ export function getReachableCells(
       const key = `${nr},${nc}`;
       if (nr < 0 || nr >= S7D_MAP_ROWS || nc < 0 || nc >= S7D_MAP_COLS) continue;
       if (!isWalkable(nr, nc)) continue;
-      // 敌方单位阻挡通行
+      // 任意存活单位都阻挡通行（含友方/敌方），与 S7A/S7B/S7C 一致
+      // 自己所在的起点格因 visited 已记录，不会走回头路
       const occupantId = occ.get(key);
-      if (occupantId) {
-        const occUnit = state.units[occupantId];
-        if (occUnit && occUnit.faction !== u.faction) continue;
-      }
+      if (occupantId && occupantId !== u.instanceId) continue;
       const prev = visited.get(key);
       if (prev !== undefined && prev <= cur.steps + 1) continue;
       visited.set(key, cur.steps + 1);
@@ -187,7 +186,7 @@ export function getReachableCells(
     }
   }
 
-  // 收集终点（排除起点 + 有友方/敌方的格子）
+  // 收集终点（排除起点 + 有任何单位的格子）
   const cells: GridPos[] = [];
   for (const [key, steps] of visited.entries()) {
     if (steps === 0) continue;

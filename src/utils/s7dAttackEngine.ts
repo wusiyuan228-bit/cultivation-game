@@ -541,10 +541,14 @@ export function checkAndTriggerAwakening(state: S7DBattleState): void {
 // 工具
 // ============================================================================
 
+/**
+ * 投 N 个二面骰（每颗骰子点数为 0/1/2）
+ * 与 S7A/S7B/S7C 一致；函数名沿用 rollD6 以减小改动面，但实际为二面骰。
+ */
 function rollD6(n: number): number[] {
   const a: number[] = [];
   for (let i = 0; i < Math.max(0, Math.floor(n)); i++) {
-    a.push(1 + Math.floor(Math.random() * 6));
+    a.push(Math.floor(Math.random() * 3)); // 0, 1, 2
   }
   return a;
 }

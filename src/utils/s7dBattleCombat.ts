@@ -1,10 +1,10 @@
 /**
  * S7D · 战场战斗结算工具
  *
- * 对齐 S7B 的骰子玩法：
- *   - 攻方掷 atk 个六面骰
- *   - 防方掷 atk 个六面骰（修为对修为，与 S7A/S7B/S7C 一致）
- *   - 伤害 = max(0, 攻方点数和 - 防方点数和) + 技能/克制加成
+ * 对齐 S7A/S7B/S7C 的骰子玩法（二面骰制 v2.0）：
+ *   - 攻方掷 atk 个二面骰（每颗骰子点数为 0/1/2）
+ *   - 防方掷 atk 个二面骰（修为对修为，与 S7A/S7B/S7C 一致）
+ *   - 伤害 = max(1, 攻方点数和 - 防方点数和) + 技能/克制加成（最低 1 点保底）
  *   - 同时支持对水晶的攻击（水晶无防骰，直接扣 1 点 HP）
  *
  * 相邻判定（曼哈顿距离 = 1）
@@ -20,12 +20,13 @@
 import type { BattleCardInstance, BattleFaction, Crystal, GridPos } from '@/types/s7dBattle';
 
 /**
- * 投 N 个 1-6 的骰子
+ * 投 N 个二面骰（每颗骰子点数为 0/1/2）
+ * 与 S7A/S7B/S7C 完全一致
  */
 export function rollDice(count: number): number[] {
   const result: number[] = [];
   for (let i = 0; i < Math.max(0, Math.floor(count)); i++) {
-    result.push(1 + Math.floor(Math.random() * 6));
+    result.push(Math.floor(Math.random() * 3)); // 0, 1, 2
   }
   return result;
 }
@@ -60,10 +61,11 @@ export function resolveUnitAttack(
   const defDice = rollDice(Math.max(0, defender.atk));
   const atkSum = atkDice.reduce((a, b) => a + b, 0);
   const defSum = defDice.reduce((a, b) => a + b, 0);
-  const base = Math.max(0, atkSum - defSum);
+  const base = atkSum - defSum;
   const skillMod = opts?.skillMod ?? 0;
   const counterMod = opts?.counterMod ?? 0;
-  const damage = Math.max(0, base + skillMod + counterMod);
+  // 最低 1 点伤害保底（与 S7A/S7B/S7C 一致）
+  const damage = Math.max(1, base + skillMod + counterMod);
   return {
     attackerDice: atkDice,
     defenderDice: defDice,
