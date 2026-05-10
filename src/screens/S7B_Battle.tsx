@@ -490,6 +490,18 @@ export const S7B_Battle: React.FC = () => {
   const [pendingSkillMod, setPendingSkillMod] = useState(0);
   const [showResult, setShowResult] = useState(false);
 
+  /* ★ 2026-05-10：当 matchNo 变化时（如首场→次场），不重新挂载组件而是重置内部状态。
+   *   原方案使用 window.location.reload() 会清空 zustand 内存（heroId/ownedCardIds/aiRecruitState 全丢），
+   *   导致 3v3 阵容选择面板备选列表错误（玩家招募卡丢失，AI 也回到兜底主角阵容）。
+   *   现改为：matchNo 变化时仅重置 React state + battle store，保留 zustand 全局状态。 */
+  useEffect(() => {
+    setShowSelect(true);
+    setShowResult(false);
+    battle.reset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [matchNo]);
+
+
   /* === 交互提示与路径预览 === */
   // hover 目标（用于显示 tooltip 和路径预览）
   // 额外记录 rect —— tooltip 用 Portal 渲染到 body，按格子屏幕坐标定位，保证在单位之上
@@ -770,12 +782,26 @@ export const S7B_Battle: React.FC = () => {
       // ═══════════════════════════════════════════════════════════
       // === AI 敌方阵容（2026-05-10 改造）：
       //     1) 随机选 1 名非玩家主角作为对手 AI
+      //        ★ 2026-05-10 追加：宗门大比次场（3v3）需避开首场已用过的 AI，
+      //          通过 sessionStorage 在两场之间传递「首场对手 id」。
       //     2) 该 AI 在 S6a/S6b 招募中获得的卡，挑 (aiUnitCount-1) 张作为搭档
       //        优先 SR > R > N（让对手强度更接近主战场期望）
       // ═══════════════════════════════════════════════════════════
-      const otherHeroes = HEROES_DATA.filter((h) => h.id !== hero.id);
-      const shuffledHeroes = [...otherHeroes].sort(() => Math.random() - 0.5);
+      const SECT_FIRST_KEY = 'cardwar:sectFirstOpponentId';
+      let candidateHeroes = HEROES_DATA.filter((h) => h.id !== hero.id);
+      if (urlParams.isSect && matchNo === 2) {
+        const firstId = sessionStorage.getItem(SECT_FIRST_KEY);
+        if (firstId) {
+          const filtered = candidateHeroes.filter((h) => h.id !== firstId);
+          if (filtered.length > 0) candidateHeroes = filtered;
+        }
+      }
+      const shuffledHeroes = [...candidateHeroes].sort(() => Math.random() - 0.5);
       const aiHero = shuffledHeroes[0]; // 随机抽 1 名作为对手 AI
+      // 首场记录对手 id，供次场避开
+      if (urlParams.isSect && matchNo === 1) {
+        try { sessionStorage.setItem(SECT_FIRST_KEY, aiHero.id); } catch { /* ignore */ }
+      }
 
       // 取该 AI 的招募卡牌（不含主角自身的战斗卡）
       const aiSnapshot = aiRecruitState[aiHero.id];
@@ -867,7 +893,7 @@ export const S7B_Battle: React.FC = () => {
       battle.initBattle(playerUnits, aiUnits);
       setShowSelect(false);
     },
-    [hero, heroId, heroName, battleBonus, knowledgeBonus, cardBonuses, partnerOptions, battle, aiRecruitState],
+    [hero, heroId, heroName, battleBonus, knowledgeBonus, cardBonuses, partnerOptions, battle, aiRecruitState, urlParams.isSect, matchNo],
   );
 
   // 获取当前选中的单位
@@ -1391,31 +1417,32 @@ export const S7B_Battle: React.FC = () => {
         SaveSystem.save(1);
         if (matchNo === 1) {
           // 第一场胜利 → 继续打第二场 3v3
-          // ⚠ 不能仅靠 navigate：当前路由 /s7c → 同一个 S7B_Battle 组件，
-          //    React Router 不会卸载组件，导致 store(battleOver=true) / showResult / showSelect
-          //    等状态全部残留，UI 一直停留在"首场告捷"结算面板，按钮看似无响应。
-          //    解决方案：跳转后强制 reload，让组件完全重新挂载（与失败重试分支保持一致）。
+          // ★ 2026-05-10：不再使用 window.location.reload()（会清空 zustand 状态导致 3v3 备选错乱），
+          //    改为依赖组件内的 matchNo useEffect 自动重置 showSelect/showResult/battle.reset()。
           navigate('/s7c?sect2');
-          setTimeout(() => window.location.reload(), 50);
         } else {
           // 第二场胜利 → 标记第四章phase完成 → 进入 S6c 精英招募
           markPhaseDone(4);
           SaveSystem.save(1);
+          // 清理首场对手记忆，避免下一局开局残留
+          try { sessionStorage.removeItem('cardwar:sectFirstOpponentId'); } catch { /* ignore */ }
           navigate('/s6r?pool=3');
         }
       } else {
         // 宗门大比失败/平局 → 允许重试当前场次
         SaveSystem.save(1);
         navigate(matchNo === 1 ? '/s7c?sect1' : '/s7c?sect2');
-        // 强制刷新让 S7B 重新初始化
-        setTimeout(() => window.location.reload(), 50);
+        // 失败重试同场次：matchNo 没变，useEffect 不触发；手动重置 state
+        setShowSelect(true);
+        setShowResult(false);
+        battle.reset();
       }
       return;
     }
     // S7B 单机测试：返回主菜单
     SaveSystem.save(1);
     navigate('/menu');
-  }, [navigate, battleMode, matchNo, battle.battleResult, addSpiritStones, sectReward, markPhaseDone]);
+  }, [navigate, battleMode, matchNo, battle, addSpiritStones, sectReward, markPhaseDone]);
 
   // === 渲染 ===
 
@@ -1428,7 +1455,7 @@ export const S7B_Battle: React.FC = () => {
     battleMode === 'sect'
       ? (matchNo === 1
           ? `主角必须上阵，另外请选择 1 名搭档协同作战。对手将派出同等数量的精英应战。胜利可获得 ${sectReward} 灵石，胜负关系到宗门排位。`
-          : `宗门正赛！主角必须上阵，另外请选择 2 名搭档组成 3 人战阵。对手同样派出三人精英队。胜利可获得 ${sectReward} 灵石并直接开启精英招募（SSR 暗爆！）`)
+          : `宗门正赛！主角必须上阵，另外请选择 2 名搭档组成 3 人战阵。对手同样派出三人精英队。胜利可获得 ${sectReward} 灵石并直接开启精英招募。`)
       : '对手 AI 将随机选择主角+副卡出战，双方平等对线。主角必须上阵，另外请选择 1 名搭档协同作战。一方全灭即胜，20 回合未分胜负则平局。';
 
   if (showSelect) {

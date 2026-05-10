@@ -925,6 +925,7 @@
 }
 
 .selectCard {
+  position: relative;
   width: 180px;
   background: rgba(40,35,25,.85);
   border: 2px solid rgba(100,80,50,.5);
