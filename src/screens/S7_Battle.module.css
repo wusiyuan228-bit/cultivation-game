@@ -33,16 +33,16 @@
   transform: translateX(-50%);
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 12px;
   z-index: 10;
 }
 
 .roundBadge {
   background: rgba(40,35,25,.85);
   border: 1px solid rgba(200,161,75,.5);
-  border-radius: 8px;
-  padding: 8px 22px;
-  font-size: 24px;
+  border-radius: 6px;
+  padding: 5px 14px;
+  font-size: 16px;
   color: #c8a14b;
   font-weight: 700;
 }
@@ -50,9 +50,9 @@
 .killBadge {
   background: rgba(40,25,25,.85);
   border: 1px solid rgba(200,80,60,.5);
-  border-radius: 8px;
-  padding: 8px 22px;
-  font-size: 24px;
+  border-radius: 6px;
+  padding: 5px 14px;
+  font-size: 16px;
   color: #e87060;
   font-weight: 700;
 }
@@ -60,9 +60,9 @@
 .turnInfo {
   background: rgba(25,35,40,.85);
   border: 1px solid rgba(75,160,200,.4);
-  border-radius: 8px;
-  padding: 8px 22px;
-  font-size: 24px;
+  border-radius: 6px;
+  padding: 5px 14px;
+  font-size: 16px;
   color: #8bc8e0;
   font-weight: 700;
 }

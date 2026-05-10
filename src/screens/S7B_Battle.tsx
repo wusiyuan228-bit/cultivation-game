@@ -237,42 +237,20 @@ function RuleModal({ onClose }: { onClose: () => void }) {
         <h3 className={styles.ruleH}>战斗规则</h3>
         <div className={styles.ruleSec}>
           <h4>🎯 目标</h4>
-          <p>宗门比武，一方全灭即胜
-20 回合内未分胜负则判为平局</p>
+          <p>宗门比武，一方全灭即胜，20 回合内未分胜负判为平局</p>
         </div>
         <div className={styles.ruleSec}>
-          <h4>🎲 攻击判定</h4>
-          <p>双方同时投掷骰子（数量=修为值，每颗0/1/2）
-伤害 = 我方点数和 − 敌方点数和 + 技能修正 + 克制加伤（最少1点）</p>
+          <h4>⚔ 行动与移动</h4>
+          <p>心境值=本回合可移动格数；攻击距离固定=相邻1格
+攻击后行动轮立即结束；释放绝技不会立刻结束行动轮次</p>
         </div>
         <div className={styles.ruleSec}>
-          <h4>🚶 移动</h4>
-          <p>心境值 = 移动距离（格数）
-攻击距离 = 固定相邻1格（上下左右）</p>
-        </div>
-        <div className={styles.ruleSec}>
-          <h4>⚔ 行动轮流程</h4>
-          <p>技能（可选）→ 移动（可选）→ 攻击（可选）→ 行动轮结束
-一旦执行攻击，该角色的行动轮立即结束</p>
-        </div>
-        <div className={styles.ruleSec}>
-          <h4>⚡ 克制关系</h4>
-          <p>剑修→妖修→体修→灵修→法修→剑修（丹修中立）
-克制时攻击方判定结果+1</p>
+          <h4>⚡ 克制加伤</h4>
+          <p>剑→妖→体→灵→法→剑（丹中立）；克制时攻击方判定+1</p>
         </div>
         <div className={styles.ruleSec}>
           <h4>🤖 AI 对手行为</h4>
-          <p>AI 对手按照心境值降序与我方轮流行动
-AI 会主动推进、使用技能、选择最佳攻击目标（档位1规则式AI）</p>
-        </div>
-        <div className={styles.ruleSec}>
-          <h4>💧 地形效果</h4>
-          <p>灵泉💧：停留至下回合生效，气血+1
-灵脉节点⚔：停留至下回合生效，修为+1（上限15）
-悟道石台🧘：停留至下回合生效，心境+1（上限5）
-魔气侵蚀☠：踏入立即各属性-1，停留每回合额外扣1气血
-空间裂缝⬛：不可通行
-※ 增益地形需停留至下回合才生效，路过不蹭增益</p>
+          <p>AI 按心境值降序与我方轮流行动，会主动推进、释放技能、择优攻击</p>
         </div>
         <button className={styles.ruleClose} onClick={onClose}>关闭</button>
       </motion.div>
@@ -380,20 +358,21 @@ function ResultPanel({
       : battleResult === 'lose'
       ? (isSect
           ? (match === 1
-              ? '我方全员倒下！点击下方按钮重新挑战首场 2v2，赢下后才能进入 3v3 决赛。'
-              : '我方全员倒下！次场 3v3 失利。点击下方按钮可原地重新挑战 3v3（首场战绩保留）。')
+              ? '我方全员倒下！虽败犹荣，灵石奖励减半，但仍可继续征战次场 3v3 决赛。'
+              : '我方全员倒下！次场失利，灵石奖励减半，宗门排位将受影响。')
           : '我方全员倒下，挑战失败...')
       : (isSect
           ? (match === 1
-              ? '20 回合未分胜负，平局视同首场失利。点击下方按钮重新挑战首场 2v2。'
-              : '20 回合未分胜负，平局视同次场失利。点击下方按钮原地重新挑战 3v3。')
+              ? '20 回合未分胜负，平局得部分灵石，可继续进入次场 3v3 决赛。'
+              : '20 回合未分胜负，平局得部分灵石，宗门排位居中。')
           : '20 回合内未分胜负。');
 
+  // 宗门大比无论胜负都会推进流程
   const btnText =
-    isSect && battleResult === 'win'
-      ? (match === 1 ? '迎战第二场（3v3）' : '领取奖励 · 进入精英招募')
-      : isSect
-      ? `重新挑战 · ${match === 1 ? '首场 2v2' : '次场 3v3'}`
+    isSect
+      ? (match === 1
+          ? (battleResult === 'win' ? '迎战次场（3v3）' : '继续 · 次场 3v3')
+          : '领取奖励 · 进入精英招募')
       : '返回主菜单';
 
   return (
@@ -408,7 +387,7 @@ function ResultPanel({
         <div className={styles.resultRow}>
           击败敌方：<strong>{killCount}</strong> 人
         </div>
-        {isSect && battleResult === 'win' && rewardStones > 0 && (
+        {isSect && rewardStones > 0 && (
           <div
             className={styles.resultRow}
             style={{
@@ -421,6 +400,11 @@ function ResultPanel({
             }}
           >
             💎 本场奖励：<strong style={{ color: '#ffd98a' }}>+{rewardStones}</strong> 灵石
+            {battleResult !== 'win' && (
+              <span style={{ marginLeft: 8, fontSize: 13, color: '#bbb' }}>
+                （{battleResult === 'lose' ? '败北减半' : '平局减半'}）
+              </span>
+            )}
           </div>
         )}
         <button className={styles.resultBtn} onClick={onContinue}>
@@ -495,7 +479,7 @@ export const S7B_Battle: React.FC = () => {
   const matchNo: 1 | 2 = urlParams.match;
   /** 我方副卡需要数量（第一场2v2→1，第二场3v3→2；非宗门模式默认1） */
   const partnerCount = urlParams.isSect ? (matchNo === 2 ? 2 : 1) : 1;
-  /** 每场比武的灵石奖励 */
+  /** 每场比武的灵石基础奖励（胜利满额；败/平减半，向下取整最少 1） */
   const sectReward = matchNo === 1 ? 10 : 20;
 
   // ====== 测试门：仅 ?mode=test 显式开启时生效（开发自测专用）======
@@ -1468,37 +1452,33 @@ export const S7B_Battle: React.FC = () => {
   const handleContinue = useCallback(() => {
     if (battleMode === 'sect') {
       // === 宗门大比模式 ===
+      // ★ 2026-05-10 规则修正：流程固定为「1 场 2v2 → 1 场 3v3」，
+      //   无论胜负都推进到下一阶段，仅奖励灵石数有差异：
+      //   - 胜利：满额（首场 10、次场 20）
+      //   - 失败/平局：减半（向下取整，最少 1）
       const win = battle.battleResult === 'win';
-      // ★ 2026-05-10：记录每场胜负到 sessionStorage，供 S6c 招募阶段计算"宗门大比真实排名"
+      const actualReward =
+        win ? sectReward : Math.max(1, Math.floor(sectReward / 2));
+
+      // 记录每场胜负到 sessionStorage，供 S6c 招募阶段计算"宗门大比真实排名"
       try {
         const k = matchNo === 1 ? 'cardwar:sectMatch1Win' : 'cardwar:sectMatch2Win';
         sessionStorage.setItem(k, win ? '1' : '0');
       } catch { /* ignore */ }
-      if (win) {
-        // 胜利 → 发灵石 & 推进流程
-        addSpiritStones(sectReward);
-        SaveSystem.save(1);
-        if (matchNo === 1) {
-          // 第一场胜利 → 继续打第二场 3v3
-          // ★ 2026-05-10：不再使用 window.location.reload()（会清空 zustand 状态导致 3v3 备选错乱），
-          //    改为依赖组件内的 matchNo useEffect 自动重置 showSelect/showResult/battle.reset()。
-          navigate('/s7c?sect2');
-        } else {
-          // 第二场胜利 → 标记第四章phase完成 → 进入 S6c 精英招募
-          markPhaseDone(4);
-          SaveSystem.save(1);
-          // 清理首场对手记忆，避免下一局开局残留
-          try { sessionStorage.removeItem('cardwar:sectFirstOpponentId'); } catch { /* ignore */ }
-          navigate('/s6r?pool=3');
-        }
+
+      // 发放奖励（哪怕失败也给减半灵石）
+      addSpiritStones(actualReward);
+      SaveSystem.save(1);
+
+      if (matchNo === 1) {
+        // 首场结束（胜/负/平）→ 一律进入次场 3v3
+        navigate('/s7c?sect2');
       } else {
-        // 宗门大比失败/平局 → 允许重试当前场次
+        // 次场结束（胜/负/平）→ 一律标记第四章完成，进入精英招募
+        markPhaseDone(4);
         SaveSystem.save(1);
-        navigate(matchNo === 1 ? '/s7c?sect1' : '/s7c?sect2');
-        // 失败重试同场次：matchNo 没变，useEffect 不触发；手动重置 state
-        setShowSelect(true);
-        setShowResult(false);
-        battle.reset();
+        try { sessionStorage.removeItem('cardwar:sectFirstOpponentId'); } catch { /* ignore */ }
+        navigate('/s6r?pool=3');
       }
       return;
     }
@@ -2244,7 +2224,11 @@ export const S7B_Battle: React.FC = () => {
             killCount={battle.killCount}
             mode={battleMode}
             match={matchNo}
-            rewardStones={sectReward}
+            rewardStones={
+              battle.battleResult === 'win'
+                ? sectReward
+                : Math.max(1, Math.floor(sectReward / 2))
+            }
             onContinue={handleContinue}
             onReturnMenu={() => {
               SaveSystem.save(1);
