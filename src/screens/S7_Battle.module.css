@@ -891,10 +891,25 @@
   padding: 32px 40px 24px;
   max-width: 960px;
   width: 92%;
+  /* 当内容（标题+描述+卡牌网格+按钮）超出 90vh 时,
+     由 panel 自身内部滚动（而非 selectGrid 内部滚动）.
+     这样布局简单稳定，卡牌总能完整显示，
+     "确认出战" 按钮跟在网格底部，滚到底就能点 */
   max-height: 90vh;
-  display: flex;
-  flex-direction: column;
+  overflow-y: auto;
   box-shadow: 0 8px 40px rgba(0,0,0,.6), 0 0 0 1px rgba(0,0,0,.3);
+}
+
+.selectPanel::-webkit-scrollbar {
+  width: 8px;
+}
+.selectPanel::-webkit-scrollbar-thumb {
+  background: rgba(200,161,75,.45);
+  border-radius: 4px;
+}
+.selectPanel::-webkit-scrollbar-track {
+  background: rgba(0,0,0,.25);
+  border-radius: 4px;
 }
 
 .selectTitle {
@@ -905,7 +920,6 @@
   margin-bottom: 16px;
   letter-spacing: 2px;
   text-shadow: 0 2px 8px rgba(0,0,0,.6);
-  flex-shrink: 0;
 }
 
 .selectSub {
@@ -919,7 +933,6 @@
   margin-right: auto;
   padding: 0 8px;
   font-weight: 500;
-  flex-shrink: 0;
 }
 
 .selectGrid {
@@ -927,23 +940,6 @@
   gap: 16px;
   justify-content: center;
   flex-wrap: wrap;
-  flex: 1 1 0;
-  min-height: 0;
-  overflow-y: auto;
-  align-content: flex-start;
-  padding: 4px 8px 8px;
-}
-
-.selectGrid::-webkit-scrollbar {
-  width: 8px;
-}
-.selectGrid::-webkit-scrollbar-thumb {
-  background: rgba(200,161,75,.45);
-  border-radius: 4px;
-}
-.selectGrid::-webkit-scrollbar-track {
-  background: rgba(0,0,0,.25);
-  border-radius: 4px;
 }
 
 .selectCard {
@@ -1015,7 +1011,6 @@
   cursor: pointer;
   box-shadow: 0 4px 12px rgba(200,161,75,.3);
   transition: transform .15s, box-shadow .2s;
-  flex-shrink: 0;
 }
 .selectConfirm:hover:not(:disabled) {
   transform: translateY(-2px);
