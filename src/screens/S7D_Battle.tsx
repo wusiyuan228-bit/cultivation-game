@@ -1144,9 +1144,13 @@ export const S7D_Battle: React.FC = () => {
             // 决定当前持续显示的"行动棋子"：玩家方 + 当前轮到 + 还在场上
             const isPlayerActorTurn = !!currentActor && currentActor.faction === battleState.playerFaction;
             const persistentId = isPlayerActorTurn && currentActor ? currentActor.instanceId : null;
-            // 选中（点选）显示
-            const persistentOrSelectedId = persistentId ?? selectedUnitId;
-            // 优先 hover，其次 选中/行动 棋子
+            // 选中（点选）：仅当点选的就是"我方行动棋子"时才视为常驻
+            // 其余被点选的棋子（敌方棋子、我方非行动棋子）一律不常驻，只靠 hover 显示
+            const selectedIsCurrentActor =
+              !!selectedUnitId && !!currentActor && selectedUnitId === currentActor.instanceId
+              && currentActor.faction === battleState.playerFaction;
+            const persistentOrSelectedId = persistentId ?? (selectedIsCurrentActor ? selectedUnitId : null);
+            // 优先 hover，其次 行动/选中棋子
             const previewId = hoveredUnitId ?? persistentOrSelectedId;
             const previewUnit = previewId ? battleState.units[previewId] : null;
             if (!previewUnit) return null;
@@ -1161,6 +1165,15 @@ export const S7D_Battle: React.FC = () => {
             const remainingSteps = showStepBar
               ? Math.max(0, previewUnit.mnd - previewUnit.stepsUsedThisTurn)
               : 0;
+            // 技能可发动判定（仅我方且为当前行动棋子时有意义；否则只用作"被动"标识检测）
+            const allFieldUnitsArr = Object.values(battleState.units).filter((u) => !!u.position);
+            const showCastDot = !isEnemy && isCurrentActor;
+            const bCheck = previewUnit.battleSkill
+              ? getSkillCheck(previewUnit, 'battle', allFieldUnitsArr, battleState.playerFaction)
+              : null;
+            const uCheck = previewUnit.ultimate
+              ? getSkillCheck(previewUnit, 'ultimate', allFieldUnitsArr, battleState.playerFaction)
+              : null;
             return (
               <div
                 className={styles.unitInfoPanel}
@@ -1206,9 +1219,27 @@ export const S7D_Battle: React.FC = () => {
                 {previewUnit.battleSkill && (
                   <div className={styles.unitInfoSkill}>
                     <strong>
+                      {showCastDot && bCheck && (
+                        <span className={bCheck.hasCharges ? styles.skillDotGreen : styles.skillDotDim} />
+                      )}
                       战 · {previewUnit.battleSkill.name}
-                      {previewUnit.skillUsedThisTurn && (
+                      {bCheck?.isPassive && (
+                        <span style={{ opacity: .6, fontSize: 12, fontWeight: 'normal', marginLeft: 6 }}>
+                          （被动 · 持续生效）
+                        </span>
+                      )}
+                      {!isEnemy && previewUnit.skillUsedThisTurn && !bCheck?.isPassive && (
                         <span className={styles.unitInfoUltimateUsed}>（本回合已用技）</span>
+                      )}
+                      {!isEnemy && !previewUnit.skillUsedThisTurn && showCastDot && bCheck && !bCheck.isPassive && (
+                        <span style={{
+                          marginLeft: 6,
+                          fontSize: 12,
+                          fontWeight: 'normal',
+                          color: bCheck.hasCharges ? '#7dd56f' : '#a09878',
+                        }}>
+                          （{bCheck.hasCharges ? '可发动' : (bCheck.reason || '条件未满足')}）
+                        </span>
                       )}
                     </strong>
                     {isEnemy && !battleRevealed ? (
@@ -1221,9 +1252,27 @@ export const S7D_Battle: React.FC = () => {
                 {previewUnit.ultimate && (
                   <div className={styles.unitInfoUltimate}>
                     <strong>
+                      {showCastDot && uCheck && (
+                        <span className={uCheck.hasCharges ? styles.skillDotGreen : styles.skillDotDim} />
+                      )}
                       绝 · {previewUnit.ultimate.name}
+                      {uCheck?.isPassive && (
+                        <span style={{ opacity: .6, fontSize: 12, fontWeight: 'normal', marginLeft: 6 }}>
+                          （被动 · 持续生效）
+                        </span>
+                      )}
                       {previewUnit.ultimateUsed && (
                         <span className={styles.unitInfoUltimateUsed}>（已使用）</span>
+                      )}
+                      {!isEnemy && !previewUnit.ultimateUsed && showCastDot && uCheck && !uCheck.isPassive && (
+                        <span style={{
+                          marginLeft: 6,
+                          fontSize: 12,
+                          fontWeight: 'normal',
+                          color: uCheck.hasCharges ? '#ffd98a' : '#a09878',
+                        }}>
+                          （{uCheck.hasCharges ? '可发动' : (uCheck.reason || '条件未满足')}）
+                        </span>
                       )}
                     </strong>
                     {isEnemy && !ultRevealed ? (
