@@ -506,6 +506,16 @@ export const S7B_Battle: React.FC = () => {
    *   导致 3v3 阵容选择面板备选列表错误（玩家招募卡丢失，AI 也回到兜底主角阵容）。
    *   现改为：matchNo 变化时仅重置 React state + battle store，保留 zustand 全局状态。 */
   useEffect(() => {
+    // ★ 诊断日志 —— 帮助排查"宗门大比场次错乱"问题
+    if (urlParams.isSect) {
+      // eslint-disable-next-line no-console
+      console.info(
+        `[宗门大比] 进入第 ${matchNo} 场（${matchNo === 1 ? '2v2' : '3v3'}） | ` +
+        `partnerCount=${partnerCount} | ` +
+        `URL search="${location.search}" hash="${window.location.hash}" | ` +
+        `isSect=${urlParams.isSect}`
+      );
+    }
     setShowSelect(true);
     setShowResult(false);
     battle.reset();
@@ -1513,8 +1523,24 @@ export const S7B_Battle: React.FC = () => {
         📖 战斗规则
       </button>
 
-      {/* 顶部中间 HUD：回合 + 击杀数 + 行动中 */}
+      {/* 顶部中间 HUD：场次（仅宗门大比） + 回合 + 击杀数 + 行动中 */}
       <div className={styles.topHud}>
+        {battleMode === 'sect' && (
+          <div
+            className={styles.roundBadge}
+            style={{
+              background: matchNo === 1
+                ? 'linear-gradient(135deg, rgba(80,160,80,.85), rgba(40,100,40,.85))'
+                : 'linear-gradient(135deg, rgba(200,80,80,.85), rgba(140,40,40,.85))',
+              borderColor: matchNo === 1 ? 'rgba(120,200,120,.9)' : 'rgba(220,120,120,.9)',
+            }}
+            title={matchNo === 1
+              ? '宗门大比 · 首场（2v2，主角+1副卡）'
+              : '宗门大比 · 次场（3v3，主角+2副卡）'}
+          >
+            🏆 宗门大比 · 第 {matchNo} 场（{matchNo === 1 ? '2v2' : '3v3'}）
+          </div>
+        )}
         <div className={styles.roundBadge}>
           第 {battle.round} / {battle.maxRound} 回合
         </div>
