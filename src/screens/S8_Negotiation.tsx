@@ -37,6 +37,7 @@ import {
   type NpcDialoguesFile,
   type NegotiationResult,
 } from '@/data/s8NegotiationData';
+import { ensureBindCardsLoaded } from '@/systems/recruit/cardPoolLoader';
 import styles from './S8_Negotiation.module.css';
 
 type Stage = 'intro' | 'pickHero' | 'pickTopic' | 'answer' | 'allDone';
@@ -80,6 +81,9 @@ export const S8_Negotiation: React.FC = () => {
     loadNpcDialogues()
       .then(setDialoguesFile)
       .catch((e) => setLoadErr(e?.message ?? '加载失败'));
+    // ★ 双保险：第五章发放的绑定 SSR/SR 需通过 getPoolCardById 解析，
+    //   在 S8 密谈页面挂载时补一次加载，避免从存档直跳 S8 时缓存未就绪。
+    ensureBindCardsLoaded();
   }, []);
 
   const maxCount = useMemo(() => calcNegotiationCount(myMnd), [myMnd]);

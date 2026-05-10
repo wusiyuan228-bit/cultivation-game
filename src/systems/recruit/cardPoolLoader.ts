@@ -39,6 +39,8 @@ let cachedPool2: PoolCard[] | null = null;
 let cachedPool3: PoolCard[] | null = null;
 /** 缓存所有已加载卡牌的映射表（id → PoolCard），方便全局查询 */
 let cachedCardMap: Map<string, PoolCard> = new Map();
+/** 绑定 SSR/SR（bind_ssr/bind_sr）是否已灌入 cachedCardMap */
+let bindCardsLoaded = false;
 
 /** 招募1彩蛋：混入招募1池的4张SR（千仞雪/纳兰嫣然/元瑶/藤化原） */
 export const POOL1_SR_BONUS_IDS = [
@@ -94,6 +96,9 @@ function mapCard(raw: RawCard): PoolCard {
 
 /** 加载 NR 招募池（recruit_1：8 N + 16 R + 4 SR彩蛋 = 28张）*/
 export async function loadRecruitPool1(): Promise<PoolCard[]> {
+  // 无论缓存是否命中，都确保绑定卡数据已灌入 cachedCardMap
+  // 这样 CollectionModal / S4 已收集面板能正确解析 bssr_* / bsr_*
+  await ensureBindCardsLoaded();
   if (cachedPool) return cachedPool.slice();
   const res = await fetch(asset('config/cards/cards_all.json'));
   if (!res.ok) {
@@ -125,7 +130,38 @@ export async function loadRecruitPool1(): Promise<PoolCard[]> {
   cachedPool = cards;
   // 同步更新映射表
   cards.forEach((c) => cachedCardMap.set(c.id, c));
+
+  // 当前 fetch 的 data 已经有 bind_*，顺手灌入（避免 ensureBindCardsLoaded 再发一次请求）
+  if (!bindCardsLoaded) {
+    const bindSsr: RawCard[] = (data.bind_ssr || []).filter((c: RawCard) => !c.disabled);
+    const bindSr: RawCard[]  = (data.bind_sr  || []).filter((c: RawCard) => !c.disabled);
+    bindSsr.map(mapCard).forEach((c) => cachedCardMap.set(c.id, c));
+    bindSr.map(mapCard).forEach((c) => cachedCardMap.set(c.id, c));
+    bindCardsLoaded = true;
+  }
+
   return cards.slice();
+}
+
+/**
+ * 把绑定 SSR/SR（bind_ssr / bind_sr）灌进 cachedCardMap，
+ * 保证 getPoolCardById('bssr_*' / 'bsr_*') 始终可查。
+ * 重复调用安全；不会修改任何抽卡池，不影响抽卡逻辑。
+ */
+export async function ensureBindCardsLoaded(): Promise<void> {
+  if (bindCardsLoaded) return;
+  try {
+    const res = await fetch(asset('config/cards/cards_all.json'));
+    if (!res.ok) return;
+    const data = await res.json();
+    const bindSsr: RawCard[] = (data.bind_ssr || []).filter((c: RawCard) => !c.disabled);
+    const bindSr: RawCard[]  = (data.bind_sr  || []).filter((c: RawCard) => !c.disabled);
+    bindSsr.map(mapCard).forEach((c) => cachedCardMap.set(c.id, c));
+    bindSr.map(mapCard).forEach((c) => cachedCardMap.set(c.id, c));
+    bindCardsLoaded = true;
+  } catch {
+    // 加载失败不影响主流程
+  }
 }
 
 /**
@@ -214,6 +250,7 @@ export function clearPoolCache(): void {
   cachedPool2 = null;
   cachedPool3 = null;
   cachedCardMap.clear();
+  bindCardsLoaded = false;
 }
 
 /**
