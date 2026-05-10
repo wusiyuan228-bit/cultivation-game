@@ -28,6 +28,7 @@ import {
   resetGlobalModStore,
   resolveStatSet,
 } from '@/systems/battle/e2Helpers';
+import { applyDamagePipeline } from '@/systems/battle/damagePipeline';
 import { cleanupOnRoundEnd } from '@/systems/battle/modifierSystem';
 
 /**
@@ -780,6 +781,36 @@ export const useS7BBattleStore = create<BattleState>((set, get) => ({
         floor?: number;
         reason: string;
       }) => {
+        // ★ 2026-05-10：hp 减少时走伤害管线
+        if (stat === 'hp' && delta < 0) {
+          const t0 = unitId === attacker.id ? newAttacker : unitId === defender.id ? newDefender : null;
+          const pipeline = applyDamagePipeline(
+            {
+              targetUnitId: unitId,
+              damage: -delta,
+              attackerId: attacker.id,
+              reason: opts.reason,
+              currentHp: t0 ? t0.hp : 0,
+            },
+            (uid) => {
+              if (uid === attacker.id) return newAttacker.hp;
+              if (uid === defender.id) return newDefender.hp;
+              const u = get().units.find((x) => x.id === uid);
+              return u ? u.hp : undefined;
+            },
+          );
+          if (pipeline.redirected) {
+            addEngineLog(`💫 伤害被【古族祖灵结界】重定向`, 'skill');
+          }
+          if (pipeline.reducedBy > 0) {
+            addEngineLog(`🛡【金帝天火阵】减免伤害 ${pipeline.reducedBy} 点`, 'skill');
+          }
+          if (pipeline.hpFloorTriggered) {
+            addEngineLog(`✨ 触发气血触底保护`, 'skill');
+          }
+          unitId = pipeline.finalTargetId;
+          delta = -pipeline.finalDamage;
+        }
         const target = unitId === attacker.id ? newAttacker : unitId === defender.id ? newDefender : null;
         if (!target) return 0;
         const oldVal = stat === 'hp' ? target.hp : stat === 'atk' ? target.atk : target.mnd;
@@ -911,9 +942,51 @@ export const useS7BBattleStore = create<BattleState>((set, get) => ({
     // 记录最终伤害供 on_after_hit 使用
     calcLog.push({ source: '__final_damage__', delta: damage, note: `最终伤害 = ${damage}` });
 
-    // 落实伤害到 newDefender
-    const newHp = Math.max(0, newDefender.hp - damage);
-    newDefender = { ...newDefender, hp: newHp, dead: newHp <= 0 };
+    // ★ 2026-05-10：普攻最终伤害走伤害管线（damage_redirect / damage_reduce / hp_floor）
+    const pipelineResult = applyDamagePipeline(
+      {
+        targetUnitId: newDefender.id,
+        damage,
+        attackerId: newAttacker.id,
+        reason: '攻击伤害',
+        currentHp: newDefender.hp,
+      },
+      (uid) => {
+        if (uid === newAttacker.id) return newAttacker.hp;
+        if (uid === newDefender.id) return newDefender.hp;
+        const u = units.find((x) => x.id === uid);
+        return u ? u.hp : undefined;
+      },
+    );
+
+    let realDamage = pipelineResult.finalDamage;
+    let realDefenderId = pipelineResult.finalTargetId;
+    if (pipelineResult.redirected) {
+      const redirectTarget = units.find((x) => x.id === realDefenderId);
+      addEngineLog(`💫 伤害被【古族祖灵结界】重定向：${newDefender.name} → ${redirectTarget?.name ?? realDefenderId}`, 'skill');
+    }
+    if (pipelineResult.reducedBy > 0) {
+      addEngineLog(`🛡【金帝天火阵】减免伤害 ${pipelineResult.reducedBy} 点`, 'skill');
+    }
+    if (pipelineResult.hpFloorTriggered) {
+      addEngineLog(`✨ ${units.find((x) => x.id === realDefenderId)?.name ?? realDefenderId} 触发气血触底保护`, 'skill');
+    }
+
+    // 落实伤害到对应单位
+    let newHp: number;
+    let redirectedUnit: BattleUnit | null = null;
+    let redirectedNewHp: number | null = null;
+    if (realDefenderId === newDefender.id) {
+      newHp = Math.max(0, newDefender.hp - realDamage);
+      newDefender = { ...newDefender, hp: newHp, dead: newHp <= 0 };
+    } else {
+      newHp = newDefender.hp;
+      const rTarget = units.find((x) => x.id === realDefenderId);
+      if (rTarget) {
+        redirectedNewHp = Math.max(0, rTarget.hp - realDamage);
+        redirectedUnit = { ...rTarget, hp: redirectedNewHp, dead: redirectedNewHp <= 0 };
+      }
+    }
     // 同步 ctx.defender（便于 Phase 6 的 hook 读到新状态）
     ctx.defender = mapUnitToEngine(newDefender);
 
@@ -926,17 +999,22 @@ export const useS7BBattleStore = create<BattleState>((set, get) => ({
     const updated = [...units];
     updated[aIdx] = newAttacker;
     updated[dIdx] = newDefender;
+    if (redirectedUnit) {
+      const rIdx = updated.findIndex((x) => x.id === redirectedUnit!.id);
+      if (rIdx >= 0) updated[rIdx] = redirectedUnit;
+    }
 
     // ————— Phase 7: unit_leave / on_kill —————
     let killed = false;
-    if (newHp <= 0) {
+    const finalVictim = redirectedUnit ?? newDefender;
+    const finalVictimHp = redirectedNewHp ?? newHp;
+    if (finalVictimHp <= 0) {
       killed = true;
-      if (defender.isEnemy) {
+      if (finalVictim.isEnemy) {
         set((s) => ({ killCount: s.killCount + 1 }));
       }
       // 阶段 C：进攻方的 killCountByThisUnit +1（寒立觉醒触发用）
-      // 注意：killCountByThisUnit 以"击杀敌方"为准（不含友伤）
-      if (defender.isEnemy !== attacker.isEnemy) {
+      if (finalVictim.isEnemy !== attacker.isEnemy) {
         newAttacker = {
           ...newAttacker,
           killCountByThisUnit: (newAttacker.killCountByThisUnit ?? 0) + 1,
@@ -1140,6 +1218,34 @@ export const useS7BBattleStore = create<BattleState>((set, get) => ({
         delta: number,
         opts: { permanent: boolean; breakCap?: boolean; floor?: number; reason: string },
       ) => {
+        // ★ 2026-05-10：hp 减少时走伤害管线
+        if (stat === 'hp' && delta < 0) {
+          const t0 = snapshots[id];
+          const pipeline = applyDamagePipeline(
+            {
+              targetUnitId: id,
+              damage: -delta,
+              attackerId: unitId, // 当前施法者
+              reason: opts.reason,
+              currentHp: t0 ? t0.hp : 0,
+            },
+            (uid) => {
+              const t = snapshots[uid];
+              return t ? t.hp : undefined;
+            },
+          );
+          if (pipeline.redirected) {
+            addEngineLog(`💫 伤害被【古族祖灵结界】重定向：${snapshots[id]?.name ?? id} → ${snapshots[pipeline.finalTargetId]?.name ?? pipeline.finalTargetId}`, 'skill');
+          }
+          if (pipeline.reducedBy > 0) {
+            addEngineLog(`🛡【金帝天火阵】减免伤害 ${pipeline.reducedBy} 点`, 'skill');
+          }
+          if (pipeline.hpFloorTriggered) {
+            addEngineLog(`✨ ${snapshots[pipeline.finalTargetId]?.name ?? pipeline.finalTargetId} 触发气血触底保护`, 'skill');
+          }
+          id = pipeline.finalTargetId;
+          delta = -pipeline.finalDamage;
+        }
         const t = snapshots[id];
         if (!t) return 0;
         const oldVal = stat === 'hp' ? t.hp : stat === 'atk' ? t.atk : t.mnd;
