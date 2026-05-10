@@ -1046,13 +1046,12 @@ export const S7D_Battle: React.FC = () => {
 
       {/* 主体 */}
       <div className={styles.body}>
-        {/* 地图区 —— 外层固定容器（绑定 pointer/wheel 事件） */}
-        <motion.div
+        {/* 地图区 —— 外层固定容器（绑定 pointer/wheel 事件）
+            注意：必须用普通 div，不能用 motion.div —— 否则 framer-motion 会干扰
+            ref 挂载时机与 wheel 事件，导致鼠标滚轮缩放失效。 */}
+        <div
           className={styles.mapArea}
           ref={mapAreaRef}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5 }}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
@@ -1362,7 +1361,7 @@ export const S7D_Battle: React.FC = () => {
               ⚰ 弃牌 <b>{playerGraveUnits.length}</b>
             </button>
           </div>
-        </motion.div>
+        </div>
 
         {/* 侧栏 */}
         <Sidebar
