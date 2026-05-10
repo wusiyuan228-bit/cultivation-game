@@ -2138,10 +2138,40 @@
   border-color: rgba(255, 220, 130, 0.85);
 }
 
-/* 主角：金色发光 */
-.unitPieceHero {
+/* 敌方描边 — 强红色高识别度 */
+.unitPieceEnemy {
+  border: 3px solid rgba(255, 70, 70, 0.95) !important;
+  box-shadow: 0 0 10px rgba(255, 70, 70, 0.55), 0 0 4px rgba(255, 70, 70, 0.7) inset;
+}
+
+.unitPieceEnemy::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border: 1px solid rgba(255, 100, 100, 0.6);
+  border-radius: 8px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* 主角：金色发光（仅我方主角显示金边） */
+.unitPiecePlayer.unitPieceHero {
   border: 3px solid #ffd98a;
   box-shadow: 0 0 12px rgba(255, 217, 138, 0.7);
+}
+
+/* 敌方主角：红边 + 金色头顶星标 */
+.unitPieceEnemy.unitPieceHero::after {
+  content: '★';
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #ffd98a;
+  font-size: 14px;
+  text-shadow: 0 0 4px rgba(255, 70, 70, 0.9);
+  z-index: 5;
+  pointer-events: none;
 }
 
 /* 当前行动者：脉动 */
