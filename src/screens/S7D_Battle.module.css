@@ -98,7 +98,33 @@
 }
 
 .topBarLeft {
-  flex: 0 0 280px;
+  flex: 0 0 360px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* 战斗规则按钮（与回合UI水平对齐，紧挨BackButton右侧） */
+.ruleBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 14px;
+  height: 36px;
+  background: linear-gradient(180deg, rgba(80, 60, 30, 0.85), rgba(50, 35, 15, 0.95));
+  border: 1px solid rgba(200, 161, 75, 0.6);
+  border-radius: 6px;
+  color: #f0d9a3;
+  font-size: 14px;
+  font-family: 'KaiTi', '楷体', serif;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+.ruleBtn:hover {
+  background: linear-gradient(180deg, rgba(110, 80, 40, 0.95), rgba(70, 50, 20, 1));
+  border-color: rgba(255, 210, 130, 0.9);
+  box-shadow: 0 0 12px rgba(200, 161, 75, 0.4);
 }
 
 .topBarCenter {
@@ -2607,4 +2633,120 @@
 @keyframes skillDotPulseS7D {
   0%, 100% { box-shadow: 0 0 6px #7fd85c; }
   50%      { box-shadow: 0 0 10px #a8ff80; }
+}
+
+/* ==========================================================================
+ * 选中行动棋子 · 步数条（左下技能面板内常驻）
+ * ========================================================================== */
+.stepBar {
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: rgba(40, 30, 10, .5);
+  border: 1px solid rgba(200, 161, 75, .3);
+  border-radius: 6px;
+}
+.stepBarLabel {
+  font-size: 14px;
+  color: #e8dcc0;
+  margin-bottom: 8px;
+}
+.stepBarLabel strong {
+  color: #ffd98a;
+  font-size: 17px;
+  font-weight: 700;
+}
+.stepLocked {
+  color: #ff9780;
+  font-size: 12px;
+  margin-left: 4px;
+}
+.stepBarTrack {
+  display: flex;
+  gap: 4px;
+}
+.stepDot {
+  flex: 1;
+  height: 7px;
+  border-radius: 3px;
+  transition: background .2s;
+}
+.stepDotLeft {
+  background: linear-gradient(90deg, #ffa850, #ffd98a);
+  box-shadow: 0 0 6px rgba(255, 180, 80, .5);
+}
+.stepDotUsed {
+  background: rgba(80, 60, 30, .6);
+}
+
+/* ==========================================================================
+ * 战斗规则弹窗（坠魔谷决战）
+ * ========================================================================== */
+.ruleOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  backdrop-filter: blur(2px);
+}
+.rulePanel {
+  width: 720px;
+  max-width: 92vw;
+  max-height: 86vh;
+  overflow-y: auto;
+  padding: 28px 36px;
+  background: linear-gradient(180deg, rgba(35, 22, 8, 0.98), rgba(15, 8, 4, 0.99));
+  border: 2px solid rgba(200, 161, 75, 0.6);
+  border-radius: 14px;
+  color: #e8d9b5;
+  font-family: 'KaiTi', '楷体', serif;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7);
+}
+.ruleH {
+  margin: 0 0 14px 0;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  text-align: center;
+  color: #f0d9a3;
+  text-shadow: 0 0 14px rgba(200, 161, 75, 0.5);
+}
+.ruleSec {
+  margin: 14px 0;
+  padding: 10px 14px;
+  background: rgba(50, 35, 15, 0.4);
+  border-left: 3px solid rgba(200, 161, 75, 0.7);
+  border-radius: 4px;
+}
+.ruleSec h4 {
+  margin: 0 0 6px 0;
+  font-size: 17px;
+  color: #ffd98a;
+  letter-spacing: 1px;
+}
+.ruleSec p {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.7;
+  color: #d8c899;
+  white-space: pre-wrap;
+}
+.ruleClose {
+  display: block;
+  margin: 18px auto 0;
+  padding: 8px 32px;
+  background: linear-gradient(180deg, rgba(120, 85, 35, 0.95), rgba(70, 50, 20, 1));
+  border: 1px solid rgba(220, 180, 100, 0.7);
+  border-radius: 6px;
+  color: #ffe9b8;
+  font-size: 16px;
+  font-family: 'KaiTi', '楷体', serif;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.ruleClose:hover {
+  background: linear-gradient(180deg, rgba(150, 110, 50, 1), rgba(90, 65, 25, 1));
+  box-shadow: 0 0 14px rgba(200, 161, 75, 0.5);
 }

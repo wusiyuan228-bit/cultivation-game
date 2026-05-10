@@ -348,9 +348,9 @@ function generateDeployedCards(
 // ==========================================================================
 
 const RARITY_WEIGHT: Record<string, number> = {
-  主角: 90,
-  SSR: 100,
-  SR: 70,
+  主角: 180,   // 主角必上首发倾向高
+  SSR: 200,   // SSR 大幅领先 SR，确保有 SSR 时一定有 SSR 上首发
+  SR: 100,
   R: 50,
   N: 30,
 };
@@ -370,9 +370,17 @@ function generateStarters(
   cardMap: Map<string, MinimalCard>,
   rng: () => number,
 ): string[] {
+  // ★ 2026-05-10 修正：保证「SSR 优先于 SR 上首发」的硬性规则
+  //   原 bug：主角(100)、SSR(100)、SR-tank(70+15=85) 权重接近，
+  //          经 ROLE_BONUS 微调后会出现 SR 反超主角/SSR 的情况，
+  //          致使 5 张参战卡里有 SSR 时却让 SR 卡上首发。
+  //   修复策略：① 拉大 SSR 与 SR 的稀有度差距（200 vs 100）
+  //            ② 主角权重设为 180（仍优先于 SR，但低于 SSR-tank/dps，
+  //               允许"主角+SSR"组首发，同时不会低于 SR 而被挤出）
+  //            ③ ROLE_BONUS 维持原有 ±15 范围，不会跨越稀有度档差
   const candidates: Array<{ id: string; weight: number; rand: number }> = [];
-  // 主角：基础权重 + 主角更适合首发
-  candidates.push({ id: heroId, weight: RARITY_WEIGHT['主角'] + 10, rand: rng() });
+  // 主角
+  candidates.push({ id: heroId, weight: RARITY_WEIGHT['主角'], rand: rng() });
   for (const cid of deployedCards) {
     const info = cardMap.get(cid);
     let w = info ? (RARITY_WEIGHT[info.rarity] ?? 30) : 30;

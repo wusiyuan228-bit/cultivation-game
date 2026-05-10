@@ -267,7 +267,7 @@ export const S7D_Deploy: React.FC = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
       >
-        <div className={styles.topTitle}>🗂 备战点将 · 坠魔谷</div>
+        <div className={styles.topTitle}>📜 备战点将 · 坠魔谷</div>
         <div className={styles.topSubtitle}>
           主角必上阵 · 再挑 {PICK_SIZE} 张参战卡 · 点击卡牌查看技能详情
           {rnFallbackMode

@@ -392,7 +392,7 @@
 
 /* ---- 悬停详情 ---- */
 .hoverCard {
-  position: absolute;
+  position: fixed;
   bottom: 24px;
   left: 50%;
   transform: translateX(-50%);
@@ -404,8 +404,9 @@
   border: 1px solid rgba(200, 161, 75, 0.6);
   border-radius: 10px;
   min-width: 420px;
-  z-index: 5;
+  z-index: 50;
   pointer-events: none;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.6);
 }
 
 .hoverPortrait {

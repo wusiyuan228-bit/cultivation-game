@@ -244,6 +244,16 @@ export const S7D_Battle: React.FC = () => {
   /** 悬停的单位 ID（用于左下角技能面板预览） */
   const [hoveredUnitId, setHoveredUnitId] = useState<string | null>(null);
 
+  /** 战斗规则弹窗显示开关（进入战场时默认弹一次） */
+  const [showRule, setShowRule] = useState<boolean>(true);
+
+  /**
+   * 已揭示的敌方技能集合：key = `${unitId}_battle` / `${unitId}_ultimate`
+   * 敌方未发动过的技能在左下面板隐藏 desc，只显示「效果未知」
+   * 一经发动永久揭示，整个战斗内可见
+   */
+  const [revealedEnemySkills, setRevealedEnemySkills] = useState<Set<string>>(() => new Set());
+
   const mapData = useMemo<S7DTile[][]>(() => generateS7DMap(), []);
 
   // ============================================================
@@ -750,6 +760,40 @@ export const S7D_Battle: React.FC = () => {
     return () => clearTimeout(timer);
   }, [battleState?.crystalA.damageLog.length, battleState?.crystalB.damageLog.length]);
 
+  // 监听战报：敌方一旦发动技能，揭示其技能描述
+  useEffect(() => {
+    if (!battleState) return;
+    const log = battleState.log;
+    if (!log || log.length === 0) return;
+    setRevealedEnemySkills((prev) => {
+      let changed = false;
+      const next = new Set(prev);
+      for (const entry of log) {
+        if (entry.kind !== 'skill_cast' || !entry.actorId) continue;
+        const actor = battleState.units[entry.actorId];
+        if (!actor) continue;
+        // 仅对敌方单位做揭示标记（玩家方原本就可见）
+        if (actor.faction === battleState.playerFaction) continue;
+        const payload = entry.payload as { skillType?: 'battle' | 'ultimate' } | undefined;
+        const skillType = payload?.skillType;
+        const candidates: string[] = [];
+        if (skillType === 'battle' || skillType === 'ultimate') {
+          candidates.push(`${actor.instanceId}_${skillType}`);
+        } else {
+          // 兜底：未声明 skillType 时一并揭示战技/绝技（保险起见）
+          candidates.push(`${actor.instanceId}_battle`, `${actor.instanceId}_ultimate`);
+        }
+        for (const k of candidates) {
+          if (!next.has(k)) {
+            next.add(k);
+            changed = true;
+          }
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [battleState?.log.length]);
+
   // ==========================================================================
   // 回合推进
   // ==========================================================================
@@ -993,7 +1037,12 @@ export const S7D_Battle: React.FC = () => {
       <BackButton onClick={returnToMenu} />
 
       {/* 顶栏 */}
-      <TopBar battleState={battleState} currentActor={currentActor} isPlayerTurn={isPlayerTurn} />
+      <TopBar
+        battleState={battleState}
+        currentActor={currentActor}
+        isPlayerTurn={isPlayerTurn}
+        onShowRule={() => setShowRule(true)}
+      />
 
       {/* 主体 */}
       <div className={styles.body}>
@@ -1084,13 +1133,34 @@ export const S7D_Battle: React.FC = () => {
             </div>
           )}
 
-          {/* 单位技能信息面板（左下角；优先展示 hovered，其次 selected）—— S7B 同款 */}
+          {/* 单位技能信息面板（左下角；优先展示 selected，hover 仅在非选中时显示）—— S7B 同款
+              展示规则（2026-05-10 调整）：
+              - 我方"行动中棋子"（即 currentActor 且 ownerId='player'）：常驻显示
+              - 我方/敌方非行动棋子：仅在 hover 时显示
+              - 选中（点选）我方棋子：等同行动棋子展示
+              - 敌方未发动过的技能：desc 显示「效果未知」遮蔽
+              - 已揭示的敌方技能或全部我方技能：完整 desc */}
           {(() => {
-            const previewId = hoveredUnitId ?? selectedUnitId;
+            // 决定当前持续显示的"行动棋子"：玩家方 + 当前轮到 + 还在场上
+            const isPlayerActorTurn = !!currentActor && currentActor.faction === battleState.playerFaction;
+            const persistentId = isPlayerActorTurn && currentActor ? currentActor.instanceId : null;
+            // 选中（点选）显示
+            const persistentOrSelectedId = persistentId ?? selectedUnitId;
+            // 优先 hover，其次 选中/行动 棋子
+            const previewId = hoveredUnitId ?? persistentOrSelectedId;
             const previewUnit = previewId ? battleState.units[previewId] : null;
             if (!previewUnit) return null;
             const isHover = !!hoveredUnitId;
             const isEnemy = previewUnit.faction !== battleState.playerFaction;
+            const isCurrentActor = !!currentActor && currentActor.instanceId === previewUnit.instanceId;
+            // 敌方技能揭示状态
+            const battleRevealed = revealedEnemySkills.has(`${previewUnit.instanceId}_battle`);
+            const ultRevealed = revealedEnemySkills.has(`${previewUnit.instanceId}_ultimate`);
+            // 步数显示（仅我方行动中棋子）
+            const showStepBar = isCurrentActor && !isEnemy;
+            const remainingSteps = showStepBar
+              ? Math.max(0, previewUnit.mnd - previewUnit.stepsUsedThisTurn)
+              : 0;
             return (
               <div
                 className={styles.unitInfoPanel}
@@ -1100,7 +1170,7 @@ export const S7D_Battle: React.FC = () => {
                   {previewUnit.awakened && <span style={{ color: '#ffd966', marginRight: 4 }}>⚡</span>}
                   {previewUnit.name}
                   {isEnemy && <span style={{ marginLeft: 8, color: '#e87060', fontSize: 13 }}>【敌方】</span>}
-                  {isHover && previewUnit.instanceId !== selectedUnitId && (
+                  {isHover && previewUnit.instanceId !== persistentOrSelectedId && (
                     <span style={{ marginLeft: 8, color: '#a09878', fontSize: 13 }}>（预览）</span>
                   )}
                 </div>
@@ -1112,10 +1182,40 @@ export const S7D_Battle: React.FC = () => {
                   <span>修为 {previewUnit.atk}</span>
                   <span>心境 {previewUnit.mnd}</span>
                 </div>
+
+                {/* 行动棋子常驻：剩余步数条 */}
+                {showStepBar && (
+                  <div className={styles.stepBar}>
+                    <div className={styles.stepBarLabel}>
+                      可移动步数 <strong>{remainingSteps}</strong> / {previewUnit.mnd}
+                      {previewUnit.attackedThisTurn && (
+                        <span className={styles.stepLocked}>（已攻击，回合即将结束）</span>
+                      )}
+                    </div>
+                    <div className={styles.stepBarTrack}>
+                      {Array.from({ length: previewUnit.mnd }).map((_, i) => (
+                        <span
+                          key={i}
+                          className={`${styles.stepDot} ${i < remainingSteps ? styles.stepDotLeft : styles.stepDotUsed}`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {previewUnit.battleSkill && (
                   <div className={styles.unitInfoSkill}>
-                    <strong>战 · {previewUnit.battleSkill.name}</strong>
-                    <em>{previewUnit.battleSkill.desc}</em>
+                    <strong>
+                      战 · {previewUnit.battleSkill.name}
+                      {previewUnit.skillUsedThisTurn && (
+                        <span className={styles.unitInfoUltimateUsed}>（本回合已用技）</span>
+                      )}
+                    </strong>
+                    {isEnemy && !battleRevealed ? (
+                      <em style={{ opacity: .55 }}>效果未知（该敌方单位尚未发动过此技能）</em>
+                    ) : (
+                      <em>{previewUnit.battleSkill.desc}</em>
+                    )}
                   </div>
                 )}
                 {previewUnit.ultimate && (
@@ -1126,7 +1226,11 @@ export const S7D_Battle: React.FC = () => {
                         <span className={styles.unitInfoUltimateUsed}>（已使用）</span>
                       )}
                     </strong>
-                    <em>{previewUnit.ultimate.desc}</em>
+                    {isEnemy && !ultRevealed ? (
+                      <em style={{ opacity: .55 }}>效果未知（该敌方单位尚未发动过此绝技）</em>
+                    ) : (
+                      <em>{previewUnit.ultimate.desc}</em>
+                    )}
                   </div>
                 )}
                 {!previewUnit.battleSkill && !previewUnit.ultimate && (
@@ -1320,7 +1424,76 @@ export const S7D_Battle: React.FC = () => {
           />
         )}
       </AnimatePresence>
+
+      {/* 战斗规则弹窗（进入战场默认弹一次；左上角按钮可随时唤起） */}
+      <AnimatePresence>
+        {showRule && (
+          <RuleModal onClose={() => setShowRule(false)} />
+        )}
+      </AnimatePresence>
     </div>
+  );
+};
+
+// ==========================================================================
+// 子组件 · 战斗规则弹窗
+// ==========================================================================
+interface RuleModalProps {
+  onClose: () => void;
+}
+const RuleModal: React.FC<RuleModalProps> = ({ onClose }) => {
+  return (
+    <motion.div
+      className={styles.ruleOverlay}
+      onClick={onClose}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    >
+      <motion.div
+        className={styles.rulePanel}
+        onClick={(e) => e.stopPropagation()}
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.95, opacity: 0 }}
+      >
+        <h3 className={styles.ruleH}>📖 坠魔谷决战 · 战斗规则</h3>
+
+        <div className={styles.ruleSec}>
+          <h4>🎯 获胜目标</h4>
+          <p>{`双方水晶（A 护道派、B 弑道派）初始各 6 滴血。
+任一方水晶血量归 0 即立即落败，对方获胜。
+若 40 大回合内双方水晶皆未破碎，按剩余水晶血量结算：高者胜，相同则判定平局。
+水晶不可被主动攻击，只能通过我方棋子站到敌方水晶 4 格之上，于「大回合末」结算每个占领者扣对方水晶 1 滴血。`}</p>
+        </div>
+
+        <div className={styles.ruleSec}>
+          <h4>🪖 备战上阵规则</h4>
+          <p>{`备战阶段：从已收集卡牌中挑选 5 张参战，主角作为第 6 张固定上阵，共 6 张备战卡。
+仅 SR / SSR 卡可上阵；R / N 卡无战斗技能、不参与决战（SR+SSR 不足 5 张时允许 R/N 兜底）。
+首发登场：从 6 张备战卡中挑 2 张作为开局首发（主角非强制首发，可作后备）。
+后备 4 张进入手牌区，当己方棋子阵亡时，从手牌选 1 张补位登场。
+每方场上同时存在 2 张棋子（卡一 + 卡二）；阵亡补位前不可推进回合。`}</p>
+        </div>
+
+        <div className={styles.ruleSec}>
+          <h4>⚔ 大回合 / 小轮次</h4>
+          <p>{`一个大回合 = 小轮次 1（各方卡一行动）+ 小轮次 2（各方卡二行动）。
+同小轮次内，所有玩家按棋子心境值降序依次行动；心境相同时按入场顺序。
+每张棋子每行动轮可：技能（可选）→ 移动（≤心境格）→ 攻击（相邻 1 格）。
+攻击后该棋子行动轮立即结束；释放绝技不会立刻结束行动轮。
+小轮次 2 结束 → 大回合末水晶结算 → 进入下一大回合。`}</p>
+        </div>
+
+        <div className={styles.ruleSec}>
+          <h4>🎲 攻击判定 & 克制</h4>
+          <p>{`双方同时投掷骰子（数量=修为值，每颗 0/1/2）：伤害 = 攻方点数和 − 守方点数和 + 技能修正 + 克制加成（最少 1）。
+克制链：剑→妖→体→灵→法→剑（丹中立）；克制时攻击方判定 +1。`}</p>
+        </div>
+
+        <button className={styles.ruleClose} onClick={onClose}>关闭</button>
+      </motion.div>
+    </motion.div>
   );
 };
 
@@ -1332,9 +1505,10 @@ interface TopBarProps {
   battleState: ReturnType<typeof useS7DBattleStore.getState>['state'];
   currentActor: BattleCardInstance | undefined;
   isPlayerTurn: boolean;
+  onShowRule: () => void;
 }
 
-const TopBar: React.FC<TopBarProps> = ({ battleState, currentActor, isPlayerTurn }) => {
+const TopBar: React.FC<TopBarProps> = ({ battleState, currentActor, isPlayerTurn, onShowRule }) => {
   if (!battleState) return null;
   return (
     <motion.div
@@ -1344,6 +1518,15 @@ const TopBar: React.FC<TopBarProps> = ({ battleState, currentActor, isPlayerTurn
       transition={{ duration: 0.4 }}
     >
       <div className={styles.topBarLeft}>
+        {/* 战斗规则按钮：与回合UI水平对齐，紧挨左上角BackButton右侧 */}
+        <button
+          type="button"
+          className={styles.ruleBtn}
+          onClick={onShowRule}
+          title="查看战斗规则（坠魔谷决战）"
+        >
+          📖 战斗规则
+        </button>
         <div className={styles.roundInfo}>
           <span className={styles.roundLabel}>大回合</span>
           <span className={styles.roundValue}>
