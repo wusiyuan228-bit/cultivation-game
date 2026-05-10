@@ -36,6 +36,7 @@ import type {
 } from '@/types/s7dBattle';
 import { appendLog, killUnit as killS7DUnit } from './s7dBattleActions';
 import { isCounter } from '@/stores/battleStore';
+import { S7D_MAP_ROWS, S7D_MAP_COLS, isWalkable } from '@/data/s7dMap';
 
 // ============================================================================
 // 工具: 映射 S7D 卡 → 引擎 EngineUnit (局部 mutable 快照)
@@ -376,16 +377,50 @@ export function executeAttackWithHooks(
  * @param state     S7D 战场 state
  * @param attackerId 攻方 instanceId
  * @param defenderId 防方 instanceId
+ * @param fengshuOverride 风属斗技玩家可控落点：
+ *   undefined → 自动选最近落点（AI 用）
+ *   { row, col } → 玩家选定落点
+ *   null → 玩家放弃发动 → 仍正常攻击
  * @returns 是否成功执行(含伤害/击杀/战报已写)
  */
 export function attackAndApply(
   state: S7DBattleState,
   attackerId: string,
   defenderId: string,
+  fengshuOverride?: { row: number; col: number } | null,
 ): AttackOutcome | null {
   const attacker = state.units[attackerId];
   const defender = state.units[defenderId];
   if (!attacker || !defender) return null;
+
+  // ─── 风属斗技预判（攻击者携带 sr_nalanyanran.battle 时）──────────────
+  let fengshuLandingPos: { row: number; col: number } | null = null;
+  const hasFengShu = (attacker.registrySkills ?? []).includes('sr_nalanyanran.battle');
+  if (hasFengShu) {
+    if (fengshuOverride !== undefined) {
+      fengshuLandingPos = fengshuOverride;
+      if (fengshuOverride === null) {
+        appendLog(
+          state,
+          'skill_cast',
+          `🌪 ${attacker.name} 选择不发动「风属斗技」`,
+          { actorId: attackerId },
+        );
+      }
+    } else {
+      const cand = computeFengShuCandidatesS7D(state, attackerId, defenderId);
+      if (cand.length === 0) {
+        appendLog(
+          state,
+          'skill_cast',
+          `🌪 风属斗技无合法落点，${attacker.name} 放弃本次进攻`,
+          { actorId: attackerId },
+        );
+        return null;
+      }
+      fengshuLandingPos = cand[0]; // 取最近的
+    }
+  }
 
   const outcome = executeAttackWithHooks(state, attackerId, defenderId);
   if (!outcome) return null;
@@ -433,10 +468,70 @@ export function attackAndApply(
     killS7DUnit(state, id, id === defenderId ? '战死' : '连锁击杀');
   }
 
+  // —— 风属斗技 · 落实传送（在 hook 链路与击杀清算之后） —— 
+  if (
+    hasFengShu &&
+    fengshuLandingPos &&
+    state.units[defenderId] &&
+    state.units[defenderId].hp > 0 &&
+    state.units[defenderId].zone === 'field'
+  ) {
+    const inst = state.units[defenderId];
+    inst.position = { row: fengshuLandingPos.row, col: fengshuLandingPos.col };
+    appendLog(
+      state,
+      'skill_cast',
+      `🌪 风属斗技：${inst.name} 被强制传送至 (${fengshuLandingPos.row},${fengshuLandingPos.col})`,
+      { actorId: attackerId, targetIds: [defenderId] },
+    );
+  }
+
   // —— 觉醒扫描 —— 
   checkAndTriggerAwakening(state);
 
   return outcome;
+}
+
+// ============================================================================
+// 风属斗技 · 落点候选计算（S7D 版）
+// ============================================================================
+
+/**
+ * 计算 S7D 中纳兰嫣然「风属斗技」的合法落点列表。
+ * 返回与 anchor（攻击者）相邻 2 格内（曼哈顿）的非阻碍、未被占据的格子，
+ * 按距离/行列排序。
+ */
+export function computeFengShuCandidatesS7D(
+  state: S7DBattleState,
+  attackerId: string,
+  defenderId: string,
+  radius = 2,
+): Array<{ row: number; col: number }> {
+  const attacker = state.units[attackerId];
+  const defender = state.units[defenderId];
+  if (!attacker || !defender || !attacker.position) return [];
+
+  const occupied = new Set<string>();
+  for (const u of Object.values(state.units)) {
+    if (u.zone !== 'field' || u.hp <= 0) continue;
+    if (u.instanceId === defenderId) continue; // 目标自身的格子可让出
+    if (!u.position) continue;
+    occupied.add(`${u.position.row},${u.position.col}`);
+  }
+
+  const anchor = attacker.position;
+  const candidates: Array<{ row: number; col: number; dist: number }> = [];
+  for (let r = 0; r < S7D_MAP_ROWS; r++) {
+    for (let c = 0; c < S7D_MAP_COLS; c++) {
+      const d = Math.abs(r - anchor.row) + Math.abs(c - anchor.col);
+      if (d === 0 || d > radius) continue;
+      if (!isWalkable(r, c)) continue;
+      if (occupied.has(`${r},${c}`)) continue;
+      candidates.push({ row: r, col: c, dist: d });
+    }
+  }
+  candidates.sort((a, b) => a.dist - b.dist || a.row - b.row || a.col - b.col);
+  return candidates.map(({ row, col }) => ({ row, col }));
 }
 
 // ============================================================================

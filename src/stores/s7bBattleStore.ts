@@ -206,6 +206,37 @@ function computeFengShuLandingPos(
 }
 
 /**
+ * E2 · 风属斗技 —— 返回所有合法落点（用于玩家选位 UI）
+ * 与 computeFengShuLandingPos 同规则，但返回完整候选列表（按距离/行列排序）
+ */
+function computeFengShuAllCandidates(
+  units: BattleUnit[],
+  map: MapCell[][],
+  anchor: { row: number; col: number },
+  victim: { id: string },
+  radius: number,
+): Array<{ row: number; col: number }> {
+  const candidates: Array<{ row: number; col: number; dist: number }> = [];
+  const occupied = new Set<string>();
+  for (const u of units) {
+    if (u.dead) continue;
+    if (u.id === victim.id) continue;
+    occupied.add(`${u.row},${u.col}`);
+  }
+  for (let r = 0; r < MAP_ROWS; r++) {
+    for (let c = 0; c < MAP_COLS; c++) {
+      const d = manhattan(anchor.row, anchor.col, r, c);
+      if (d === 0 || d > radius) continue;
+      if (map[r]?.[c]?.terrain === 'obstacle') continue;
+      if (occupied.has(`${r},${c}`)) continue;
+      candidates.push({ row: r, col: c, dist: d });
+    }
+  }
+  candidates.sort((a, b) => a.dist - b.dist || a.row - b.row || a.col - b.col);
+  return candidates.map(({ row, col }) => ({ row, col }));
+}
+
+/**
  * 把 store 的 BattleUnit 映射成新引擎的 EngineUnit（StatBox 结构）
  * 仅用于 hook handler 只读访问；所有写操作应走 localEngine.changeStat
  */
@@ -406,7 +437,23 @@ interface BattleState {
   calcMoveRange: (unitId: string) => void;
   moveUnit: (unitId: string, toRow: number, toCol: number) => void;
   calcAttackRange: (unitId: string) => void;
-  attack: (attackerId: string, defenderId: string, skillMod?: number) => DiceResult;
+  attack: (
+    attackerId: string,
+    defenderId: string,
+    skillMod?: number,
+    /**
+     * 风属斗技玩家可控落点：
+     *   undefined → 自动计算（默认，AI 用 / 不带技能时无效）
+     *   { row, col } → 强制使用指定落点（玩家选定后传入）
+     *   null → 玩家明确放弃发动 → 不传送（仍正常攻击）
+     */
+    fengshuOverride?: { row: number; col: number } | null,
+  ) => DiceResult;
+  /**
+   * E2 · 风属斗技：返回攻击者相邻 2 格内的全部合法落点。
+   * 给 UI 弹窗使用；若返回空数组表示无落点（攻击会被取消）
+   */
+  computeFengShuCandidates: (attackerId: string, defenderId: string) => Array<{ row: number; col: number }>;
   useSkill: (unitId: string, skillType: 'battle' | 'ultimate') => {
     skillId: string | null;
     skillType: 'battle' | 'ultimate';
@@ -698,30 +745,50 @@ export const useS7BBattleStore = create<BattleState>((set, get) => ({
     set({ attackRange: range });
   },
 
-  attack: (attackerId, defenderId, skillMod = 0) => {
+  computeFengShuCandidates: (attackerId, defenderId) => {
+    const { units, map } = get();
+    const attacker = units.find((u) => u.id === attackerId);
+    const defender = units.find((u) => u.id === defenderId);
+    if (!attacker || !defender) return [];
+    if (!(attacker.registrySkills ?? []).includes('sr_nalanyanran.battle')) return [];
+    return computeFengShuAllCandidates(units, map, attacker, defender, 2);
+  },
+
+  attack: (attackerId, defenderId, skillMod = 0, fengshuOverride) => {
     const { units } = get();
     const aIdx = units.findIndex((u) => u.id === attackerId);
     const dIdx = units.findIndex((u) => u.id === defenderId);
-    if (aIdx === -1 || dIdx === -1) return { attackerDice: [], defenderDice: [], attackerSum: 0, defenderSum: 0, skillMod: 0, counterMod: 0, damage: 0 };
-
-    const attacker = units[aIdx];
+    if (aIdx === -1 || dIdx === -1) return { attackerDice: [], defenderDice: [], attackerSum: 0, defenderSum: 0, skillMod: 0, counterMod: 0, damage: 0 };    const attacker = units[aIdx];
     const defender = units[dIdx];
 
     /* ============================================================== */
     /*  E2 · 风属斗技预判（Q-E2-1 方案B：无合法落点则整个攻击取消）   */
+    /*  支持玩家可控：fengshuOverride !== undefined 时使用玩家选定值  */
     /* ============================================================== */
     let fengshuLandingPos: { row: number; col: number } | null = null;
     if ((attacker.registrySkills ?? []).includes('sr_nalanyanran.battle')) {
-      fengshuLandingPos = computeFengShuLandingPos(
-        get().units, get().map, attacker, defender, 2,
-      );
-      if (!fengshuLandingPos) {
-        get().addLog(
-          `🌪 风属斗技无合法落点，${attacker.name} 放弃本次进攻`,
-          'skill',
+      if (fengshuOverride !== undefined) {
+        // 玩家显式传入：可能是落点 { row, col } 或 null（放弃发动）
+        fengshuLandingPos = fengshuOverride;
+        if (fengshuOverride === null) {
+          get().addLog(
+            `🌪 ${attacker.name} 选择不发动「风属斗技」`,
+            'skill',
+          );
+        }
+      } else {
+        // 默认（AI / 未走 UI 的旧路径）：自动选最近落点
+        fengshuLandingPos = computeFengShuLandingPos(
+          get().units, get().map, attacker, defender, 2,
         );
-        // 方案B：失败整个攻击取消，返回空结果
-        return { attackerDice: [], defenderDice: [], attackerSum: 0, defenderSum: 0, skillMod: 0, counterMod: 0, damage: 0 };
+        if (!fengshuLandingPos) {
+          get().addLog(
+            `🌪 风属斗技无合法落点，${attacker.name} 放弃本次进攻`,
+            'skill',
+          );
+          // 方案B：失败整个攻击取消，返回空结果
+          return { attackerDice: [], defenderDice: [], attackerSum: 0, defenderSum: 0, skillMod: 0, counterMod: 0, damage: 0 };
+        }
       }
     }
 

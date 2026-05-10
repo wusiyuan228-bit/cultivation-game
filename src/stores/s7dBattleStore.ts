@@ -47,6 +47,7 @@ import { castSkillAndApply } from '@/utils/s7dSkillEngine';
 import {
   attackAndApply,
   checkAndTriggerAwakening,
+  computeFengShuCandidatesS7D,
   type AttackOutcome,
 } from '@/utils/s7dAttackEngine';
 import {
@@ -120,7 +121,16 @@ interface S7DBattleStore {
   /** 使用绝技（Batch 2B：接入 SkillRegistry 真实执行） */
   useUltimate: (casterId: string, targetIds: string[]) => boolean;
   /** 执行一次完整带 hook 的攻击（Batch 2C） */
-  performAttack: (attackerId: string, defenderId: string) => AttackOutcome | null;
+  performAttack: (
+    attackerId: string,
+    defenderId: string,
+    fengshuOverride?: { row: number; col: number } | null,
+  ) => AttackOutcome | null;
+  /** 风属斗技 · 计算候选落点（玩家选位 UI 用） */
+  computeFengShuCandidates: (
+    attackerId: string,
+    defenderId: string,
+  ) => Array<{ row: number; col: number }>;
   /** 手动触发觉醒扫描（Batch 2C） */
   scanAwakenings: () => void;
 
@@ -316,9 +326,15 @@ export const useS7DBattleStore = create<S7DBattleStore>((set, get) => ({
     return ret ?? false;
   },
 
-  performAttack: (attackerId, defenderId) => {
-    const ret = mutate(get, set, (s) => attackAndApply(s, attackerId, defenderId));
+  performAttack: (attackerId, defenderId, fengshuOverride) => {
+    const ret = mutate(get, set, (s) => attackAndApply(s, attackerId, defenderId, fengshuOverride));
     return ret ?? null;
+  },
+
+  computeFengShuCandidates: (attackerId, defenderId) => {
+    const s = get().state;
+    if (!s) return [];
+    return computeFengShuCandidatesS7D(s, attackerId, defenderId);
   },
 
   scanAwakenings: () => {

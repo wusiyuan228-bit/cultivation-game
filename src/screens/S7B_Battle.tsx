@@ -514,6 +514,17 @@ export const S7B_Battle: React.FC = () => {
   const [pendingSkillMod, setPendingSkillMod] = useState(0);
   const [showResult, setShowResult] = useState(false);
 
+  /* ──────── 风属斗技 · 玩家可控选位 state ──────── */
+  type FengShuPick = {
+    attackerId: string;
+    defenderId: string;
+    skillMod: number;
+    candidates: Array<{ row: number; col: number }>;
+    /** 阶段：'ask' = 询问是否发动；'pick' = 高亮选位；null = 无 */
+    phase: 'ask' | 'pick';
+  };
+  const [fengshuPick, setFengshuPick] = useState<FengShuPick | null>(null);
+
   /* ★ 2026-05-10：当 matchNo 变化时（如首场→次场），不重新挂载组件而是重置内部状态。
    *   原方案使用 window.location.reload() 会清空 zustand 内存（heroId/ownedCardIds/aiRecruitState 全丢），
    *   导致 3v3 阵容选择面板备选列表错误（玩家招募卡丢失，AI 也回到兜底主角阵容）。
@@ -1123,6 +1134,36 @@ export const S7B_Battle: React.FC = () => {
       if (!selectedUnit || battle.battleOver) return;
       if (movingPath) return; // 正在移动动画中
 
+      /* ──────────── 风属斗技 · 选位阶段拦截 ──────────── */
+      if (fengshuPick && fengshuPick.phase === 'pick') {
+        const hit = fengshuPick.candidates.find((p) => p.row === row && p.col === col);
+        if (!hit) {
+          battle.addLog('⚠️ 请点击青色高亮格作为传送目标', 'system');
+          return;
+        }
+        // 提交：用玩家选定的落点执行攻击
+        const attackerUnit = battle.units.find((u) => u.id === fengshuPick.attackerId);
+        const defenderUnit = battle.units.find((u) => u.id === fengshuPick.defenderId);
+        if (attackerUnit && defenderUnit) {
+          setDiceAttacker(attackerUnit);
+          setDiceDefender(defenderUnit);
+          battle.attack(
+            fengshuPick.attackerId,
+            fengshuPick.defenderId,
+            fengshuPick.skillMod,
+            { row: hit.row, col: hit.col },
+          );
+          const updatedUnits = useS7BBattleStore.getState().units.map((u) =>
+            u.id === fengshuPick.attackerId ? { ...u, attackedThisTurn: true } : u,
+          );
+          useS7BBattleStore.setState({ units: updatedUnits });
+          setShowDice(true);
+        }
+        setFengshuPick(null);
+        return;
+      }
+
+
       /* ──────────── D2 · 绝技瞄准态拦截 ──────────── */
       // 瞄准态下：点击格子 = 尝试锁定格子上的单位为目标；position_pick 则点空格子
       if (ultimateTargeting) {
@@ -1206,6 +1247,28 @@ export const S7B_Battle: React.FC = () => {
           (u) => !u.dead && u.row === row && u.col === col && u.isEnemy !== selectedUnit.isEnemy,
         );
         if (target && battle.attackRange.some((r) => r.row === row && r.col === col)) {
+          /* ──── 风属斗技拦截：纳兰嫣然(玩家方)进攻时，弹窗让玩家选位 ──── */
+          if ((selectedUnit.registrySkills ?? []).includes('sr_nalanyanran.battle')) {
+            const candidates = battle.computeFengShuCandidates(selectedUnit.id, target.id);
+            if (candidates.length === 0) {
+              // 无落点 → 与原规则一致：放弃攻击
+              battle.addLog(
+                `🌪 风属斗技无合法落点，${selectedUnit.name} 放弃本次进攻`,
+                'skill',
+              );
+              return;
+            }
+            // 弹询问窗
+            setFengshuPick({
+              attackerId: selectedUnit.id,
+              defenderId: target.id,
+              skillMod: pendingSkillMod,
+              candidates,
+              phase: 'ask',
+            });
+            return;
+          }
+
           setDiceAttacker(selectedUnit);
           setDiceDefender(target);
           battle.attack(selectedUnit.id, target.id, pendingSkillMod);
@@ -1219,7 +1282,7 @@ export const S7B_Battle: React.FC = () => {
         }
       }
     },
-    [selectedUnit, battle, canMove, canAttack, pendingSkillMod, isDragging, hoverPath, movingPath, ultimateTargeting, handleUltimateAim],
+    [selectedUnit, battle, canMove, canAttack, pendingSkillMod, isDragging, hoverPath, movingPath, ultimateTargeting, handleUltimateAim, fengshuPick],
   );
 
   // 选择单位
@@ -1605,6 +1668,11 @@ export const S7B_Battle: React.FC = () => {
                 ultimateTargeting.kind === 'position_pick' &&
                 cell.terrain !== 'obstacle' &&
                 !battle.units.some((u) => !u.dead && u.row === r && u.col === c);
+              // 风属斗技 · 候选格高亮
+              const isFengShuCandidate =
+                !!fengshuPick &&
+                fengshuPick.phase === 'pick' &&
+                fengshuPick.candidates.some((p) => p.row === r && p.col === c);
 
               const terrainClass: Record<string, string> = {
                 normal: styles.cellNormal,
@@ -1622,6 +1690,7 @@ export const S7B_Battle: React.FC = () => {
                 isAttackable && canAttack ? styles.cellAttackable : '',
                 isSelected ? styles.cellSelected : '',
                 isPositionPickAim ? styles.cellMovable : '',
+                isFengShuCandidate ? styles.cellMovable : '',
               ]
                 .filter(Boolean)
                 .join(' ');
@@ -2150,6 +2219,156 @@ export const S7B_Battle: React.FC = () => {
       <AnimatePresence>
         {showRule && <RuleModal onClose={() => setShowRule(false)} />}
       </AnimatePresence>
+
+      {/* 风属斗技询问弹窗 */}
+      <AnimatePresence>
+        {fengshuPick && fengshuPick.phase === 'ask' && (() => {
+          const attackerU = battle.units.find((u) => u.id === fengshuPick.attackerId);
+          const defenderU = battle.units.find((u) => u.id === fengshuPick.defenderId);
+          if (!attackerU || !defenderU) return null;
+          return (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              style={{
+                position: 'fixed',
+                inset: 0,
+                background: 'rgba(0,0,0,0.55)',
+                zIndex: 9000,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+              onClick={() => setFengshuPick(null)}
+            >
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  background: 'linear-gradient(180deg, #2a1a3a 0%, #1a0e2a 100%)',
+                  border: '2px solid #a384ff',
+                  borderRadius: 12,
+                  padding: '28px 36px',
+                  minWidth: 420,
+                  maxWidth: 540,
+                  color: '#f0e9ff',
+                  boxShadow: '0 8px 32px rgba(163, 132, 255, 0.4)',
+                }}
+              >
+                <h2 style={{ margin: 0, fontSize: 22, color: '#d4b8ff', textAlign: 'center' }}>
+                  🌪 风属斗技
+                </h2>
+                <p style={{ marginTop: 14, fontSize: 15, lineHeight: 1.7 }}>
+                  <b style={{ color: '#ffd54f' }}>{attackerU.name}</b>{' '}
+                  发起进攻 →{' '}
+                  <b style={{ color: '#ff8a8a' }}>{defenderU.name}</b>
+                </p>
+                <p style={{ fontSize: 14, lineHeight: 1.7, color: '#c5b3ff' }}>
+                  是否发动「风属斗技」？发动后可将敌方传送至自身相邻 2 格内任一位置。
+                </p>
+                <p style={{ fontSize: 13, color: '#9a87d0' }}>
+                  当前可选落点：{fengshuPick.candidates.length} 个
+                </p>
+                <div style={{ display: 'flex', gap: 12, marginTop: 22, justifyContent: 'center' }}>
+                  <button
+                    style={{
+                      padding: '10px 22px',
+                      background: 'linear-gradient(180deg, #6b4ade, #4a2db5)',
+                      color: '#fff',
+                      border: '1px solid #a384ff',
+                      borderRadius: 6,
+                      cursor: 'pointer',
+                      fontSize: 15,
+                      fontWeight: 600,
+                    }}
+                    onClick={() => {
+                      setFengshuPick((prev) => prev ? { ...prev, phase: 'pick' } : null);
+                    }}
+                  >
+                    发动并选位
+                  </button>
+                  <button
+                    style={{
+                      padding: '10px 22px',
+                      background: 'linear-gradient(180deg, #555, #333)',
+                      color: '#ddd',
+                      border: '1px solid #777',
+                      borderRadius: 6,
+                      cursor: 'pointer',
+                      fontSize: 15,
+                    }}
+                    onClick={() => {
+                      // 不发动 → 直接攻击（fengshuOverride=null 表示放弃）
+                      const a = battle.units.find((u) => u.id === fengshuPick.attackerId);
+                      const d = battle.units.find((u) => u.id === fengshuPick.defenderId);
+                      if (a && d) {
+                        setDiceAttacker(a);
+                        setDiceDefender(d);
+                        battle.attack(
+                          fengshuPick.attackerId,
+                          fengshuPick.defenderId,
+                          fengshuPick.skillMod,
+                          null,
+                        );
+                        const updatedUnits = useS7BBattleStore.getState().units.map((u) =>
+                          u.id === fengshuPick.attackerId ? { ...u, attackedThisTurn: true } : u,
+                        );
+                        useS7BBattleStore.setState({ units: updatedUnits });
+                        setShowDice(true);
+                      }
+                      setFengshuPick(null);
+                    }}
+                  >
+                    不发动
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          );
+        })()}
+      </AnimatePresence>
+
+      {/* 风属斗技选位提示条（pick 阶段） */}
+      {fengshuPick && fengshuPick.phase === 'pick' && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 80,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: 'rgba(106, 74, 222, 0.92)',
+            color: '#fff',
+            padding: '8px 18px',
+            borderRadius: 8,
+            zIndex: 8000,
+            fontSize: 14,
+            boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+          }}
+        >
+          🌪 风属斗技：请点击青色高亮格，将{' '}
+          <b>{battle.units.find((u) => u.id === fengshuPick.defenderId)?.name}</b>{' '}
+          传送至该位置
+          <button
+            style={{
+              marginLeft: 14,
+              padding: '4px 10px',
+              background: '#444',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 4,
+              cursor: 'pointer',
+              fontSize: 12,
+            }}
+            onClick={() => setFengshuPick(null)}
+          >
+            取消
+          </button>
+        </div>
+      )}
+
 
       {/* 右下角常驻 HUD（灵石 + 已收集角色）：与 S4 完全一致的4件套常驻控件 */}
       <CommonHud chapter={4} />

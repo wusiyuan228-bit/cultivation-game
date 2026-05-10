@@ -235,6 +235,18 @@ export const S7D_Battle: React.FC = () => {
     crystalFaction?: BattleFaction;
     result: S7DDiceResult | { damage: number };
   } | null>(null);
+  /** 风属斗技 · 玩家可控选位 state */
+  const [fengshuPick, setFengshuPick] = useState<{
+    attackerId: string;
+    defenderId: string;
+    candidates: Array<{ row: number; col: number }>;
+    /** ask = 弹窗询问；pick = 棋盘选位 */
+    phase: 'ask' | 'pick';
+  } | null>(null);
+  const fengshuPickRef = useRef<typeof fengshuPick>(null);
+  useEffect(() => {
+    fengshuPickRef.current = fengshuPick;
+  }, [fengshuPick]);
   /** AI 是否正在行动（阻止玩家操作） */
   const [aiBusy, setAiBusy] = useState(false);
   /** 是否显示胜负面板 */
@@ -486,11 +498,63 @@ export const S7D_Battle: React.FC = () => {
         return;
       }
 
+      // ─── 风属斗技拦截：纳兰嫣然(玩家方)进攻 → 弹窗让玩家选位 ───
+      const isPlayerSide = attacker.faction === s.playerFaction;
+      const hasFengShu = (attacker.registrySkills ?? []).includes('sr_nalanyanran.battle');
+      if (isPlayerSide && hasFengShu) {
+        const candidates = useS7DBattleStore.getState().computeFengShuCandidates(attackerId, defenderId);
+        if (candidates.length === 0) {
+          logFn(`🌪 风属斗技无合法落点，${attacker.name} 放弃本次进攻`);
+          return;
+        }
+        setFengshuPick({
+          attackerId,
+          defenderId,
+          candidates,
+          phase: 'ask',
+        });
+        return;
+      }
+
       // 走引擎：hook + 伤害 + 觉醒一条龙
       const outcome = performAttackFn(attackerId, defenderId);
       if (!outcome) return;
 
       // 骰子弹窗（用引擎返回的真实骰）
+      setDiceModal({
+        attacker,
+        defender,
+        result: {
+          attackerDice: outcome.attackerDice,
+          defenderDice: outcome.defenderDice,
+          attackerSum: outcome.attackerSum,
+          defenderSum: outcome.defenderSum,
+          baseDamage: Math.max(0, outcome.attackerSum - outcome.defenderSum),
+          skillMod: 0,
+          counterMod: outcome.counterMod,
+          damage: outcome.damage,
+        },
+      });
+    },
+    [performAttackFn, logFn],
+  );
+
+  /** 风属斗技选位完成 — 用玩家选定的落点提交攻击 */
+  const completeFengShuAttack = useCallback(
+    (override: { row: number; col: number } | null) => {
+      const pick = fengshuPickRef.current;
+      if (!pick) return;
+      const s = useS7DBattleStore.getState().state;
+      if (!s) return;
+      const attacker = s.units[pick.attackerId];
+      const defender = s.units[pick.defenderId];
+      if (!attacker || !defender) {
+        setFengshuPick(null);
+        return;
+      }
+      const outcome = performAttackFn(pick.attackerId, pick.defenderId, override);
+      setFengshuPick(null);
+      if (!outcome) return;
       setDiceModal({
         attacker,
         defender,
@@ -834,6 +898,18 @@ export const S7D_Battle: React.FC = () => {
       if (!isPlayerTurn || isBattleEnded || aiBusy || !currentActor) return;
       const key = posKey(row, col);
 
+      // 风属斗技 · 选位阶段拦截
+      if (fengshuPick && fengshuPick.phase === 'pick') {
+        const hit = fengshuPick.candidates.find((p) => p.row === row && p.col === col);
+        if (!hit) {
+          logFn('⚠️ 请点击青色高亮格作为传送目标');
+          return;
+        }
+        completeFengShuAttack({ row: hit.row, col: hit.col });
+        return;
+      }
+
+
       // 瞄准态：点击格子 = 锁定格上单位为目标（或 position_pick 选空格）
       if (ultimateTargeting) {
         const occupant = Object.values(battleState!.units).find(
@@ -895,6 +971,8 @@ export const S7D_Battle: React.FC = () => {
       logFn,
       useBattleSkillFn,
       useUltimateFn,
+      fengshuPick,
+      completeFengShuAttack,
     ],
   );
 
@@ -1086,6 +1164,12 @@ export const S7D_Battle: React.FC = () => {
                   const isAttackableCrystalCell = attackableCrystals.some((cry) =>
                     cry.positions.some((p) => p.row === cell.row && p.col === cell.col),
                   );
+                  const isFengShu =
+                    !!fengshuPick &&
+                    fengshuPick.phase === 'pick' &&
+                    fengshuPick.candidates.some(
+                      (p) => p.row === cell.row && p.col === cell.col,
+                    );
                   return (
                     <MapCell
                       key={key}
@@ -1093,6 +1177,7 @@ export const S7D_Battle: React.FC = () => {
                       isHover={hoverCell?.row === cell.row && hoverCell?.col === cell.col}
                       isReachable={isReach}
                       isAttackableCrystal={isAttackableCrystalCell}
+                      isFengShuPick={isFengShu}
                       onHoverIn={() => setHoverCell({ row: cell.row, col: cell.col })}
                       onHoverOut={() => setHoverCell(null)}
                       onClick={() => handleCellClick(cell.row, cell.col)}
@@ -1435,6 +1520,137 @@ export const S7D_Battle: React.FC = () => {
         )}
       </AnimatePresence>
 
+      {/* 风属斗技询问弹窗 */}
+      <AnimatePresence>
+        {fengshuPick && fengshuPick.phase === 'ask' && (() => {
+          const s = battleState;
+          if (!s) return null;
+          const attackerU = s.units[fengshuPick.attackerId];
+          const defenderU = s.units[fengshuPick.defenderId];
+          if (!attackerU || !defenderU) return null;
+          return (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              style={{
+                position: 'fixed',
+                inset: 0,
+                background: 'rgba(0,0,0,0.55)',
+                zIndex: 9000,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+              onClick={() => setFengshuPick(null)}
+            >
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  background: 'linear-gradient(180deg, #2a1a3a 0%, #1a0e2a 100%)',
+                  border: '2px solid #a384ff',
+                  borderRadius: 12,
+                  padding: '28px 36px',
+                  minWidth: 420,
+                  maxWidth: 540,
+                  color: '#f0e9ff',
+                  boxShadow: '0 8px 32px rgba(163, 132, 255, 0.4)',
+                }}
+              >
+                <h2 style={{ margin: 0, fontSize: 22, color: '#d4b8ff', textAlign: 'center' }}>
+                  🌪 风属斗技
+                </h2>
+                <p style={{ marginTop: 14, fontSize: 15, lineHeight: 1.7 }}>
+                  <b style={{ color: '#ffd54f' }}>{attackerU.name}</b>{' '}
+                  发起进攻 →{' '}
+                  <b style={{ color: '#ff8a8a' }}>{defenderU.name}</b>
+                </p>
+                <p style={{ fontSize: 14, lineHeight: 1.7, color: '#c5b3ff' }}>
+                  是否发动「风属斗技」？发动后可将敌方传送至自身相邻 2 格内任一位置。
+                </p>
+                <p style={{ fontSize: 13, color: '#9a87d0' }}>
+                  当前可选落点：{fengshuPick.candidates.length} 个
+                </p>
+                <div style={{ display: 'flex', gap: 12, marginTop: 22, justifyContent: 'center' }}>
+                  <button
+                    style={{
+                      padding: '10px 22px',
+                      background: 'linear-gradient(180deg, #6b4ade, #4a2db5)',
+                      color: '#fff',
+                      border: '1px solid #a384ff',
+                      borderRadius: 6,
+                      cursor: 'pointer',
+                      fontSize: 15,
+                      fontWeight: 600,
+                    }}
+                    onClick={() => {
+                      setFengshuPick((prev) => prev ? { ...prev, phase: 'pick' } : null);
+                    }}
+                  >
+                    发动并选位
+                  </button>
+                  <button
+                    style={{
+                      padding: '10px 22px',
+                      background: 'linear-gradient(180deg, #555, #333)',
+                      color: '#ddd',
+                      border: '1px solid #777',
+                      borderRadius: 6,
+                      cursor: 'pointer',
+                      fontSize: 15,
+                    }}
+                    onClick={() => completeFengShuAttack(null)}
+                  >
+                    不发动
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          );
+        })()}
+      </AnimatePresence>
+
+      {/* 风属斗技选位提示条（pick 阶段） */}
+      {fengshuPick && fengshuPick.phase === 'pick' && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 80,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: 'rgba(106, 74, 222, 0.92)',
+            color: '#fff',
+            padding: '8px 18px',
+            borderRadius: 8,
+            zIndex: 8000,
+            fontSize: 14,
+            boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+          }}
+        >
+          🌪 风属斗技：请点击青色高亮格，将{' '}
+          <b>{battleState?.units[fengshuPick.defenderId]?.name}</b>{' '}
+          传送至该位置
+          <button
+            style={{
+              marginLeft: 14,
+              padding: '4px 10px',
+              background: '#444',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 4,
+              cursor: 'pointer',
+              fontSize: 12,
+            }}
+            onClick={() => setFengshuPick(null)}
+          >
+            取消
+          </button>
+        </div>
+      )}
+
       {/* 胜负结果面板 */}
       <AnimatePresence>
         {showResult && battleState.winner && (
@@ -1717,6 +1933,7 @@ interface MapCellProps {
   isHover: boolean;
   isReachable: boolean;
   isAttackableCrystal: boolean;
+  isFengShuPick?: boolean;
   onHoverIn: () => void;
   onHoverOut: () => void;
   onClick: () => void;
@@ -1742,6 +1959,7 @@ const MapCell: React.FC<MapCellProps> = ({
   isHover,
   isReachable,
   isAttackableCrystal,
+  isFengShuPick = false,
   onHoverIn,
   onHoverOut,
   onClick,
@@ -1754,11 +1972,14 @@ const MapCell: React.FC<MapCellProps> = ({
   const isCrystalACell = isCrystalA(cell.row, cell.col);
   const isCrystalBCell = isCrystalB(cell.row, cell.col);
 
+  // 风属斗技候选格 → 复用可达格高亮（青色光圈）
+  const showReachable = isReachable || isFengShuPick;
+
   const cellClass = [
     styles.cell,
     styles[`cell_${cell.tile}`] ?? '',
     isHover ? styles.cellHover : '',
-    isReachable ? styles.cellReachable : '',
+    showReachable ? styles.cellReachable : '',
     isAttackableCrystal ? styles.cellAttackableCrystal : '',
   ]
     .filter(Boolean)
@@ -1787,7 +2008,7 @@ const MapCell: React.FC<MapCellProps> = ({
       {textLabel && !isSpawnACell && !isSpawnBCell && !isCrystalACell && !isCrystalBCell && (
         <span className={styles.cellTextLabel}>{textLabel}</span>
       )}
-      {isReachable && <div className={styles.reachOverlay} />}
+      {showReachable && <div className={styles.reachOverlay} />}
       {isAttackableCrystal && <div className={styles.attackCrystalOverlay}>⚔</div>}
     </div>
   );
