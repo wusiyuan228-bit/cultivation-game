@@ -1874,6 +1874,15 @@
   bottom: 12px;
   align-self: auto;
   min-height: 0;
+  /* === 拖拽 / 滚轮缩放必备属性（与前段保持一致；防止浏览器原生滚动吞掉 wheel） === */
+  overflow: hidden;
+  touch-action: none;
+  overscroll-behavior: contain;
+  cursor: grab;
+  user-select: none;
+}
+.mapArea:active {
+  cursor: grabbing;
 }
 
 /* 原侧栏：现在变成战报独占的右侧栏，移除 flex */
@@ -2457,6 +2466,9 @@
   padding: 8px 12px;
   border-bottom: 1px solid rgba(200, 161, 75, 0.18);
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .logTitle {
@@ -2464,6 +2476,42 @@
   font-weight: 700;
   color: #c8a14b;
   letter-spacing: 1px;
+}
+
+/* === 战报回合筛选条（与 S7A/S7B/S7C 同款） === */
+.logFilterBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-height: 60px;
+  overflow-y: auto;
+}
+.logFilterBadge {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(60, 50, 30, 0.6);
+  color: #a09878;
+  border: 1px solid rgba(200, 161, 75, 0.2);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.logFilterBadge:hover {
+  background: rgba(100, 80, 40, 0.7);
+  color: #ffd98a;
+  border-color: rgba(200, 161, 75, 0.5);
+}
+.logFilterBadgeActive {
+  background: #c8a14b;
+  color: #1a1810;
+  border-color: #c8a14b;
+}
+.logFilterBadgeActive:hover {
+  background: #e0b85a;
+  color: #1a1810;
+  border-color: #e0b85a;
 }
 
 .logRoundTag {

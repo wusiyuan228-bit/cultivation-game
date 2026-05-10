@@ -1399,6 +1399,8 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ battleState, selectedUnitId, onReturnMenu }) => {
+  // 战报筛选：'all' 显示全部 / number 显示指定大回合
+  const [logFilter, setLogFilter] = useState<number | 'all'>('all');
   return (
     <motion.div
       className={styles.sidebar}
@@ -1409,14 +1411,39 @@ const Sidebar: React.FC<SidebarProps> = ({ battleState, selectedUnitId, onReturn
       {/* 行动队列面板 / 三区概览 / 选中单位详情 —— 已移除，
           右侧整列留给战报（参考 S7B 风格） */}
 
-      {/* 战报（参考 S7B 风格：按 kind 分色 + 大字号 + 顶部表头） */}
+      {/* 战报（参考 S7B 风格：按 kind 分色 + 大字号 + 顶部表头 + 回合筛选） */}
       <div className={styles.logPanel}>
         <div className={styles.logHeader}>
           <span className={styles.logTitle}>📜 战报</span>
+          {(() => {
+            const roundSet = new Set<number>();
+            for (const l of battleState.log) roundSet.add(l.bigRound);
+            const rounds = Array.from(roundSet).sort((a, b) => a - b);
+            return (
+              <div className={styles.logFilterBar}>
+                <button
+                  type="button"
+                  className={`${styles.logFilterBadge} ${logFilter === 'all' ? styles.logFilterBadgeActive : ''}`}
+                  onClick={() => setLogFilter('all')}
+                  title="显示全部回合"
+                >全部</button>
+                {rounds.map((r) => (
+                  <button
+                    key={r}
+                    type="button"
+                    className={`${styles.logFilterBadge} ${logFilter === r ? styles.logFilterBadgeActive : ''}`}
+                    onClick={() => setLogFilter(r)}
+                    title={`只看第 ${r} 大回合`}
+                  >R{r}</button>
+                ))}
+              </div>
+            );
+          })()}
         </div>
         <div className={styles.logList}>
           {battleState.log
-            .slice(-50)
+            .filter((entry) => logFilter === 'all' || entry.bigRound === logFilter)
+            .slice(-200)
             .reverse()
             .map((entry) => {
               // 按 kind 分类样式（与 S7B 相同的语义分色）
