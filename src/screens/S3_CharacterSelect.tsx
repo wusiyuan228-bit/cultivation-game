@@ -20,6 +20,7 @@ export const S3_CharacterSelect: React.FC = () => {
   const [hoverId, setHoverId] = useState<HeroId | null>(null);
   const [selectedId, setSelectedId] = useState<HeroId | null>(null);
   const setHero = useGameStore((s) => s.setHero);
+  const resetGame = useGameStore((s) => s.reset);
 
   /** 按S3顺序排列的Hero数据 */
   const heroesInS3Order = useMemo(() => {
@@ -41,6 +42,10 @@ export const S3_CharacterSelect: React.FC = () => {
 
   const handleEnter = () => {
     if (!selectedId || !activeHero) return;
+    // ★ 2026-05-10：开新局前先清空全局状态，防止旧局残留数据污染。
+    //   场景：玩家中途返回主菜单（自动存档已落盘到 slot 0），再点"开始游戏"重选角色，
+    //   若不 reset，则旧局的 ownedCardIds / spiritStones / chapter / aiRecruitState 仍在 zustand 内存中。
+    resetGame();
     setHero(selectedId, activeHero.name);
     // 后台预加载该角色ch3-6剧情（ch1-2已在S1加载完毕）
     preloadLaterChapters(selectedId);
