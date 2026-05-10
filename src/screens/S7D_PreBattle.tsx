@@ -64,6 +64,7 @@ export const S7D_PreBattle: React.FC = () => {
   const ownedCardIds = useGameStore((s) => s.ownedCardIds);
   const s7dAiLineups = useGameStore((s) => s.s7dAiLineups);
   const setS7DAiLineups = useGameStore((s) => s.setS7DAiLineups);
+  const s7dDeployedCards = useGameStore((s) => s.s7dDeployedCards);
   const [aiLoaded, setAiLoaded] = useState<boolean>(!!s7dAiLineups);
 
   // 进入时若尚未生成 AI 阵容 → 立即生成并写入 store（下一章若重入仍用同一份）
@@ -143,8 +144,10 @@ export const S7D_PreBattle: React.FC = () => {
   };
 
   const handleManage = () => {
-    // 复用 S6 整理页作为备战卡组整理（后续可扩展专用页）
-    navigate('/s6?from=s7d');
+    // 整理卡组：直接进入决战备战点将页，从已收集卡中挑 5 张战卡
+    // （这里与「出征坠魔谷」同目标，但按钮文案侧重"编组/整理"而非"出征"，
+    //  便于玩家在未编组时先点整理卡组，编组完成后再点出征）
+    navigate('/s7d/deploy');
   };
 
   return (
@@ -175,6 +178,7 @@ export const S7D_PreBattle: React.FC = () => {
           playerId={heroId}
           aiLineups={s7dAiLineups}
           aiLoaded={aiLoaded}
+          playerDeployedCards={s7dDeployedCards}
         />
 
         {/* VS */}
@@ -196,12 +200,13 @@ export const S7D_PreBattle: React.FC = () => {
           playerId={heroId}
           aiLineups={s7dAiLineups}
           aiLoaded={aiLoaded}
+          playerDeployedCards={null}
         />
       </div>
 
       {/* 整理卡组（左下） */}
       <button className={styles.manageBtn} onClick={handleManage} type="button">
-        🗂 整理卡组
+        {s7dDeployedCards && s7dDeployedCards.length > 0 ? '🗂 调整卡组' : '🗂 整理卡组'}
       </button>
 
       {/* 底部提示 + 出征 */}
@@ -232,9 +237,11 @@ interface FactionColumnProps {
   playerId: HeroId | null;
   aiLineups: Record<string, AILineup> | null;
   aiLoaded: boolean;
+  /** 玩家本方阵容下，主角已编组的 5 张战卡 id（s7dDeployedCards）；敌方阵营传 null */
+  playerDeployedCards: string[] | null;
 }
 
-const FactionColumn: React.FC<FactionColumnProps> = ({ side, faction, team, playerId, aiLineups, aiLoaded }) => {
+const FactionColumn: React.FC<FactionColumnProps> = ({ side, faction, team, playerId, aiLineups, aiLoaded, playerDeployedCards }) => {
   const colClass = `${styles.factionColumn} ${side === 'player' ? styles.player : styles.enemy}`;
   const badgeClass = `${styles.factionBadge} ${side === 'player' ? styles.player : styles.enemy}`;
 
@@ -263,6 +270,7 @@ const FactionColumn: React.FC<FactionColumnProps> = ({ side, faction, team, play
             isPlayer={h.id === playerId}
             aiLineup={h.id === playerId ? null : aiLineups?.[h.id] ?? null}
             aiLoaded={aiLoaded}
+            playerDeployedCards={h.id === playerId ? playerDeployedCards : null}
           />
         ))}
       </div>
@@ -278,6 +286,8 @@ interface MemberCardProps {
   isPlayer: boolean;
   aiLineup: AILineup | null;
   aiLoaded: boolean;
+  /** 仅玩家主角条有值：已编组的 5 张战卡 id */
+  playerDeployedCards: string[] | null;
 }
 
 /** 稀有度 → 颜色 */
@@ -289,9 +299,10 @@ const RARITY_COLOR: Record<string, string> = {
   UR: '#a83b3b',
 };
 
-const MemberCard: React.FC<MemberCardProps> = ({ hero, isPlayer, aiLineup, aiLoaded }) => {
+const MemberCard: React.FC<MemberCardProps> = ({ hero, isPlayer, aiLineup, aiLoaded, playerDeployedCards }) => {
   const isSwing = hero.faction === '摇摆';
-  const avatar = getCachedImage(`${hero.id}_portrait`) || getCachedImage(hero.id) || '';
+  // 头像：直接用 hero.id 命中预加载小图（imageCache 对 hero_* 有兜底，不加 _portrait 后缀）
+  const avatar = getCachedImage(hero.id) || '';
 
   const cardClass = [
     styles.memberCard,
@@ -354,6 +365,33 @@ const MemberCard: React.FC<MemberCardProps> = ({ hero, isPlayer, aiLineup, aiLoa
             })
           ) : (
             <span className={styles.aiDeckLoading}>阵容缺失</span>
+          )}
+        </div>
+      )}
+
+      {/* 玩家主角：已编组则显示 5 张战卡，否则提示去整理卡组 */}
+      {isPlayer && (
+        <div className={styles.aiDeckRow}>
+          <span className={styles.aiDeckLabel}>战卡：</span>
+          {playerDeployedCards && playerDeployedCards.length > 0 ? (
+            playerDeployedCards.map((cid) => {
+              const p = getPoolCardById(cid);
+              const rarity = p?.rarity ?? 'R';
+              const color = RARITY_COLOR[rarity] ?? '#888';
+              return (
+                <span
+                  key={cid}
+                  className={styles.aiDeckChip}
+                  style={{ borderColor: color, color }}
+                  title={`${p?.name ?? cid}（${rarity}）`}
+                >
+                  {p?.name?.slice(0, 3) ?? cid.slice(0, 3)}
+                  <span className={styles.aiDeckChipRarity}>{rarity}</span>
+                </span>
+              );
+            })
+          ) : (
+            <span className={styles.aiDeckLoading}>尚未编组 · 点击左下「整理卡组」挑 5 张</span>
           )}
         </div>
       )}
