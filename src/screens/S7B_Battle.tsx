@@ -802,6 +802,14 @@ export const S7B_Battle: React.FC = () => {
       if (urlParams.isSect && matchNo === 1) {
         try { sessionStorage.setItem(SECT_FIRST_KEY, aiHero.id); } catch { /* ignore */ }
       }
+      // ★ 2026-05-10：宗门大比所有场次对手id都记录到 sessionStorage，
+      //   供 S6c（pool=3）招募阶段计算"宗门大比真实排名"使用
+      if (urlParams.isSect) {
+        try {
+          const k = matchNo === 1 ? 'cardwar:sectOpp1Id' : 'cardwar:sectOpp2Id';
+          sessionStorage.setItem(k, aiHero.id);
+        } catch { /* ignore */ }
+      }
 
       // 取该 AI 的招募卡牌（不含主角自身的战斗卡）
       const aiSnapshot = aiRecruitState[aiHero.id];
@@ -1411,6 +1419,11 @@ export const S7B_Battle: React.FC = () => {
     if (battleMode === 'sect') {
       // === 宗门大比模式 ===
       const win = battle.battleResult === 'win';
+      // ★ 2026-05-10：记录每场胜负到 sessionStorage，供 S6c 招募阶段计算"宗门大比真实排名"
+      try {
+        const k = matchNo === 1 ? 'cardwar:sectMatch1Win' : 'cardwar:sectMatch2Win';
+        sessionStorage.setItem(k, win ? '1' : '0');
+      } catch { /* ignore */ }
       if (win) {
         // 胜利 → 发灵石 & 推进流程
         addSpiritStones(sectReward);

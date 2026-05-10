@@ -206,6 +206,19 @@ export const S6_Recruit: React.FC = () => {
           poolRound === 3 ? await loadRecruitPool3(pool2RemainingSr) :
           poolRound === 2 ? await loadRecruitPool2() :
           await loadRecruitPool1();
+        // ★ 2026-05-10：S6c（pool=3）从 sessionStorage 读取宗门大比战绩，
+        //   用于将抽卡顺序主键从"剿匪击杀数"切换为"宗门大比真实排名"
+        let sectRecord: import('@/systems/recruit/participantFactory').SectMatchRecord | null = null;
+        if (poolRound === 3) {
+          try {
+            sectRecord = {
+              match1Win: sessionStorage.getItem('cardwar:sectMatch1Win') === '1',
+              match2Win: sessionStorage.getItem('cardwar:sectMatch2Win') === '1',
+              opp1Id: (sessionStorage.getItem('cardwar:sectOpp1Id') as any) ?? null,
+              opp2Id: (sessionStorage.getItem('cardwar:sectOpp2Id') as any) ?? null,
+            };
+          } catch { /* ignore */ }
+        }
         const list = createParticipants(
           playerHeroId,
           playerName || '玩家',
@@ -216,7 +229,18 @@ export const S6_Recruit: React.FC = () => {
           poolCards,
           storeOwnedCardIds,
           aiRecruitStateStore,
+          sectRecord,
         );
+        // ★ 数据健康度诊断：若 pool>=2 但玩家 ownedCardIds 全空，多半是用了测试入口或存档错乱
+        if (poolRound >= 2 && storeOwnedCardIds.filter((id) => id !== playerHeroId).length === 0) {
+          console.warn(
+            `[S6c] 玩家 ownedCardIds 为空（poolRound=${poolRound}）—— 历史招募卡未继承。\n` +
+            `可能原因：1）使用测试入口直接跳转；2）存档加载异常；3）跨标签会话状态丢失。`
+          );
+        }
+        if (poolRound === 3 && Object.keys(aiRecruitStateStore).length === 0) {
+          console.warn('[S6c] aiRecruitState 为空 —— AI 上一轮招募快照未保存，所有AI将只持有主角卡。');
+        }
         initialize({ participants: list, pool: poolCards });
         setLoading(false);
       } catch (e) {
@@ -931,7 +955,7 @@ export const S6_Recruit: React.FC = () => {
             </div>
             <div className={styles.startDivider} />
             <div className={styles.startTitle}>
-              {poolRound === 3 ? '本轮按"宗门大比排名"排序（暂沿用剿匪战表现）' :
+              {poolRound === 3 ? '本轮按"宗门大比战绩"排序（玩家胜场+50/场，败者按剿匪表现兜底）' :
                poolRound === 2 ? '本轮按"宗门剿匪击杀数"排序（同数按心境值）' :
                '本轮根据"心境值高低"顺序依次抽卡'}
             </div>

@@ -103,6 +103,54 @@ export interface AiRecruitSnapshot {
 }
 
 /**
+ * 宗门大比战绩快照（仅 S6c/pool=3 使用）
+ * 用于将"剿匪击杀数"主键替换为"宗门大比真实表现"主键
+ */
+export interface SectMatchRecord {
+  /** 玩家第一场（2v2）是否胜利 */
+  match1Win: boolean;
+  /** 玩家第二场（3v3）是否胜利 */
+  match2Win: boolean;
+  /** 玩家第一场对手 heroId */
+  opp1Id: HeroId | null;
+  /** 玩家第二场对手 heroId */
+  opp2Id: HeroId | null;
+}
+
+/**
+ * 计算 S6c 招募顺序排序得分（用于覆盖 s7aKill 字段）
+ *
+ * 排序规则（数值高优先）：
+ * - 玩家：胜2场=100，胜1场=50，全败=0；额外保留剿匪基础分*0.1 作为 tiebreak
+ * - 玩家两场对手 AI：因败北降权 → 胜过他们的玩家越多，他们排名越靠后
+ *   - 输给玩家2v2 → -10
+ *   - 输给玩家3v3 → -10（叠加）
+ * - 其他 AI：维持自身 s7aKillMock 数值，不调整
+ */
+function computeSectRankScore(
+  isPlayer: boolean,
+  heroId: HeroId,
+  baseKill: number,
+  sectRecord: SectMatchRecord | null,
+): number {
+  if (!sectRecord) return baseKill;
+  if (isPlayer) {
+    let s = 0;
+    if (sectRecord.match1Win) s += 50;
+    if (sectRecord.match2Win) s += 50;
+    return s + baseKill * 0.1; // 0.1*baseKill 作为细微 tiebreak，不影响主排序
+  }
+  // 该 AI 是否被玩家击败过？被击败一次扣10分，叠加（基础分仍参与）
+  let s = baseKill;
+  if (sectRecord.opp1Id === heroId && sectRecord.match1Win) s -= 10;
+  if (sectRecord.opp2Id === heroId && sectRecord.match2Win) s -= 10;
+  // 反过来：如果 AI 击败了玩家（玩家失利），AI 加分
+  if (sectRecord.opp1Id === heroId && !sectRecord.match1Win) s += 10;
+  if (sectRecord.opp2Id === heroId && !sectRecord.match2Win) s += 10;
+  return s;
+}
+
+/**
  * 根据玩家选的主角，生成 6 名参与者（玩家 + 5AI）
  *
  * @param playerHeroId 玩家主角 id
@@ -125,6 +173,7 @@ export function createParticipants(
   poolCards: PoolCard[] = [],
   playerOwnedCardIds: string[] = [],
   aiSnapshot: Record<string, AiRecruitSnapshot> = {},
+  sectRecord: SectMatchRecord | null = null,
 ): Participant[] {
   const allHeroIds: HeroId[] = [
     'hero_tangsan',
@@ -162,7 +211,7 @@ export function createParticipants(
     isPlayer: true,
     baseMnd: playerCard.mnd,
     baseAtk: playerCard.atk,
-    s7aKill: playerBanditKillCount,
+    s7aKill: computeSectRankScore(true, playerHeroId, playerBanditKillCount, sectRecord),
     gems: playerEarnedGems,
     skipUsed: 0,
     skipLimit: 3,
@@ -209,7 +258,8 @@ export function createParticipants(
     }
 
     // ---- 剿匪击杀（用于抽卡顺序排序） ----
-    const aiKill = playerBanditKillCount >= 0 ? (hero.s7aKillMock ?? 5) : -1;
+    const baseKill = playerBanditKillCount >= 0 ? (hero.s7aKillMock ?? 5) : -1;
+    const aiKill = computeSectRankScore(false, heroId, baseKill, sectRecord);
 
     participants.push({
       id: heroId,
