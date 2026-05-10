@@ -82,9 +82,9 @@ async function loadCardIndex(): Promise<Map<string, RawCardData>> {
     addPool(data.pool_r ?? [], 'R');
     addPool(data.pool_sr ?? [], 'SR');
     addPool(data.pool_ssr ?? [], 'SSR');
-    // 绑定池也要加
-    addPool(data.pool_bsr ?? [], 'SR');
-    addPool(data.pool_bssr ?? [], 'SSR');
+    // 绑定池也要加（注意 JSON 字段名是 bind_ssr/bind_sr）
+    addPool(data.bind_ssr ?? data.pool_bssr ?? [], 'SSR');
+    addPool(data.bind_sr ?? data.pool_bsr ?? [], 'SR');
     cardIndex = map;
     return map;
   })();

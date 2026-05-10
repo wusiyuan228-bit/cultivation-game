@@ -16,11 +16,15 @@
 .topBar {
   position: absolute;
   top: 96px;
-  left: 50%;
-  transform: translateX(-50%);
-  text-align: center;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   letter-spacing: 4px;
   z-index: 5;
+  pointer-events: none;
 }
 
 .topTitle {
@@ -31,6 +35,9 @@
     0 0 18px rgba(220, 140, 80, 0.55),
     0 2px 8px rgba(0, 0, 0, 0.9);
   margin-bottom: 8px;
+  text-align: center;
+  /* 补偿 letter-spacing 造成的右侧偏移视觉差 */
+  padding-left: 4px;
 }
 
 .topSubtitle {
@@ -312,13 +319,19 @@
 .bottomBar {
   position: absolute;
   bottom: 88px;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 0;
+  right: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 14px;
   z-index: 5;
+  pointer-events: none;
+}
+
+.bottomBar > * {
+  pointer-events: auto;
 }
 
 .bottomHint {

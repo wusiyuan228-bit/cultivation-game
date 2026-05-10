@@ -21,6 +21,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { asset } from '@/utils/assetPath';
+import { getCachedImage } from '@/utils/imageCache';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { BackButton } from '@/components/BackButton';
@@ -1376,11 +1377,9 @@ const TopBar: React.FC<TopBarProps> = ({ battleState, currentActor, isPlayerTurn
         {currentActor && (
           <div className={styles.currentActor}>
             <span className={styles.currentActorLabel}>
-              {isPlayerTurn ? '🔹 你的回合' : '⚙ AI 行动'}
-            </span>
-            <span className={styles.currentActorName}>{currentActor.name}</span>
-            <span className={styles.currentActorOwner}>
-              （{getOwnerDisplay(battleState, currentActor.ownerId)}）
+              {isPlayerTurn
+                ? `🎯 ${currentActor.name} 的回合 · 行动中`
+                : `🤖 AI · ${currentActor.name} 行动中`}
             </span>
           </div>
         )}
@@ -1410,22 +1409,37 @@ const Sidebar: React.FC<SidebarProps> = ({ battleState, selectedUnitId, onReturn
       {/* 行动队列面板 / 三区概览 / 选中单位详情 —— 已移除，
           右侧整列留给战报（参考 S7B 风格） */}
 
-      {/* 战报 */}
-      <div className={styles.panelBox + ' ' + styles.logBox}>
-        <h3 className={styles.panelTitle}>📜 战报</h3>
+      {/* 战报（参考 S7B 风格：按 kind 分色 + 大字号 + 顶部表头） */}
+      <div className={styles.logPanel}>
+        <div className={styles.logHeader}>
+          <span className={styles.logTitle}>📜 战报</span>
+        </div>
         <div className={styles.logList}>
           {battleState.log
-            .slice(-30)
+            .slice(-50)
             .reverse()
-            .map((entry) => (
-              <div key={entry.seq} className={styles.logItem}>
-                <span className={styles.logRound}>
-                  R{entry.bigRound}
-                  {entry.subRound ? `.${entry.subRound}` : ''}
-                </span>
-                <span className={styles.logText}>{entry.text}</span>
-              </div>
-            ))}
+            .map((entry) => {
+              // 按 kind 分类样式（与 S7B 相同的语义分色）
+              const kindClass =
+                entry.kind === 'attack' || entry.kind === 'damage' || entry.kind === 'crystal_damage' || entry.kind === 'crystal_broken'
+                  ? styles.logDamage
+                  : entry.kind === 'skill_cast' || entry.kind === 'heal'
+                  ? styles.logSkill
+                  : entry.kind === 'death'
+                  ? styles.logKill
+                  : entry.kind === 'move' || entry.kind === 'turn_start' || entry.kind === 'turn_end' || entry.kind === 'deploy'
+                  ? styles.logAction
+                  : styles.logSystem;
+              return (
+                <div key={entry.seq} className={`${styles.logItem} ${kindClass}`}>
+                  <span className={styles.logRoundTag}>
+                    R{entry.bigRound}
+                    {entry.subRound ? `.${entry.subRound}` : ''}
+                  </span>
+                  <span className={styles.logText}>{entry.text}</span>
+                </div>
+              );
+            })}
         </div>
       </div>
     </motion.div>
@@ -1562,9 +1576,14 @@ const UnitPiece: React.FC<UnitPieceProps> = ({
     .filter(Boolean)
     .join(' ');
 
-  // 头像底图：unit.portrait（来自卡池/主角数据）
-  const portraitStyle = unit.portrait
-    ? { backgroundImage: `url(${unit.portrait})` }
+  // 头像底图：优先 unit.portrait，缺失时用 getCachedImage(cardId) 兜底
+  // 兼容主角卡（cardId 形如 hero_xiaoyan）和绑定卡（cardId 形如 bssr_yaochen）
+  const portraitUrl =
+    unit.portrait && !unit.portrait.startsWith('hero/')
+      ? unit.portrait
+      : getCachedImage(unit.isHero && unit.heroId ? unit.heroId : unit.cardId);
+  const portraitStyle = portraitUrl
+    ? { backgroundImage: `url(${portraitUrl})` }
     : undefined;
 
   return (
@@ -1936,20 +1955,21 @@ interface SkillButtonProps {
 const SkillButton: React.FC<SkillButtonProps> = ({ kind, name, desc, check, onClick }) => {
   const disabled = !check.interactable;
   const tip = check.interactable ? desc : check.reason ?? desc;
-  const label = kind === 'battle' ? `✨ 战技 ${name}` : `⚡ 绝技 ${name}`;
+  // 对齐 S7B 文案：技能：xxx / 绝技：xxx
+  const label = kind === 'battle' ? `技能：${name}` : `绝技：${name}`;
   const cls = [
-    styles.skillBtn,
-    kind === 'battle' ? styles.skillBtnBattle : styles.skillBtnUltimate,
-    check.hasCharges ? styles.skillBtnLit : styles.skillBtnDim,
-    check.isPassive ? styles.skillBtnPassive : '',
-    disabled ? styles.skillBtnDisabled : '',
+    styles.actionBtn,
+    kind === 'battle' ? styles.btnSkill : styles.btnUltimate,
+    disabled && check.hasCharges ? styles.btnConditionUnmet : '',
   ]
     .filter(Boolean)
     .join(' ');
+  // 被动技不渲染按钮（保持 S7B 行为）
+  if (check.isPassive) return null;
   return (
     <button className={cls} title={tip} onClick={onClick} disabled={disabled}>
-      <span className={styles.skillBtnLamp} />
-      <span className={styles.skillBtnLabel}>{label}</span>
+      <span className={check.hasCharges ? styles.skillDotGreen : styles.skillDotDim} />
+      {label}
     </button>
   );
 };
@@ -2185,12 +2205,18 @@ const ZonePeekModal: React.FC<ZonePeekModalProps> = ({ zone, units, onClose }) =
             {units.map((u) => (
               <div key={u.instanceId} className={`${styles.zonePeekCard} ${styles[`rarity_${u.rarity}`] ?? ''}`}>
                 <div className={styles.zonePeekCardHead}>
-                  {u.portrait && (
-                    <div
-                      className={styles.zonePeekAvatar}
-                      style={{ backgroundImage: `url(${u.portrait})` }}
-                    />
-                  )}
+                  {(() => {
+                    const url =
+                      u.portrait && !u.portrait.startsWith('hero/')
+                        ? u.portrait
+                        : getCachedImage(u.isHero && u.heroId ? u.heroId : u.cardId);
+                    return url ? (
+                      <div
+                        className={styles.zonePeekAvatar}
+                        style={{ backgroundImage: `url(${url})` }}
+                      />
+                    ) : null;
+                  })()}
                   <div className={styles.zonePeekCardInfo}>
                     <div className={styles.zonePeekName}>
                       {u.name}

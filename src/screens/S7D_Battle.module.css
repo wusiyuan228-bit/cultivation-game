@@ -2426,20 +2426,24 @@
   filter: grayscale(0.4);
 }
 
+/* 条件不满足（绿点亮但条件未达成）：按钮变灰但保持绿点 */
+.btnConditionUnmet {
+  opacity: 0.55 !important;
+  filter: grayscale(0.3);
+}
+
 /* 覆盖原 .turnControls 让其不再生效（保险） —— 已弃用，改用 .actionPanel
 .turnControls {
   display: none !important;
 } */
 
 /* ==========================================================================
- * 战报面板（S7B 同款）
+ * 战报面板（S7B 同款）—— 嵌在 sidebar 内，撑满 sidebar
  * ========================================================================== */
 .logPanel {
-  position: absolute;
-  right: 16px;
-  top: 12px;
-  bottom: 12px;
-  width: 280px;
+  position: relative;
+  width: 100%;
+  height: 100%;
   background: rgba(20, 18, 14, 0.92);
   border: 1px solid rgba(200, 161, 75, 0.25);
   border-radius: 10px;
@@ -2456,27 +2460,44 @@
 }
 
 .logTitle {
-  font-size: 16px;
-  font-weight: 800;
+  font-size: 18px;
+  font-weight: 700;
   color: #c8a14b;
   letter-spacing: 1px;
 }
 
-.logBox .logList {
-  padding: 8px 10px;
+.logRoundTag {
+  display: inline-block;
+  font-size: 11px;
+  color: #8a7a4a;
+  background: rgba(80, 60, 30, 0.4);
+  padding: 0 5px;
+  margin-right: 6px;
+  border-radius: 3px;
+  font-weight: 600;
+  vertical-align: middle;
 }
 
-.logBox .logItem {
-  font-size: 13px;
-  font-weight: 600;
-  padding: 3px 0;
+.logBox .logList,
+.logPanel .logList {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.logBox .logItem,
+.logPanel .logItem {
+  font-size: 16px;
+  font-weight: 700;
+  padding: 4px 0;
   border-bottom: 1px solid rgba(200, 180, 140, 0.06);
   line-height: 1.45;
 }
 
-.logBox .logRound {
+.logBox .logRound,
+.logPanel .logRound {
   display: inline-block;
-  font-size: 10px;
+  font-size: 11px;
   color: #8a7a4a;
   background: rgba(80, 60, 30, 0.4);
   padding: 0 5px;
@@ -2488,9 +2509,17 @@
   width: auto;
 }
 
-.logBox .logText {
+.logBox .logText,
+.logPanel .logText {
   color: #d8c9a3;
 }
+
+/* 按 kind 分色（S7B 同款语义色） */
+.logAction { color: #8bc8e0; }
+.logDamage { color: #e8a060; }
+.logSkill { color: #c0a0e0; }
+.logSystem { color: #a0a080; font-style: italic; }
+.logKill { color: #e87060; font-weight: bold; }
 
 /* ==========================================================================
  * 手牌/弃牌按钮调位：让出战报区域，固定到地图区右下角
