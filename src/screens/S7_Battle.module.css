@@ -888,9 +888,12 @@
   background: rgba(30,28,22,.96);
   border: 1.5px solid rgba(200,161,75,.55);
   border-radius: 16px;
-  padding: 40px 48px;
-  max-width: 900px;
-  width: 90%;
+  padding: 32px 40px 24px;
+  max-width: 960px;
+  width: 92%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
   box-shadow: 0 8px 40px rgba(0,0,0,.6), 0 0 0 1px rgba(0,0,0,.3);
 }
 
@@ -902,19 +905,21 @@
   margin-bottom: 16px;
   letter-spacing: 2px;
   text-shadow: 0 2px 8px rgba(0,0,0,.6);
+  flex-shrink: 0;
 }
 
 .selectSub {
   font-size: 18px;
   color: #c8c0a0;
   text-align: center;
-  margin-bottom: 28px;
+  margin-bottom: 22px;
   line-height: 1.8;
   max-width: 760px;
   margin-left: auto;
   margin-right: auto;
   padding: 0 8px;
   font-weight: 500;
+  flex-shrink: 0;
 }
 
 .selectGrid {
@@ -922,6 +927,23 @@
   gap: 16px;
   justify-content: center;
   flex-wrap: wrap;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
+  align-content: flex-start;
+  padding: 4px 8px 8px;
+}
+
+.selectGrid::-webkit-scrollbar {
+  width: 8px;
+}
+.selectGrid::-webkit-scrollbar-thumb {
+  background: rgba(200,161,75,.45);
+  border-radius: 4px;
+}
+.selectGrid::-webkit-scrollbar-track {
+  background: rgba(0,0,0,.25);
+  border-radius: 4px;
 }
 
 .selectCard {
@@ -981,7 +1003,7 @@
 
 .selectConfirm {
   display: block;
-  margin: 28px auto 0;
+  margin: 20px auto 0;
   padding: 12px 48px;
   background: linear-gradient(135deg, #c8a14b, #a07830);
   border: none;
@@ -993,6 +1015,7 @@
   cursor: pointer;
   box-shadow: 0 4px 12px rgba(200,161,75,.3);
   transition: transform .15s, box-shadow .2s;
+  flex-shrink: 0;
 }
 .selectConfirm:hover:not(:disabled) {
   transform: translateY(-2px);
