@@ -238,8 +238,96 @@ export const S7D_Battle: React.FC = () => {
   const [aiBusy, setAiBusy] = useState(false);
   /** 是否显示胜负面板 */
   const [showResult, setShowResult] = useState(false);
+  /** 手牌/弃牌 偷看弹窗 —— 仅展示玩家(ownerId='player') 自己的卡 */
+  const [zonePeek, setZonePeek] = useState<'hand' | 'grave' | null>(null);
 
   const mapData = useMemo<S7DTile[][]>(() => generateS7DMap(), []);
+
+  // ============================================================
+  // 地图拖动 & 缩放（移植自 S7B：直接操作 DOM transform，绕过 React 重渲染）
+  // ============================================================
+  const mapAreaRef = useRef<HTMLDivElement>(null);
+  const mapViewportRef = useRef<HTMLDivElement>(null);
+  const transformRef = useRef({ x: 0, y: 0, scale: 1 });
+  const rafIdRef = useRef<number | null>(null);
+
+  const applyTransform = useCallback(() => {
+    if (rafIdRef.current != null) return;
+    rafIdRef.current = requestAnimationFrame(() => {
+      rafIdRef.current = null;
+      const el = mapViewportRef.current;
+      if (!el) return;
+      const { x, y, scale } = transformRef.current;
+      el.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${scale})`;
+    });
+  }, []);
+
+  const dragState = useRef<{
+    isDragging: boolean;
+    hasMovedEnough: boolean;
+    startX: number;
+    startY: number;
+    startOffsetX: number;
+    startOffsetY: number;
+  }>({ isDragging: false, hasMovedEnough: false, startX: 0, startY: 0, startOffsetX: 0, startOffsetY: 0 });
+
+  // 滚轮缩放（以鼠标点为锚点；non-passive 以确保 preventDefault 生效）
+  useEffect(() => {
+    const el = mapAreaRef.current;
+    if (!el) return;
+    const handler = (e: WheelEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const t = transformRef.current;
+      const delta = e.deltaY > 0 ? -0.1 : 0.1;
+      const nextScale = Math.min(2, Math.max(0.4, t.scale + delta));
+      if (nextScale === t.scale) return;
+      const rect = el.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+      const ratio = nextScale / t.scale;
+      t.x = mx - (mx - t.x) * ratio;
+      t.y = my - (my - t.y) * ratio;
+      t.scale = nextScale;
+      applyTransform();
+    };
+    el.addEventListener('wheel', handler, { passive: false });
+    return () => el.removeEventListener('wheel', handler);
+  }, [applyTransform]);
+
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    if (e.button !== 0 && e.pointerType === 'mouse') return;
+    const ds = dragState.current;
+    ds.startX = e.clientX;
+    ds.startY = e.clientY;
+    ds.startOffsetX = transformRef.current.x;
+    ds.startOffsetY = transformRef.current.y;
+    ds.isDragging = true;
+    ds.hasMovedEnough = false;
+    (e.target as Element).setPointerCapture?.(e.pointerId);
+  }, []);
+
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    const ds = dragState.current;
+    if (!ds.isDragging) return;
+    const dx = e.clientX - ds.startX;
+    const dy = e.clientY - ds.startY;
+    if (!ds.hasMovedEnough && Math.abs(dx) + Math.abs(dy) < 4) return;
+    ds.hasMovedEnough = true;
+    transformRef.current.x = ds.startOffsetX + dx;
+    transformRef.current.y = ds.startOffsetY + dy;
+    applyTransform();
+  }, [applyTransform]);
+
+  const handlePointerUp = useCallback((e: React.PointerEvent) => {
+    const ds = dragState.current;
+    ds.isDragging = false;
+    setTimeout(() => { ds.hasMovedEnough = false; }, 0);
+    (e.target as Element).releasePointerCapture?.(e.pointerId);
+  }, []);
+
+  /** 拖动判定 —— 在 cell/unit 点击时调用，避免拖动时误触发点击 */
+  const isDraggingNow = useCallback(() => dragState.current.hasMovedEnough, []);
 
   // ---- 战场初始化 ----
   useEffect(() => {
@@ -695,6 +783,7 @@ export const S7D_Battle: React.FC = () => {
   // ==========================================================================
   const handleCellClick = useCallback(
     (row: number, col: number) => {
+      if (isDraggingNow()) return; // 拖动中不触发点击
       if (!isPlayerTurn || isBattleEnded || aiBusy || !currentActor) return;
       const key = posKey(row, col);
 
@@ -767,6 +856,7 @@ export const S7D_Battle: React.FC = () => {
   // ==========================================================================
   const handleUnitClick = useCallback(
     (unit: BattleCardInstance) => {
+      if (isDraggingNow()) return; // 拖动中不触发点击
       // 瞄准态：点击单位 = 锁定为目标
       if (ultimateTargeting) {
         handleAimConfirmUnit(unit.instanceId);
@@ -886,6 +976,14 @@ export const S7D_Battle: React.FC = () => {
   const fieldUnits: BattleCardInstance[] = Object.values(battleState.units).filter(
     (u) => u.zone === 'field' && u.hp > 0 && u.position,
   );
+  /** 玩家自己的手牌（候补未上场） */
+  const playerHandUnits: BattleCardInstance[] = Object.values(battleState.units).filter(
+    (u) => u.ownerId === 'player' && u.zone === 'hand',
+  );
+  /** 玩家自己的弃牌（已阵亡） */
+  const playerGraveUnits: BattleCardInstance[] = Object.values(battleState.units).filter(
+    (u) => u.ownerId === 'player' && u.zone === 'grave',
+  );
 
   return (
     <div className={styles.screen}>
@@ -896,70 +994,84 @@ export const S7D_Battle: React.FC = () => {
 
       {/* 主体 */}
       <div className={styles.body}>
-        {/* 地图区 */}
+        {/* 地图区 —— 外层固定容器（绑定 pointer/wheel 事件） */}
         <motion.div
-          className={styles.mapWrap}
-          initial={{ opacity: 0, scale: 0.97 }}
-          animate={{ opacity: 1, scale: 1 }}
+          className={styles.mapArea}
+          ref={mapAreaRef}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
           transition={{ duration: 0.5 }}
-          style={
-            {
-              '--map-cols': S7D_MAP_COLS,
-              '--map-rows': S7D_MAP_ROWS,
-              '--cell-size': `${CELL_SIZE}px`,
-              '--map-width': `${S7D_MAP_COLS * CELL_SIZE + (S7D_MAP_COLS - 1) * 2}px`,
-              '--map-height': `${S7D_MAP_ROWS * CELL_SIZE + (S7D_MAP_ROWS - 1) * 2}px`,
-            } as React.CSSProperties
-          }
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
         >
-          <div className={styles.mapBgLayer} />
-          <div className={styles.mapVignette} />
+          {/* 内层可变换视口 —— transform 由 ref 直接操作 DOM，不触发 React 重渲染 */}
+          <div
+            ref={mapViewportRef}
+            className={styles.mapWrap}
+            style={
+              {
+                '--map-cols': S7D_MAP_COLS,
+                '--map-rows': S7D_MAP_ROWS,
+                '--cell-size': `${CELL_SIZE}px`,
+                '--map-width': `${S7D_MAP_COLS * CELL_SIZE + (S7D_MAP_COLS - 1) * 2}px`,
+                '--map-height': `${S7D_MAP_ROWS * CELL_SIZE + (S7D_MAP_ROWS - 1) * 2}px`,
+                transform: 'translate3d(0,0,0) scale(1)',
+                transformOrigin: '0 0',
+                willChange: 'transform',
+              } as React.CSSProperties
+            }
+          >
+            <div className={styles.mapBgLayer} />
+            <div className={styles.mapVignette} />
 
-          {/* 瓦片网格 */}
-          <div className={styles.mapGrid}>
-            {mapData.map((row) =>
-              row.map((cell) => {
-                const key = posKey(cell.row, cell.col);
-                const isReach = reachableKeys.has(key);
-                const isAttackableCrystalCell = attackableCrystals.some((cry) =>
-                  cry.positions.some((p) => p.row === cell.row && p.col === cell.col),
-                );
+            {/* 瓦片网格 */}
+            <div className={styles.mapGrid}>
+              {mapData.map((row) =>
+                row.map((cell) => {
+                  const key = posKey(cell.row, cell.col);
+                  const isReach = reachableKeys.has(key);
+                  const isAttackableCrystalCell = attackableCrystals.some((cry) =>
+                    cry.positions.some((p) => p.row === cell.row && p.col === cell.col),
+                  );
+                  return (
+                    <MapCell
+                      key={key}
+                      cell={cell}
+                      isHover={hoverCell?.row === cell.row && hoverCell?.col === cell.col}
+                      isReachable={isReach}
+                      isAttackableCrystal={isAttackableCrystalCell}
+                      onHoverIn={() => setHoverCell({ row: cell.row, col: cell.col })}
+                      onHoverOut={() => setHoverCell(null)}
+                      onClick={() => handleCellClick(cell.row, cell.col)}
+                    />
+                  );
+                }),
+              )}
+            </div>
+
+            {/* 棋子层 */}
+            <div className={styles.unitLayer}>
+              {fieldUnits.map((u) => {
+                const isAttackable = attackableEnemyIds.has(u.instanceId);
                 return (
-                  <MapCell
-                    key={key}
-                    cell={cell}
-                    isHover={hoverCell?.row === cell.row && hoverCell?.col === cell.col}
-                    isReachable={isReach}
-                    isAttackableCrystal={isAttackableCrystalCell}
-                    onHoverIn={() => setHoverCell({ row: cell.row, col: cell.col })}
-                    onHoverOut={() => setHoverCell(null)}
-                    onClick={() => handleCellClick(cell.row, cell.col)}
+                  <UnitPiece
+                    key={u.instanceId}
+                    unit={u}
+                    cellSize={CELL_SIZE}
+                    isCurrent={currentAction?.instanceId === u.instanceId}
+                    isSelected={selectedUnitId === u.instanceId}
+                    isPlayerFaction={u.faction === battleState.playerFaction}
+                    isAttackable={isAttackable}
+                    onClick={() => handleUnitClick(u)}
                   />
                 );
-              }),
-            )}
+              })}
+            </div>
           </div>
 
-          {/* 棋子层 */}
-          <div className={styles.unitLayer}>
-            {fieldUnits.map((u) => {
-              const isAttackable = attackableEnemyIds.has(u.instanceId);
-              return (
-                <UnitPiece
-                  key={u.instanceId}
-                  unit={u}
-                  cellSize={CELL_SIZE}
-                  isCurrent={currentAction?.instanceId === u.instanceId}
-                  isSelected={selectedUnitId === u.instanceId}
-                  isPlayerFaction={u.faction === battleState.playerFaction}
-                  isAttackable={isAttackable}
-                  onClick={() => handleUnitClick(u)}
-                />
-              );
-            })}
-          </div>
-
-          {/* 悬停提示 */}
+          {/* 悬停提示（位于 mapArea 内但不在 viewport 内 → 不被缩放） */}
           {hoverCell && (
             <div className={styles.hoverInfo}>
               ({hoverCell.row}, {hoverCell.col}) ·{' '}
@@ -969,7 +1081,10 @@ export const S7D_Battle: React.FC = () => {
 
           {/* 玩家回合提示 + 结束回合按钮 */}
           {isPlayerTurn && !isBattleEnded && currentActor && (
-            <div className={styles.turnControls}>
+            <div
+              className={styles.turnControls}
+              onPointerDown={(e) => e.stopPropagation()}
+            >
               <div className={styles.turnInfo}>
                 <span className={styles.turnBadge}>你的回合</span>
                 <span className={styles.turnName}>{currentActor.name}</span>
@@ -1002,13 +1117,39 @@ export const S7D_Battle: React.FC = () => {
             </div>
           )}
           {!isPlayerTurn && currentActor && !isBattleEnded && (
-            <div className={styles.turnControls}>
+            <div
+              className={styles.turnControls}
+              onPointerDown={(e) => e.stopPropagation()}
+            >
               <div className={styles.turnInfo}>
                 <span className={styles.turnBadgeAi}>AI 行动中</span>
                 <span className={styles.turnName}>{currentActor.name}</span>
               </div>
             </div>
           )}
+
+          {/* 玩家手牌 / 弃牌入口（右下角，仅查看自己） */}
+          <div
+            className={styles.zoneButtons}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              className={styles.zoneBtn}
+              onClick={() => setZonePeek('hand')}
+              title="查看我方手牌（候补未上场卡）"
+            >
+              🎴 手牌 <b>{playerHandUnits.length}</b>
+            </button>
+            <button
+              type="button"
+              className={`${styles.zoneBtn} ${styles.zoneBtnGrave}`}
+              onClick={() => setZonePeek('grave')}
+              title="查看我方弃牌（已阵亡卡）"
+            >
+              ⚰ 弃牌 <b>{playerGraveUnits.length}</b>
+            </button>
+          </div>
         </motion.div>
 
         {/* 侧栏 */}
@@ -1068,6 +1209,17 @@ export const S7D_Battle: React.FC = () => {
             battleState={battleState}
             task={reinforceModal}
             onConfirm={handleReinforceConfirm}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* 我方手牌/弃牌偷看弹窗 */}
+      <AnimatePresence>
+        {zonePeek && (
+          <ZonePeekModal
+            zone={zonePeek}
+            units={zonePeek === 'hand' ? playerHandUnits : playerGraveUnits}
+            onClose={() => setZonePeek(null)}
           />
         )}
       </AnimatePresence>
@@ -1197,81 +1349,8 @@ const Sidebar: React.FC<SidebarProps> = ({ battleState, selectedUnitId, onReturn
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.5, delay: 0.15 }}
     >
-      {/* 行动队列 */}
-      <div className={styles.panelBox}>
-        <h3 className={styles.panelTitle}>⚡ 行动队列（心境降序）</h3>
-        <div className={styles.queueList}>
-          {battleState.actionQueue.map((q, idx) => {
-            const u = battleState.units[q.instanceId];
-            const isCur = idx === battleState.currentActorIdx;
-            const isDone = q.acted || q.skipped;
-            const ownerDisp = getOwnerDisplay(battleState, q.ownerId);
-            return (
-              <div
-                key={`${q.instanceId}-${idx}`}
-                className={[
-                  styles.queueItem,
-                  isCur ? styles.queueItemCurrent : '',
-                  isDone ? styles.queueItemDone : '',
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
-              >
-                <span className={styles.queueIdx}>{idx + 1}</span>
-                <span className={styles.queueOwner}>{ownerDisp}</span>
-                <span className={styles.queueName}>{u?.name ?? '?'}</span>
-                <span className={styles.queueMnd}>💠 {q.mindFrozen}</span>
-                {q.acted && <span className={styles.queueDoneTag}>✓</span>}
-                {q.skipped && <span className={styles.queueSkipTag}>✕</span>}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* 三区概览 */}
-      <div className={styles.panelBox}>
-        <h3 className={styles.panelTitle}>🗂 三区概览</h3>
-        {battleState.players.map((p) => {
-          const all = p.instanceIds.map((iid) => battleState.units[iid]).filter(Boolean);
-          const field = all.filter((u) => u.zone === 'field');
-          const hand = all.filter((u) => u.zone === 'hand');
-          const grave = all.filter((u) => u.zone === 'grave');
-          return (
-            <div
-              key={p.ownerId}
-              className={[
-                styles.playerRow,
-                p.faction === 'A' ? styles.playerRowA : styles.playerRowB,
-                p.isHuman ? styles.playerRowHuman : '',
-              ]
-                .filter(Boolean)
-                .join(' ')}
-            >
-              <div className={styles.playerRowHead}>
-                <span className={styles.playerRowFaction}>[{p.faction}]</span>
-                <span className={styles.playerRowName}>
-                  {p.heroName}
-                  {p.isHuman ? ' (你)' : ''}
-                </span>
-              </div>
-              <div className={styles.playerRowZones}>
-                <span className={styles.zoneTag}>⚔ 战斗 {field.length}</span>
-                <span className={styles.zoneTag}>🎴 手牌 {hand.length}</span>
-                <span className={styles.zoneTagGrave}>⚰ 弃牌 {grave.length}</span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* 选中单位详情 */}
-      {selectedUnitId && battleState.units[selectedUnitId] && (
-        <div className={styles.panelBox}>
-          <h3 className={styles.panelTitle}>🎯 选中单位</h3>
-          <UnitDetail unit={battleState.units[selectedUnitId]} />
-        </div>
-      )}
+      {/* 行动队列面板 / 三区概览 / 选中单位详情 —— 已移除，
+          右侧整列留给战报（参考 S7B 风格） */}
 
       {/* 战报 */}
       <div className={styles.panelBox + ' ' + styles.logBox}>
@@ -1974,6 +2053,87 @@ const CrystalResolveFx: React.FC<CrystalResolveFxProps> = ({
         </div>
 
         <div className={styles.crystalFxHint}>点击关闭 / 3 秒后自动消失</div>
+      </motion.div>
+    </motion.div>
+  );
+};
+
+// ==========================================================================
+// 子组件 · 我方手牌/弃牌 偷看弹窗
+// ==========================================================================
+interface ZonePeekModalProps {
+  zone: 'hand' | 'grave';
+  units: BattleCardInstance[];
+  onClose: () => void;
+}
+
+const ZonePeekModal: React.FC<ZonePeekModalProps> = ({ zone, units, onClose }) => {
+  const title = zone === 'hand' ? '🎴 我方手牌（候补未上场）' : '⚰ 我方弃牌（已阵亡）';
+  const empty = zone === 'hand' ? '当前没有候补卡' : '当前没有阵亡卡';
+  return (
+    <motion.div
+      className={styles.zonePeekMask}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+    >
+      <motion.div
+        className={styles.zonePeekPanel}
+        initial={{ scale: 0.92, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.95, opacity: 0 }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className={styles.zonePeekHeader}>
+          <span className={styles.zonePeekTitle}>{title}</span>
+          <span className={styles.zonePeekCount}>共 {units.length} 张</span>
+          <button type="button" className={styles.zonePeekClose} onClick={onClose}>✕</button>
+        </div>
+        {units.length === 0 ? (
+          <div className={styles.zonePeekEmpty}>{empty}</div>
+        ) : (
+          <div className={styles.zonePeekGrid}>
+            {units.map((u) => (
+              <div key={u.instanceId} className={`${styles.zonePeekCard} ${styles[`rarity_${u.rarity}`] ?? ''}`}>
+                <div className={styles.zonePeekCardHead}>
+                  {u.portrait && (
+                    <div
+                      className={styles.zonePeekAvatar}
+                      style={{ backgroundImage: `url(${u.portrait})` }}
+                    />
+                  )}
+                  <div className={styles.zonePeekCardInfo}>
+                    <div className={styles.zonePeekName}>
+                      {u.name}
+                      <span className={styles.zonePeekRarity}>{u.rarity}</span>
+                    </div>
+                    <div className={styles.zonePeekStats}>
+                      <span>气血 <b>{u.hp}/{u.hpMax}</b></span>
+                      <span>修为 <b>{u.atk}</b></span>
+                      <span>心境 <b>{u.mnd}</b></span>
+                    </div>
+                  </div>
+                </div>
+                {u.battleSkill && (
+                  <div className={styles.zonePeekSkill}>
+                    <span className={styles.zonePeekSkillTag}>战</span>
+                    <span className={styles.zonePeekSkillName}>{u.battleSkill.name}</span>
+                    <span className={styles.zonePeekSkillDesc}>{u.battleSkill.desc}</span>
+                  </div>
+                )}
+                {u.ultimate && (
+                  <div className={styles.zonePeekSkill + ' ' + styles.zonePeekSkillUlt}>
+                    <span className={styles.zonePeekSkillTag}>绝</span>
+                    <span className={styles.zonePeekSkillName}>{u.ultimate.name}</span>
+                    <span className={styles.zonePeekSkillDesc}>{u.ultimate.desc}</span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+        <div className={styles.zonePeekHint}>点击外部 / ✕ 关闭</div>
       </motion.div>
     </motion.div>
   );

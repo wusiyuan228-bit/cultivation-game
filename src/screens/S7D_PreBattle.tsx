@@ -204,10 +204,7 @@ export const S7D_PreBattle: React.FC = () => {
         />
       </div>
 
-      {/* 整理卡组（左下） */}
-      <button className={styles.manageBtn} onClick={handleManage} type="button">
-        {s7dDeployedCards && s7dDeployedCards.length > 0 ? '🗂 调整卡组' : '🗂 整理卡组'}
-      </button>
+      {/* （移除：整理卡组按钮 —— 点击「出征坠魔谷」即进入卡牌上阵选择页） */}
 
       {/* 底部提示 + 出征 */}
       <motion.div
@@ -391,7 +388,7 @@ const MemberCard: React.FC<MemberCardProps> = ({ hero, isPlayer, aiLineup, aiLoa
               );
             })
           ) : (
-            <span className={styles.aiDeckLoading}>尚未编组 · 点击左下「整理卡组」挑 5 张</span>
+            <span className={styles.aiDeckLoading}>尚未编组 · 点击右下「出征坠魔谷」即可挑选战卡</span>
           )}
         </div>
       )}

@@ -237,14 +237,32 @@
 /* ==========================================================================
  * 地图容器
  * ========================================================================== */
-.mapWrap {
-  flex: 0 0 auto;
+/* 外层视口：固定撑满 body 剩余空间，作为拖拽/缩放的"窗口"；
+   内层 .mapWrap 通过 transform 平移/缩放，超出部分被裁掉 */
+.mapArea {
+  flex: 1 1 auto;
+  align-self: stretch;
   position: relative;
-  padding: 14px;
-  background: rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  background: rgba(0, 0, 0, 0.45);
   border: 2px solid #8a7148;
   border-radius: 10px;
   backdrop-filter: blur(4px);
+  min-height: 600px;
+}
+
+.mapArea:active {
+  cursor: grabbing;
+}
+
+.mapWrap {
+  position: absolute;
+  left: 0;
+  top: 0;
+  padding: 14px;
   /* 宽高由 CSS 变量驱动 */
   width: calc(var(--map-width, 1296px) + 28px);
   height: calc(var(--map-height, 862px) + 28px);
@@ -807,8 +825,8 @@
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
-  min-height: 180px;
-  max-height: 320px;
+  min-height: 240px;
+  /* 取消 max-height —— 三区概览/选中单位已移除，战报独占右侧 */
 }
 
 .logList {
@@ -1564,4 +1582,264 @@
   color: #9a8e9a;
   opacity: 0.8;
   margin-top: 8px;
+}
+
+/* ==========================================================================
+ * 玩家手牌/弃牌入口（地图右下角浮层）
+ * ========================================================================== */
+.zoneButtons {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  display: flex;
+  gap: 10px;
+  z-index: 8;
+}
+
+.zoneBtn {
+  padding: 8px 14px;
+  background: linear-gradient(180deg, rgba(40, 32, 24, 0.92), rgba(20, 16, 12, 0.95));
+  border: 1.5px solid rgba(200, 161, 75, 0.55);
+  border-radius: 8px;
+  color: #f0d98a;
+  font-size: 14px;
+  letter-spacing: 1.5px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55);
+}
+
+.zoneBtn b {
+  color: #fff2b8;
+  margin-left: 4px;
+  font-size: 15px;
+}
+
+.zoneBtn:hover {
+  background: linear-gradient(180deg, rgba(70, 54, 38, 1), rgba(40, 30, 20, 1));
+  border-color: rgba(240, 217, 138, 0.85);
+  box-shadow: 0 4px 18px rgba(240, 217, 138, 0.3);
+  transform: translateY(-1px);
+}
+
+.zoneBtnGrave {
+  border-color: rgba(160, 80, 80, 0.55);
+  color: #e8a090;
+}
+
+.zoneBtnGrave b {
+  color: #ffd0c0;
+}
+
+.zoneBtnGrave:hover {
+  border-color: rgba(220, 130, 110, 0.85);
+  box-shadow: 0 4px 18px rgba(220, 130, 110, 0.3);
+}
+
+/* ==========================================================================
+ * ZonePeekModal · 我方手牌/弃牌弹窗
+ * ========================================================================== */
+.zonePeekMask {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  backdrop-filter: blur(3px);
+}
+
+.zonePeekPanel {
+  width: min(960px, 92vw);
+  max-height: 86vh;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(160deg, rgba(28, 24, 20, 0.98), rgba(18, 14, 12, 0.99));
+  border: 2px solid rgba(200, 161, 75, 0.55);
+  border-radius: 14px;
+  padding: 18px 22px 14px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
+  color: #e8d9b5;
+}
+
+.zonePeekHeader {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(138, 113, 72, 0.45);
+}
+
+.zonePeekTitle {
+  font-size: 18px;
+  color: #f8d79a;
+  letter-spacing: 2px;
+}
+
+.zonePeekCount {
+  font-size: 13px;
+  color: #9a8e76;
+}
+
+.zonePeekClose {
+  margin-left: auto;
+  width: 30px;
+  height: 30px;
+  background: transparent;
+  border: 1px solid rgba(200, 161, 75, 0.4);
+  border-radius: 6px;
+  color: #c8a14b;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.zonePeekClose:hover {
+  background: rgba(200, 161, 75, 0.18);
+  color: #fff2b8;
+}
+
+.zonePeekEmpty {
+  padding: 60px 0;
+  text-align: center;
+  color: #6a6356;
+  font-size: 15px;
+}
+
+.zonePeekGrid {
+  margin-top: 12px;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+  padding-right: 6px;
+}
+
+.zonePeekCard {
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(138, 113, 72, 0.5);
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.zonePeekCard.rarity_SR {
+  border-color: rgba(180, 123, 255, 0.55);
+  box-shadow: 0 0 12px rgba(180, 123, 255, 0.18);
+}
+
+.zonePeekCard.rarity_SSR {
+  border-color: rgba(255, 214, 94, 0.6);
+  box-shadow: 0 0 14px rgba(255, 214, 94, 0.22);
+}
+
+.zonePeekCard.rarity_主角 {
+  border-color: rgba(255, 100, 100, 0.6);
+  box-shadow: 0 0 14px rgba(255, 100, 100, 0.25);
+}
+
+.zonePeekCardHead {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.zonePeekAvatar {
+  flex: 0 0 auto;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center top;
+  border: 2px solid rgba(200, 161, 75, 0.4);
+}
+
+.zonePeekCardInfo {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.zonePeekName {
+  font-size: 16px;
+  color: #f8d79a;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.zonePeekRarity {
+  font-size: 11px;
+  padding: 2px 6px;
+  border: 1px solid rgba(200, 161, 75, 0.5);
+  border-radius: 4px;
+  color: #c8a14b;
+  letter-spacing: 1px;
+}
+
+.zonePeekStats {
+  margin-top: 4px;
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: #cdbb96;
+}
+
+.zonePeekStats b {
+  color: #f0d98a;
+  margin-left: 2px;
+}
+
+.zonePeekSkill {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  padding: 6px 8px;
+  background: rgba(80, 60, 130, 0.2);
+  border-left: 3px solid rgba(140, 120, 200, 0.7);
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.zonePeekSkill.zonePeekSkillUlt {
+  background: rgba(140, 100, 30, 0.22);
+  border-left-color: rgba(255, 214, 94, 0.85);
+}
+
+.zonePeekSkillTag {
+  flex: 0 0 auto;
+  padding: 1px 7px;
+  background: rgba(140, 120, 200, 0.4);
+  color: #fff;
+  border-radius: 3px;
+  font-size: 11px;
+  letter-spacing: 1px;
+}
+
+.zonePeekSkillUlt .zonePeekSkillTag {
+  background: rgba(220, 170, 60, 0.55);
+}
+
+.zonePeekSkillName {
+  flex: 0 0 auto;
+  color: #f8d79a;
+  font-weight: 700;
+}
+
+.zonePeekSkillDesc {
+  flex: 1 1 100%;
+  color: #cdbb96;
+  line-height: 1.4;
+}
+
+.zonePeekHint {
+  margin-top: 10px;
+  text-align: right;
+  font-size: 12px;
+  color: #6a6356;
 }
