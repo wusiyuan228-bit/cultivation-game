@@ -43,13 +43,13 @@
 /* ---- 主区域 ---- */
 .body {
   position: absolute;
-  top: 150px;
-  left: 80px;
-  right: 80px;
-  bottom: 60px;
+  top: 130px;
+  left: 60px;
+  right: 60px;
+  bottom: 30px;
   display: grid;
   grid-template-columns: 1.6fr 1fr;
-  gap: 40px;
+  gap: 32px;
 }
 
 /* ---- 候选卡面板 ---- */
@@ -72,6 +72,7 @@
   margin-bottom: 14px;
   padding-bottom: 10px;
   border-bottom: 1px solid rgba(138, 113, 72, 0.45);
+  flex-shrink: 0;
 }
 
 .panelTitle {
@@ -87,7 +88,8 @@
 
 /* ---- 候选卡网格 ---- */
 .cardGrid {
-  flex: 1;
+  flex: 1 1 0;
+  min-height: 0;
   overflow-y: auto;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
@@ -201,6 +203,7 @@
   min-height: 72px;
   background: rgba(10, 5, 2, 0.7);
   border: 2px solid rgba(138, 113, 72, 0.35);
+  flex-shrink: 0;
 }
 
 .heroSlot {
@@ -292,7 +295,8 @@
 }
 
 .pickSlots {
-  flex: 1;
+  flex: 1 1 0;
+  min-height: 0;
   overflow-y: auto;
   padding-right: 4px;
   margin-top: 10px;
@@ -312,6 +316,7 @@
   display: flex;
   gap: 10px;
   margin-top: 10px;
+  flex-shrink: 0;
 }
 
 .toolBtn {
@@ -352,6 +357,7 @@
   cursor: not-allowed;
   transition: all 0.25s;
   font-family: inherit;
+  flex-shrink: 0;
 }
 
 .launchBtn.launchReady {
