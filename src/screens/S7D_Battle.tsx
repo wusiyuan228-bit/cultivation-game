@@ -240,6 +240,8 @@ export const S7D_Battle: React.FC = () => {
   const [showResult, setShowResult] = useState(false);
   /** 手牌/弃牌 偷看弹窗 —— 仅展示玩家(ownerId='player') 自己的卡 */
   const [zonePeek, setZonePeek] = useState<'hand' | 'grave' | null>(null);
+  /** 悬停的单位 ID（用于左下角技能面板预览） */
+  const [hoveredUnitId, setHoveredUnitId] = useState<string | null>(null);
 
   const mapData = useMemo<S7DTile[][]>(() => generateS7DMap(), []);
 
@@ -1065,6 +1067,8 @@ export const S7D_Battle: React.FC = () => {
                     isPlayerFaction={u.faction === battleState.playerFaction}
                     isAttackable={isAttackable}
                     onClick={() => handleUnitClick(u)}
+                    onHoverIn={() => setHoveredUnitId(u.instanceId)}
+                    onHoverOut={() => setHoveredUnitId((cur) => (cur === u.instanceId ? null : cur))}
                   />
                 );
               })}
@@ -1079,13 +1083,67 @@ export const S7D_Battle: React.FC = () => {
             </div>
           )}
 
-          {/* 玩家回合提示 + 结束回合按钮 */}
+          {/* 单位技能信息面板（左下角；优先展示 hovered，其次 selected）—— S7B 同款 */}
+          {(() => {
+            const previewId = hoveredUnitId ?? selectedUnitId;
+            const previewUnit = previewId ? battleState.units[previewId] : null;
+            if (!previewUnit) return null;
+            const isHover = !!hoveredUnitId;
+            const isEnemy = previewUnit.faction !== battleState.playerFaction;
+            return (
+              <div
+                className={styles.unitInfoPanel}
+                onPointerDown={(e) => e.stopPropagation()}
+              >
+                <div className={styles.unitInfoName}>
+                  {previewUnit.awakened && <span style={{ color: '#ffd966', marginRight: 4 }}>⚡</span>}
+                  {previewUnit.name}
+                  {isEnemy && <span style={{ marginLeft: 8, color: '#e87060', fontSize: 13 }}>【敌方】</span>}
+                  {isHover && previewUnit.instanceId !== selectedUnitId && (
+                    <span style={{ marginLeft: 8, color: '#a09878', fontSize: 13 }}>（预览）</span>
+                  )}
+                </div>
+                <div className={styles.unitInfoMeta}>
+                  {previewUnit.type} · {previewUnit.rarity}
+                </div>
+                <div className={styles.unitInfoStats}>
+                  <span>气血 {previewUnit.hp}/{previewUnit.hpMax}</span>
+                  <span>修为 {previewUnit.atk}</span>
+                  <span>心境 {previewUnit.mnd}</span>
+                </div>
+                {previewUnit.battleSkill && (
+                  <div className={styles.unitInfoSkill}>
+                    <strong>战 · {previewUnit.battleSkill.name}</strong>
+                    <em>{previewUnit.battleSkill.desc}</em>
+                  </div>
+                )}
+                {previewUnit.ultimate && (
+                  <div className={styles.unitInfoUltimate}>
+                    <strong>
+                      绝 · {previewUnit.ultimate.name}
+                      {previewUnit.ultimateUsed && (
+                        <span className={styles.unitInfoUltimateUsed}>（已使用）</span>
+                      )}
+                    </strong>
+                    <em>{previewUnit.ultimate.desc}</em>
+                  </div>
+                )}
+                {!previewUnit.battleSkill && !previewUnit.ultimate && (
+                  <div style={{ color: '#7a6c50', fontSize: 12, fontStyle: 'italic' }}>
+                    此卡无可展示的技能
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* 玩家回合提示 + 结束回合按钮（S7B 风格底部居中面板） */}
           {isPlayerTurn && !isBattleEnded && currentActor && (
             <div
-              className={styles.turnControls}
+              className={styles.actionPanel}
               onPointerDown={(e) => e.stopPropagation()}
             >
-              <div className={styles.turnInfo}>
+              <div className={styles.actionPanelInfo}>
                 <span className={styles.turnBadge}>你的回合</span>
                 <span className={styles.turnName}>{currentActor.name}</span>
                 <span className={styles.turnHint}>
@@ -1103,7 +1161,7 @@ export const S7D_Battle: React.FC = () => {
                 onUseSkill={handleUseSkill}
               />
               <button
-                className={styles.endTurnBtn}
+                className={`${styles.actionBtn} ${styles.btnEnd}`}
                 onClick={endCurrentActorTurn}
                 disabled={battleState.phase === 'reinforce' || battleState.reinforceQueue.length > 0}
                 title={
@@ -1118,10 +1176,10 @@ export const S7D_Battle: React.FC = () => {
           )}
           {!isPlayerTurn && currentActor && !isBattleEnded && (
             <div
-              className={styles.turnControls}
+              className={styles.actionPanel}
               onPointerDown={(e) => e.stopPropagation()}
             >
-              <div className={styles.turnInfo}>
+              <div className={styles.actionPanelInfo}>
                 <span className={styles.turnBadgeAi}>AI 行动中</span>
                 <span className={styles.turnName}>{currentActor.name}</span>
               </div>
@@ -1445,9 +1503,9 @@ const MapCell: React.FC<MapCellProps> = ({
           <span className={styles.crystalText}>{isCrystalACell ? 'A 晶' : 'B 晶'}</span>
         </div>
       )}
-      {(isSpawnACell || isSpawnBCell) && (
-        <div className={[styles.spawnMark, isSpawnACell ? styles.spawnMarkA : styles.spawnMarkB].join(' ')}>
-          <span className={styles.spawnText}>{isSpawnACell ? 'A 生' : 'B 生'}</span>
+            {(isSpawnACell || isSpawnBCell) && (
+              <div className={[styles.spawnMark, isSpawnACell ? styles.spawnMarkA : styles.spawnMarkB].join(' ')}>
+                <span className={styles.spawnText}>出生点</span>
         </div>
       )}
       {textLabel && !isSpawnACell && !isSpawnBCell && !isCrystalACell && !isCrystalBCell && (
@@ -1471,6 +1529,8 @@ interface UnitPieceProps {
   isPlayerFaction: boolean;
   isAttackable: boolean;
   onClick: () => void;
+  onHoverIn?: () => void;
+  onHoverOut?: () => void;
 }
 
 const UnitPiece: React.FC<UnitPieceProps> = ({
@@ -1481,6 +1541,8 @@ const UnitPiece: React.FC<UnitPieceProps> = ({
   isPlayerFaction,
   isAttackable,
   onClick,
+  onHoverIn,
+  onHoverOut,
 }) => {
   if (!unit.position) return null;
   const { row, col } = unit.position;
@@ -1500,6 +1562,11 @@ const UnitPiece: React.FC<UnitPieceProps> = ({
     .filter(Boolean)
     .join(' ');
 
+  // 头像底图：unit.portrait（来自卡池/主角数据）
+  const portraitStyle = unit.portrait
+    ? { backgroundImage: `url(${unit.portrait})` }
+    : undefined;
+
   return (
     <div
       className={classes}
@@ -1513,12 +1580,33 @@ const UnitPiece: React.FC<UnitPieceProps> = ({
         e.stopPropagation();
         onClick();
       }}
+      onMouseEnter={onHoverIn}
+      onMouseLeave={onHoverOut}
     >
-      <div className={styles.unitPieceName}>{unit.name.slice(0, 3)}</div>
+      {/* 头像底图（S7B 风格：撑满方形棋子） */}
+      <div className={styles.unitPieceAvatar} style={portraitStyle} />
+      {/* 名字（左上角条），含觉醒⚡前缀 */}
+      <div className={styles.unitPieceName}>
+        {unit.awakened && <span style={{ color: '#ffd966', marginRight: 2 }}>⚡</span>}
+        {unit.name}
+      </div>
+      {/* 槽位（右上角） */}
       <div className={styles.unitPieceSlot}>{unit.fieldSlot === 1 ? '一' : '二'}</div>
+      {/* 属性条（修/境，叠在血条上方） */}
+      <div className={styles.unitPieceStats}>
+        <span className={`${styles.unitPieceStat} ${styles.unitPieceStatAtk}`} title="修为（骰数）">
+          修{unit.atk}
+        </span>
+        <span className={`${styles.unitPieceStat} ${styles.unitPieceStatMnd}`} title="心境（步数）">
+          境{unit.mnd}
+        </span>
+      </div>
+      {/* 血条 */}
       <div className={styles.unitPieceHp}>
         <div
-          className={styles.unitPieceHpFill}
+          className={`${styles.unitPieceHpFill} ${
+            isPlayerFaction ? styles.unitPieceHpFillPlayer : styles.unitPieceHpFillEnemy
+          }`}
           style={{ width: `${(unit.hp / unit.hpMax) * 100}%` }}
         />
         <span className={styles.unitPieceHpText}>

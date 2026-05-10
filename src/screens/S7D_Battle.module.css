@@ -1843,3 +1843,691 @@
   font-size: 12px;
   color: #6a6356;
 }
+
+/* ==========================================================================
+ * S7B 风格改造（2026-05-10）
+ * - 顶部 HUD 改为徽章式
+ * - 棋子改为大尺寸带头像/属性条/血条（S7B 同款 unit 样式）
+ * - 出生点文案改为"出生点"
+ * - 左下角悬停/选中信息面板（S7B 同款）
+ * - 底部居中技能/结束回合按钮组（S7B 同款 actionPanel）
+ * - 右侧战报面板独占整列（S7B 同款 logPanel）
+ * - 删除三区概览、选中单位详情
+ * ========================================================================== */
+
+/* 调整 body 布局：地图占据主要空间，侧栏（战报）固定 280px */
+.body {
+  display: block;
+  padding: 0;
+  /* topBar 已改为 absolute 浮层，body 占满整个屏幕 */
+  height: 100%;
+  position: relative;
+  box-sizing: border-box;
+}
+
+.mapArea {
+  flex: none;
+  position: absolute;
+  top: 92px;          /* 留出 topBar 浮层高度（~80px + 12px 间距）*/
+  left: 16px;
+  right: 308px;       /* 留出 280px 战报 + 16px 边距 + 12px gap */
+  bottom: 12px;
+  align-self: auto;
+  min-height: 0;
+}
+
+/* 原侧栏：现在变成战报独占的右侧栏，移除 flex */
+.sidebar {
+  position: absolute;
+  top: 92px;
+  right: 16px;
+  bottom: 12px;
+  width: 280px;
+  min-width: 0;
+  max-width: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  overflow: hidden;
+  padding-right: 0;
+}
+
+/* 战报盒子撑满侧栏 */
+.logBox {
+  flex: 1 1 auto;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 顶部 HUD：圆角徽章式（参考 S7B）
+   覆盖原 .topBar，去掉 flex 三栏，改为顶部一行水平居中 */
+.topBar {
+  position: absolute;
+  top: 16px;
+  left: 0;
+  right: 0;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 0 96px;     /* 左侧给 BackButton 留位 */
+  background: transparent;
+  border-bottom: none;
+  z-index: 30;
+  pointer-events: none;
+}
+
+.topBar > div {
+  pointer-events: auto;
+}
+
+.topBarLeft,
+.topBarCenter,
+.topBarRight {
+  flex: none;
+  text-align: center;
+}
+
+.topBarLeft {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.topBarCenter {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+}
+
+.topBarRight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* 行动信息（轮次） */
+.roundInfo {
+  background: rgba(40, 35, 25, 0.85);
+  border: 1px solid rgba(200, 161, 75, 0.5);
+  border-radius: 8px;
+  padding: 6px 18px;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.roundLabel {
+  font-size: 14px;
+  color: #c8a14b;
+  font-weight: 600;
+}
+
+.roundValue {
+  font-size: 22px;
+  font-weight: 800;
+  color: #ffd98a;
+  letter-spacing: 1px;
+}
+
+.subRoundLabel {
+  font-size: 13px;
+  color: #b9aa83;
+  margin-left: 4px;
+}
+
+/* 当前行动者徽章（紧凑型：标题 + 名字 + 归属者竖排） */
+.currentActor {
+  background: rgba(25, 35, 40, 0.85);
+  border: 1px solid rgba(75, 160, 200, 0.5);
+  border-radius: 8px;
+  padding: 4px 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-direction: row;
+  white-space: nowrap;
+}
+
+.currentActorLabel {
+  font-size: 13px;
+  color: #8bc8e0;
+  font-weight: 700;
+}
+
+.currentActorName {
+  font-size: 18px;
+  color: #fff;
+  font-weight: 800;
+}
+
+.currentActorOwner {
+  font-size: 12px;
+  color: #b9c8e0;
+  opacity: 0.85;
+}
+
+/* 水晶血条：方块化（参考 S7B 顶部徽章） */
+.crystalBar {
+  background: rgba(40, 35, 25, 0.85);
+  border: 1px solid rgba(200, 161, 75, 0.45);
+  border-radius: 8px;
+  padding: 6px 14px 8px;
+  min-width: 200px;
+  text-align: center;
+}
+
+.crystalBarLabel {
+  font-size: 12px;
+  color: #c8a14b;
+  margin-bottom: 4px;
+  letter-spacing: 1px;
+}
+
+.crystalBarTrack {
+  position: relative;
+  height: 18px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(120, 100, 60, 0.6);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.crystalBarText {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+/* 出生点：去掉 A生/B生，改为友好的"出生点"标识 */
+.spawnText {
+  font-size: 11px;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.95);
+  letter-spacing: 0.5px;
+  line-height: 1.1;
+  text-align: center;
+}
+
+.spawnMarkA {
+  background: rgba(74, 144, 226, 0.32);
+  border: 1px dashed rgba(135, 206, 250, 0.85);
+}
+
+.spawnMarkB {
+  background: rgba(226, 74, 74, 0.32);
+  border: 1px dashed rgba(255, 182, 193, 0.85);
+}
+
+/* ==========================================================================
+ * 棋子（S7B 大尺寸版）：覆盖原 .unitPiece 圆形小棋子
+ * 改为方形带头像/名字条/属性条/血条
+ * ========================================================================== */
+.unitPiece {
+  position: absolute;
+  border-radius: 8px;
+  overflow: visible;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: left 0.25s ease-out, top 0.25s ease-out, box-shadow 0.2s, transform 0.15s, opacity 0.2s;
+  border: 2px solid transparent;
+  display: block;
+  background: transparent;
+}
+
+.unitPiece:hover {
+  transform: scale(1.04);
+  z-index: 10;
+}
+
+/* 阵营色：方形描边代替圆形渐变 */
+.unitPieceA {
+  background: linear-gradient(180deg, rgba(28, 56, 100, 0.55), rgba(15, 32, 60, 0.7));
+  border-color: rgba(120, 170, 230, 0.55);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.55);
+}
+
+.unitPieceB {
+  background: linear-gradient(180deg, rgba(110, 28, 28, 0.55), rgba(60, 14, 14, 0.7));
+  border-color: rgba(230, 120, 120, 0.55);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.55);
+}
+
+/* 我方描边 */
+.unitPiecePlayer {
+  border-color: rgba(255, 220, 130, 0.85);
+}
+
+/* 主角：金色发光 */
+.unitPieceHero {
+  border: 3px solid #ffd98a;
+  box-shadow: 0 0 12px rgba(255, 217, 138, 0.7);
+}
+
+/* 当前行动者：脉动 */
+.unitPieceCurrent {
+  animation: piecePulseS7B 1.5s ease-in-out infinite;
+  border-color: #fff;
+}
+
+@keyframes piecePulseS7B {
+  0%, 100% { box-shadow: 0 0 10px rgba(255, 220, 130, 0.6), 0 0 6px rgba(255, 220, 130, 0.7) inset; }
+  50%      { box-shadow: 0 0 22px rgba(255, 220, 130, 0.95), 0 0 10px rgba(255, 220, 130, 1) inset; }
+}
+
+/* 选中态 */
+.unitPieceSelected {
+  border: 3px solid #80dc96 !important;
+  box-shadow: 0 0 16px rgba(80, 220, 150, 0.7), 0 0 6px rgba(80, 220, 150, 0.9) inset !important;
+}
+
+/* 棋子内：头像 */
+.unitPieceAvatar {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center top;
+  border-radius: 6px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* 棋子内：名字条（左上角） */
+.unitPieceName {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  right: 24px;
+  font-size: 11px;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.95);
+  background: rgba(0, 0, 0, 0.78);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-weight: 700;
+  pointer-events: none;
+  z-index: 5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+  padding-top: 1px;
+  line-height: 1.1;
+}
+
+/* 棋子内：右上角小角标（卡一/卡二） */
+.unitPieceSlot {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #ffd866;
+  background: rgba(0, 0, 0, 0.78);
+  border-radius: 3px;
+  width: 20px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  z-index: 5;
+}
+
+/* 棋子内：属性条（修/境/血叠在底部上方） */
+.unitPieceStats {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  gap: 1px;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.unitPieceStat {
+  flex: 1;
+  font-size: 10px;
+  font-weight: 800;
+  background: rgba(0, 0, 0, 0.85);
+  padding: 1px 2px;
+  border-radius: 3px;
+  text-align: center;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+  line-height: 1.1;
+}
+
+.unitPieceStatHp { color: #ff6868; }
+.unitPieceStatAtk { color: #6cb8ff; }
+.unitPieceStatMnd { color: #ffd54a; }
+
+/* 棋子内：血条（方形版） */
+.unitPieceHp {
+  position: absolute;
+  bottom: 2px;
+  left: 2px;
+  right: 2px;
+  height: 8px;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 2px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.85);
+  z-index: 4;
+}
+
+.unitPieceHpFillPlayer {
+  background: linear-gradient(90deg, #4a9a6a, #6bc090);
+}
+
+.unitPieceHpFillEnemy {
+  background: linear-gradient(90deg, #c05050, #e07060);
+}
+
+.unitPieceHpText {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 800;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.95);
+  line-height: 1;
+}
+
+/* 可攻击敌人特效（保留原有，但确保描边在新方块棋子上有效） */
+.unitPieceAttackable {
+  outline: 3px solid #ff6450;
+  outline-offset: 2px;
+  cursor: crosshair;
+}
+
+/* ==========================================================================
+ * 左下角 hover/selected 信息面板（S7B 同款）
+ * ========================================================================== */
+.unitInfoPanel {
+  position: absolute;
+  left: 16px;
+  bottom: 20px;
+  width: 320px;
+  background: rgba(20, 18, 14, 0.94);
+  border: 1px solid rgba(200, 161, 75, 0.35);
+  border-radius: 10px;
+  padding: 14px 16px;
+  z-index: 12;
+  pointer-events: auto;
+}
+
+.unitInfoName {
+  font-size: 19px;
+  font-weight: 800;
+  color: #e8dcc0;
+  margin-bottom: 4px;
+  letter-spacing: 1px;
+}
+
+.unitInfoMeta {
+  font-size: 12px;
+  color: #a09878;
+  margin-bottom: 8px;
+}
+
+.unitInfoStats {
+  display: flex;
+  gap: 14px;
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.unitInfoStats span {
+  color: #c8c0a0;
+}
+
+.unitInfoSkill {
+  font-size: 13px;
+  margin: 6px 0;
+  padding: 7px 10px;
+  background: rgba(60, 40, 80, 0.32);
+  border-radius: 6px;
+}
+
+.unitInfoSkill strong {
+  color: #c0a0e0;
+  font-size: 14px;
+  font-weight: 800;
+  display: block;
+  margin-bottom: 3px;
+}
+
+.unitInfoSkill em {
+  color: #a09878;
+  font-style: normal;
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.unitInfoUltimate {
+  font-size: 13px;
+  margin: 6px 0;
+  padding: 7px 10px;
+  background: rgba(80, 60, 20, 0.32);
+  border: 1px solid rgba(200, 161, 75, 0.25);
+  border-radius: 6px;
+}
+
+.unitInfoUltimate strong {
+  color: #ffd98a;
+  font-size: 14px;
+  font-weight: 800;
+  display: block;
+  margin-bottom: 3px;
+}
+
+.unitInfoUltimate em {
+  color: #c8a878;
+  font-style: normal;
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.unitInfoUltimateUsed {
+  color: #7a6840;
+  font-size: 11px;
+  margin-left: 6px;
+  font-weight: normal;
+}
+
+/* ==========================================================================
+ * 底部居中的技能/结束回合面板（S7B 同款 actionPanel）
+ * 覆盖原 .turnControls 的位置，使其底部居中而非贴底
+ * ========================================================================== */
+.actionPanel {
+  position: absolute;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: rgba(30, 28, 22, 0.92);
+  border: 1px solid rgba(200, 161, 75, 0.35);
+  border-radius: 12px;
+  padding: 10px 22px;
+  z-index: 12;
+  pointer-events: auto;
+}
+
+.actionPanelInfo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #e8d9b5;
+  font-size: 14px;
+  padding-right: 4px;
+  border-right: 1px solid rgba(200, 161, 75, 0.18);
+  margin-right: 4px;
+}
+
+.actionBtn {
+  padding: 8px 22px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid;
+  font-family: inherit;
+  letter-spacing: 0.5px;
+}
+
+.btnSkill {
+  background: rgba(60, 40, 80, 0.85);
+  border-color: rgba(160, 120, 200, 0.55);
+  color: #c0a0e0;
+}
+.btnSkill:hover:not(:disabled) {
+  background: rgba(75, 50, 95, 0.95);
+}
+
+.btnUltimate {
+  background: rgba(80, 60, 20, 0.85);
+  border-color: rgba(200, 161, 75, 0.55);
+  color: #ffd98a;
+}
+.btnUltimate:hover:not(:disabled) {
+  background: rgba(100, 80, 30, 0.95);
+}
+
+.btnEnd {
+  background: rgba(40, 40, 40, 0.85);
+  border-color: rgba(150, 150, 150, 0.45);
+  color: #ddd;
+}
+.btnEnd:hover:not(:disabled) {
+  background: rgba(60, 60, 60, 0.95);
+}
+
+.actionBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  filter: grayscale(0.4);
+}
+
+/* 覆盖原 .turnControls 让其不再生效（保险） —— 已弃用，改用 .actionPanel
+.turnControls {
+  display: none !important;
+} */
+
+/* ==========================================================================
+ * 战报面板（S7B 同款）
+ * ========================================================================== */
+.logPanel {
+  position: absolute;
+  right: 16px;
+  top: 12px;
+  bottom: 12px;
+  width: 280px;
+  background: rgba(20, 18, 14, 0.92);
+  border: 1px solid rgba(200, 161, 75, 0.25);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  z-index: 10;
+  overflow: hidden;
+}
+
+.logHeader {
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(200, 161, 75, 0.18);
+  flex-shrink: 0;
+}
+
+.logTitle {
+  font-size: 16px;
+  font-weight: 800;
+  color: #c8a14b;
+  letter-spacing: 1px;
+}
+
+.logBox .logList {
+  padding: 8px 10px;
+}
+
+.logBox .logItem {
+  font-size: 13px;
+  font-weight: 600;
+  padding: 3px 0;
+  border-bottom: 1px solid rgba(200, 180, 140, 0.06);
+  line-height: 1.45;
+}
+
+.logBox .logRound {
+  display: inline-block;
+  font-size: 10px;
+  color: #8a7a4a;
+  background: rgba(80, 60, 30, 0.4);
+  padding: 0 5px;
+  margin-right: 6px;
+  border-radius: 3px;
+  font-weight: 700;
+  vertical-align: middle;
+  flex: none;
+  width: auto;
+}
+
+.logBox .logText {
+  color: #d8c9a3;
+}
+
+/* ==========================================================================
+ * 手牌/弃牌按钮调位：让出战报区域，固定到地图区右下角
+ * ========================================================================== */
+.zoneButtons {
+  position: absolute;
+  right: 18px;
+  bottom: 18px;
+  display: flex;
+  gap: 10px;
+  z-index: 11;
+}
+
+/* 技能可发动绿灯（与 S7B 一致） */
+.skillDotGreen,
+.skillDotDim {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+.skillDotGreen {
+  background: #7fd85c;
+  box-shadow: 0 0 6px #7fd85c;
+  animation: skillDotPulseS7D 1.8s ease-in-out infinite;
+}
+
+.skillDotDim {
+  background: #4a4438;
+  border: 1px solid #5a5248;
+}
+
+@keyframes skillDotPulseS7D {
+  0%, 100% { box-shadow: 0 0 6px #7fd85c; }
+  50%      { box-shadow: 0 0 10px #a8ff80; }
+}
