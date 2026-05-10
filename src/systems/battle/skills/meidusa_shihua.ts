@@ -1,6 +1,6 @@
 /**
- * 【美杜莎 / 蛇后之瞳·石化】通用SSR · 绝技
- * 策划原文：美杜莎退场时（主动/被动），可让1名指定角色永远无法移动
+ * 【玫渡纱 / 蛇后之瞳·石化】通用SSR · 绝技
+ * 策划原文：玫渡纱退场时（主动/被动），可让1名指定角色永远无法移动
  */
 import type { Modifier, SkillRegistration, HookHandler } from '../types';
 import { PRIORITY } from '../types';
@@ -8,7 +8,7 @@ import { PRIORITY } from '../types';
 export const skill_meidusa_shihua: SkillRegistration = {
   id: 'ssr_meidusa.ult',
   name: '蛇后之瞳·石化',
-  description: '美杜莎退场时，可让1名指定角色永远无法移动',
+  description: '玫渡纱退场时，可让1名指定角色永远无法移动',
   hooks: {
     on_self_leave: ((ctx, engine) => {
       const self = engine.getUnit(ctx.defender.id);

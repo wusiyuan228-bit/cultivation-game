@@ -1,6 +1,6 @@
 /**
- * 【藤化原 / 黑泥潭·聚魂幡】通用SR · SR绝技
- * 原文：藤化原退场时（主动/被动），可操纵最多 3 个角色各移动一次（按其 mnd 距离）
+ * 【腾华原 / 黑泥潭·聚魂幡】通用SR · SR绝技
+ * 原文：腾华原退场时（主动/被动），可操纵最多 3 个角色各移动一次（按其 mnd 距离）
  * MVP：仅 emit 意图，真实移动由 store 层处理
  */
 import type { SkillRegistration, HookHandler } from '../types';

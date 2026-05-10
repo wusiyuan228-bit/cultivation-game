@@ -20,7 +20,7 @@ import type { Hero } from '@/types/game';
 
 export const HEROES_DATA: Hero[] = [
   {
-    id: 'hero_tangsan', name: '塘散', tribute: '唐三', rarity: '主角', ip: '斗罗大陆',
+    id: 'hero_tangsan', name: '塘散', tribute: '塘散', rarity: '主角', ip: '斗罗大陆',
     type: '灵修', gender: '男', faction: 'A', realm: '筑基', realm_level: 2, max_realm: '结丹', max_realm_level: 3,
     s7aKillMock: 6,
     run_card: {
@@ -49,7 +49,7 @@ export const HEROES_DATA: Hero[] = [
     },
   },
   {
-    id: 'hero_xiaowu', name: '小舞儿', tribute: '小舞', rarity: '主角', ip: '斗罗大陆',
+    id: 'hero_xiaowu', name: '小舞儿', tribute: '小舞儿', rarity: '主角', ip: '斗罗大陆',
     type: '妖修', gender: '女', faction: 'A', realm: '筑基', realm_level: 2, max_realm: '结丹', max_realm_level: 3,
     s7aKillMock: 5,
     run_card: {
@@ -78,7 +78,7 @@ export const HEROES_DATA: Hero[] = [
     },
   },
   {
-    id: 'hero_xiaoyan', name: '萧焱', tribute: '萧炎', rarity: '主角', ip: '斗破苍穹',
+    id: 'hero_xiaoyan', name: '萧焱', tribute: '萧焱', rarity: '主角', ip: '斗破苍穹',
     type: '法修', gender: '男', faction: 'B', realm: '筑基', realm_level: 2, max_realm: '结丹', max_realm_level: 3,
     s7aKillMock: 6,
     run_card: {
@@ -126,7 +126,7 @@ export const HEROES_DATA: Hero[] = [
       },
     },
     awakening: {
-      name: '斗帝血脉·薰儿', trigger: '古元（绑定SSR）在场时气血降至3以下',
+      name: '斗帝血脉·薰儿', trigger: '顾元（绑定SSR）在场时气血降至3以下',
       image: 'hero_xuner_awaken',
       hp: 8, atk: 7, mnd: 5,
       skills: {
@@ -136,7 +136,7 @@ export const HEROES_DATA: Hero[] = [
     },
   },
   {
-    id: 'hero_hanli', name: '寒立', tribute: '韩立', rarity: '主角', ip: '凡人修仙传',
+    id: 'hero_hanli', name: '寒立', tribute: '寒立', rarity: '主角', ip: '凡人修仙传',
     type: '剑修', gender: '男', faction: '摇摆', realm: '筑基', realm_level: 2, max_realm: '结丹', max_realm_level: 3,
     s7aKillMock: 5,
     run_card: {
@@ -165,7 +165,7 @@ export const HEROES_DATA: Hero[] = [
     },
   },
   {
-    id: 'hero_wanglin', name: '旺林', tribute: '王林', rarity: '主角', ip: '仙逆',
+    id: 'hero_wanglin', name: '旺林', tribute: '旺林', rarity: '主角', ip: '仙逆',
     type: '法修', gender: '男', faction: '摇摆', realm: '筑基', realm_level: 2, max_realm: '结丹', max_realm_level: 3,
     s7aKillMock: 4,
     run_card: {
@@ -184,7 +184,7 @@ export const HEROES_DATA: Hero[] = [
       },
     },
     awakening: {
-      name: '仙尊·旺林', trigger: '司徒南（绑定SSR）退场',
+      name: '仙尊·旺林', trigger: '司图楠（绑定SSR）退场',
       image: 'hero_wanglin_awaken',
       hp: 10, atk: 10, mnd: 4,
       skills: {

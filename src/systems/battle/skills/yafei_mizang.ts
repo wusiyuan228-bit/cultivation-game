@@ -1,5 +1,5 @@
 /**
- * 【雅妃 / 迦南秘藏·全面支援】通用SR · SR绝技
+ * 【娅妃 / 迦南秘藏·全面支援】通用SR · SR绝技
  * 原文：主动发动，治疗所有友军各 2 点气血（含自己，不可超上限）
  */
 import type { SkillRegistration, BattleUnit, IBattleEngine } from '../types';

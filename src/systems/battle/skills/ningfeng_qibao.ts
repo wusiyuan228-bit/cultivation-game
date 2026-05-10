@@ -1,7 +1,7 @@
 /**
- * 【宁风致 / 七宝加持】通用SSR · 战斗技能（aura 光环）
- * 与古元·古族天火阵同构（见 guyuan_tianhuo.ts）
- * Q42：与古元光环可叠加（不同 source 独立挂 modifier）
+ * 【凝丰志 / 七宝加持】通用SSR · 战斗技能（aura 光环）
+ * 与顾元·古族天火阵同构（见 guyuan_tianhuo.ts）
+ * Q42：与顾元光环可叠加（不同 source 独立挂 modifier）
  */
 import type { Modifier, SkillRegistration, TurnHookHandler, BattleUnit, IBattleEngine } from '../types';
 import { PRIORITY } from '../types';
@@ -19,7 +19,7 @@ function refreshAura(self: BattleUnit, engine: IBattleEngine): void {
       engine
         .queryModifiers(u.id, 'stat_delta')
         .filter((m) => m.sourceSkillId === SKILL_ID)
-        .forEach((m) => engine.detachModifier(m.id, '宁风致退场'));
+        .forEach((m) => engine.detachModifier(m.id, '凝丰志退场'));
     }
     return;
   }

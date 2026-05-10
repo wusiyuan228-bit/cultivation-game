@@ -1,6 +1,6 @@
 /**
- * 【红蝶 / 蝶舞红尘】通用SR · 战斗技能
- * 原文：红蝶退场时（主动/被动），可指定任一角色 1 个未使用的绝技作废
+ * 【鸿蝶 / 蝶舞红尘】通用SR · 战斗技能
+ * 原文：鸿蝶退场时（主动/被动），可指定任一角色 1 个未使用的绝技作废
  */
 import type { SkillRegistration, HookHandler, Modifier } from '../types';
 import { PRIORITY } from '../types';

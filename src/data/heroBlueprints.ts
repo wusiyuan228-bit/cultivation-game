@@ -7,7 +7,7 @@
  *   （instanceId / row / col / owner 保持不变）
  *
  * IP 标签 ipTag：用于萧焱觉醒触发判定（场上有3张+斗破角色）
- *   阶段 C 仅按主角本体判定；阶段 D 绑定 SSR 引入后再补（古元/萧玄等 doupo）
+ *   阶段 C 仅按主角本体判定；阶段 D 绑定 SSR 引入后再补（顾元/肖璇等 doupo）
  *
  * 数据来源：02_策划文档/主角系统_GDD.md + heroesData.ts
  *
@@ -37,9 +37,9 @@ export type AwakenTriggerKind =
   | 'ally_xiaowu_leave'           // 塘散：小舞儿退场
   | 'self_hp_to_1'                // 小舞儿：气血降至1
   | 'doupo_count_ge_3'            // 萧焱：场上有3张+斗破角色
-  | 'xuner_guyuan_hp_le_3'        // 薰儿：古元在场时气血降至3以下
+  | 'xuner_guyuan_hp_le_3'        // 薰儿：顾元在场时气血降至3以下
   | 'self_kill_count_ge_2'        // 寒立：累计击杀2名敌人
-  | 'ally_situnan_leave';         // 旺林：司徒南退场
+  | 'ally_situnan_leave';         // 旺林：司图楠退场
 
 /** 6 位主角完整蓝图 */
 export const HERO_BLUEPRINTS: Record<string, HeroBlueprint> = {

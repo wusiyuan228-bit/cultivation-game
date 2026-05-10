@@ -1,5 +1,5 @@
 /**
- * 【紫灵 / 韩老魔·治愈】通用SSR · 战斗技能
+ * 【子绫 / 韩老魔·治愈】通用SSR · 战斗技能
  * 策划原文：进攻后，自身与寒立各气血+1（寒立不在场则仅自身+1，可突破上限）
  * Q15：需造成伤害才触发（按契约 on_after_hit）
  */
@@ -37,7 +37,7 @@ export const skill_ziling_laomo: SkillRegistration = {
         engine.emit(
           'skill_passive_trigger',
           { skillId: 'ssr_ziling.battle' },
-          `「韩老魔·治愈」触发，紫灵与寒立各 +1 气血`,
+          `「韩老魔·治愈」触发，子绫与寒立各 +1 气血`,
           { actorId: self.id, targetIds: [hanli.id], skillId: 'ssr_ziling.battle', severity: 'info' },
         );
       } else {

@@ -1,5 +1,5 @@
 /**
- * 【霍雨浩 / 冰碧帝皇蝎·域】通用SSR · 战斗技能
+ * 【霍宇皓 / 冰碧帝皇蝎·域】通用SSR · 战斗技能
  * 策划原文：行动轮结束时，所有相邻敌人的下一个行动轮无法移动
  */
 import type { Modifier, SkillRegistration, TurnHookHandler } from '../types';

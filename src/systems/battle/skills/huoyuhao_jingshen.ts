@@ -1,5 +1,5 @@
 /**
- * 【霍雨浩 / 精神风暴】通用SSR · 绝技
+ * 【霍宇皓 / 精神风暴】通用SSR · 绝技
  * 策划原文：主动发动，场上所有角色（含己方）原地停留一个行动轮，无法移动
  */
 import type { Modifier, SkillRegistration } from '../types';

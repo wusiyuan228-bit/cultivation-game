@@ -1,5 +1,5 @@
 /**
- * 【冰凤 / 冰封万里】通用SR · SR绝技
+ * 【冰凰 / 冰封万里】通用SR · SR绝技
  * 原文：主动发动，本大回合剩余时间内，场上所有敌人 mnd-2（最低0）
  */
 import type { SkillRegistration, BattleUnit, IBattleEngine, Modifier } from '../types';

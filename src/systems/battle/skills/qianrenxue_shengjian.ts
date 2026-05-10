@@ -1,5 +1,5 @@
 /**
- * 【千仞雪 / 天使圣剑】通用SR · SR绝技
+ * 【千刃雪 / 天使圣剑】通用SR · SR绝技
  * 原文：主动发动，全场任意1名敌人进行攻击，本次攻击自身修为+4（不可超上限）
  */
 import type { SkillRegistration, BattleUnit, IBattleEngine, Modifier } from '../types';

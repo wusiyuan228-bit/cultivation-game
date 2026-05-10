@@ -1,5 +1,5 @@
 /**
- * 【戴沐白 / 白虎金身】通用SR · 战斗技能
+ * 【岱牧百 / 白虎金身】通用SR · 战斗技能
  * 原文：受到伤害时，伤害上限为2点（无论攻击伤害还是技能直接伤害）
  * trigger: on_damage_calc  effect: damage_cap  value=2
  */

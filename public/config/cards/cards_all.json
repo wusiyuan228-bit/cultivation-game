@@ -829,7 +829,7 @@
     },
     {
       "id": "bssr_erming",
-      "name": "二明",
+      "name": "尔铭",
       "tribute": "二明",
       "rarity": "SSR",
       "ip": "斗罗大陆",
@@ -876,7 +876,7 @@
     },
     {
       "id": "bssr_yaochen",
-      "name": "药尘",
+      "name": "曜尘",
       "tribute": "药尘",
       "rarity": "SSR",
       "ip": "斗破苍穹",
@@ -927,7 +927,7 @@
     },
     {
       "id": "bssr_guyuan",
-      "name": "古元",
+      "name": "顾元",
       "tribute": "古元",
       "rarity": "SSR",
       "ip": "斗破苍穹",
@@ -979,7 +979,7 @@
     },
     {
       "id": "bssr_nangongwan",
-      "name": "南宫婉",
+      "name": "南宫宛",
       "tribute": "南宫婉",
       "rarity": "SSR",
       "ip": "凡人修仙传",
@@ -1016,7 +1016,7 @@
         },
         "ultimate": {
           "name": "灵阵·归元",
-          "desc": "南宫婉死亡时（仅被动触发），可以使1名敌人的修为值归零（永久）",
+          "desc": "南宫宛死亡时（仅被动触发），可以使1名敌人的修为值归零（永久）",
           "type": "battle",
           "trigger": "on_self_death",
           "params": {
@@ -1032,7 +1032,7 @@
     },
     {
       "id": "bssr_situnan",
-      "name": "司徒南",
+      "name": "司图楠",
       "tribute": "司徒南",
       "rarity": "SSR",
       "ip": "仙逆",
@@ -1086,7 +1086,7 @@
   "bind_sr": [
     {
       "id": "bsr_tangya",
-      "name": "唐雅",
+      "name": "塘雅",
       "tribute": "唐雅",
       "rarity": "SR",
       "ip": "斗罗大陆",
@@ -1133,7 +1133,7 @@
     },
     {
       "id": "bsr_wangdonger",
-      "name": "王冬儿",
+      "name": "汪冬儿",
       "tribute": "王冬儿",
       "rarity": "SR",
       "ip": "斗罗大陆",
@@ -1187,7 +1187,7 @@
     },
     {
       "id": "bsr_xiaozhan",
-      "name": "萧战",
+      "name": "霄战",
       "tribute": "萧战",
       "rarity": "SR",
       "ip": "斗破苍穹",
@@ -1234,7 +1234,7 @@
     },
     {
       "id": "bsr_xiaoyixian",
-      "name": "小医仙",
+      "name": "小忆仙",
       "tribute": "小医仙",
       "rarity": "SR",
       "ip": "斗破苍穹",
@@ -1283,7 +1283,7 @@
     },
     {
       "id": "bsr_yinyue",
-      "name": "银月",
+      "name": "隐月",
       "tribute": "银月",
       "rarity": "SR",
       "ip": "凡人修仙传",
@@ -1318,7 +1318,7 @@
         },
         "ultimate": {
           "name": "月魂献祭",
-          "desc": "银月退场时（主动/被动），寒立永久修为+2、气血+2（可突破上限）",
+          "desc": "隐月退场时（主动/被动），寒立永久修为+2、气血+2（可突破上限）",
           "type": "battle",
           "trigger": "on_self_leave",
           "params": {
@@ -1342,7 +1342,7 @@
     },
     {
       "id": "bsr_limuwan",
-      "name": "李慕婉",
+      "name": "黎慕婉",
       "tribute": "李慕婉",
       "rarity": "SR",
       "ip": "仙逆",
@@ -1378,7 +1378,7 @@
         },
         "ultimate": {
           "name": "情深不渝",
-          "desc": "李慕婉主动退场时，使旺林所有属性永久+2（可突破上限）",
+          "desc": "黎慕婉主动退场时，使旺林所有属性永久+2（可突破上限）",
           "type": "battle",
           "trigger": "on_self_sacrifice",
           "params": {
@@ -1400,7 +1400,7 @@
   "pool_ssr": [
     {
       "id": "ssr_bibidong",
-      "name": "比比东",
+      "name": "碧碧栋",
       "tribute": "比比东",
       "rarity": "SSR",
       "ip": "斗罗大陆",
@@ -1445,7 +1445,7 @@
     },
     {
       "id": "ssr_huoyuhao",
-      "name": "霍雨浩",
+      "name": "霍宇皓",
       "tribute": "霍雨浩",
       "rarity": "SSR",
       "ip": "斗罗大陆",
@@ -1489,7 +1489,7 @@
     },
     {
       "id": "ssr_ningfengzhi",
-      "name": "宁风致",
+      "name": "凝丰志",
       "tribute": "宁风致",
       "rarity": "SSR",
       "ip": "斗罗大陆",
@@ -1536,7 +1536,7 @@
     },
     {
       "id": "ssr_meidusa",
-      "name": "美杜莎",
+      "name": "玫渡纱",
       "tribute": "美杜莎",
       "rarity": "SSR",
       "ip": "斗破苍穹",
@@ -1570,7 +1570,7 @@
         },
         "ultimate": {
           "name": "蛇后之瞳·石化",
-          "desc": "美杜莎退场时（主动/被动），可以让1名指定角色永远无法移动",
+          "desc": "玫渡纱退场时（主动/被动），可以让1名指定角色永远无法移动",
           "type": "battle",
           "trigger": "on_self_leave",
           "params": {
@@ -1590,7 +1590,7 @@
     },
     {
       "id": "ssr_yunyun",
-      "name": "云韵",
+      "name": "雲蕴",
       "tribute": "云韵",
       "rarity": "SSR",
       "ip": "斗破苍穹",
@@ -1632,7 +1632,7 @@
     },
     {
       "id": "ssr_xiaoxuan",
-      "name": "萧玄",
+      "name": "肖璇",
       "tribute": "萧玄（萧族族长）",
       "rarity": "SSR",
       "ip": "斗破苍穹",
@@ -1677,7 +1677,7 @@
     },
     {
       "id": "ssr_xuangu",
-      "name": "玄骨",
+      "name": "玄古",
       "tribute": "玄骨",
       "rarity": "SSR",
       "ip": "凡人修仙传",
@@ -1720,7 +1720,7 @@
     },
     {
       "id": "ssr_mocaihuan",
-      "name": "墨彩环",
+      "name": "墨采寰",
       "tribute": "墨彩环",
       "rarity": "SSR",
       "ip": "凡人修仙传",
@@ -1768,7 +1768,7 @@
     },
     {
       "id": "ssr_ziling",
-      "name": "紫灵",
+      "name": "子绫",
       "tribute": "紫灵",
       "rarity": "SSR",
       "ip": "凡人修仙传",
@@ -1801,7 +1801,7 @@
         },
         "ultimate": {
           "name": "双修合击",
-          "desc": "主动发动，若寒立在场，对1名敌人进行攻击，骰子数=紫灵修为+寒立修为",
+          "desc": "主动发动，若寒立在场，对1名敌人进行攻击，骰子数=子绫修为+寒立修为",
           "type": "battle",
           "trigger": "active_once",
           "params": {
@@ -1814,7 +1814,7 @@
     },
     {
       "id": "ssr_zhouyi",
-      "name": "周佚",
+      "name": "邹翼",
       "tribute": "周佚",
       "rarity": "SSR",
       "ip": "仙逆",
@@ -1859,7 +1859,7 @@
     },
     {
       "id": "ssr_tuosen",
-      "name": "拓森",
+      "name": "沱森",
       "tribute": "拓森",
       "rarity": "SSR",
       "ip": "仙逆",
@@ -1905,7 +1905,7 @@
     },
     {
       "id": "ssr_tianyunzi",
-      "name": "天运子",
+      "name": "天蕴子",
       "tribute": "天运子",
       "rarity": "SSR",
       "ip": "仙逆",
@@ -1954,7 +1954,7 @@
   "pool_sr": [
     {
       "id": "sr_daimubai",
-      "name": "戴沐白",
+      "name": "岱牧百",
       "tribute": "戴沐白",
       "rarity": "SR",
       "ip": "斗罗大陆",
@@ -1985,7 +1985,7 @@
         },
         "ultimate": {
           "name": "白虎裂光波",
-          "desc": "戴沐白退场时（主动/被动），对四个方向相邻的所有角色造成4点固定伤害",
+          "desc": "岱牧百退场时（主动/被动），对四个方向相邻的所有角色造成4点固定伤害",
           "type": "battle",
           "trigger": "on_self_leave",
           "params": {
@@ -1999,7 +1999,7 @@
     },
     {
       "id": "sr_zhuzhuqing",
-      "name": "朱竹清",
+      "name": "朱苎青",
       "tribute": "朱竹清",
       "rarity": "SR",
       "ip": "斗罗大陆",
@@ -2027,7 +2027,7 @@
     },
     {
       "id": "sr_ningrongrong",
-      "name": "宁荣荣",
+      "name": "凝蓉蓉",
       "tribute": "宁荣荣",
       "rarity": "SR",
       "ip": "斗罗大陆",
@@ -2075,7 +2075,7 @@
     },
     {
       "id": "sr_qianrenxue",
-      "name": "千仞雪",
+      "name": "千刃雪",
       "tribute": "千仞雪",
       "rarity": "SR",
       "ip": "斗罗大陆",
@@ -2133,7 +2133,7 @@
     },
     {
       "id": "sr_aoska",
-      "name": "奥斯卡",
+      "name": "傲思卡",
       "tribute": "奥斯卡",
       "rarity": "SR",
       "ip": "斗罗大陆",
@@ -2179,7 +2179,7 @@
     },
     {
       "id": "sr_mahongjun",
-      "name": "马红俊",
+      "name": "马洪骏",
       "tribute": "马红俊",
       "rarity": "SR",
       "ip": "斗罗大陆",
@@ -2226,7 +2226,7 @@
     },
     {
       "id": "sr_nalanyanran",
-      "name": "纳兰嫣然",
+      "name": "纳兰艳然",
       "tribute": "纳兰嫣然",
       "rarity": "SR",
       "ip": "斗破苍穹",
@@ -2274,7 +2274,7 @@
     },
     {
       "id": "sr_fengxian",
-      "name": "风闲",
+      "name": "风娴",
       "tribute": "风尊者",
       "rarity": "SR",
       "ip": "斗破苍穹",
@@ -2319,7 +2319,7 @@
     },
     {
       "id": "sr_guhe",
-      "name": "古河",
+      "name": "顾河",
       "tribute": "古河（炼药师）",
       "rarity": "SR",
       "ip": "斗破苍穹",
@@ -2374,7 +2374,7 @@
     },
     {
       "id": "sr_tianhuo",
-      "name": "天火尊者",
+      "name": "添火尊者",
       "tribute": "天火",
       "rarity": "SR",
       "ip": "斗破苍穹",
@@ -2402,7 +2402,7 @@
     },
     {
       "id": "sr_yafei",
-      "name": "雅妃",
+      "name": "娅妃",
       "tribute": "雅妃",
       "rarity": "SR",
       "ip": "斗破苍穹",
@@ -2447,7 +2447,7 @@
     },
     {
       "id": "sr_ziyan",
-      "name": "紫妍",
+      "name": "子妍",
       "tribute": "紫妍",
       "rarity": "SR",
       "ip": "斗破苍穹",
@@ -2480,7 +2480,7 @@
         },
         "ultimate": {
           "name": "龙凤变",
-          "desc": "紫妍退场时（主动/被动），对所在行与列的所有角色造成2点固定伤害",
+          "desc": "子妍退场时（主动/被动），对所在行与列的所有角色造成2点固定伤害",
           "type": "battle",
           "trigger": "on_self_leave",
           "params": {
@@ -2493,7 +2493,7 @@
     },
     {
       "id": "sr_lifeiyu",
-      "name": "厉飞雨",
+      "name": "立飞羽",
       "tribute": "厉飞雨",
       "rarity": "SR",
       "ip": "凡人修仙传",
@@ -2536,7 +2536,7 @@
     },
     {
       "id": "sr_hanyunzhi",
-      "name": "菡云芝",
+      "name": "涵云芝",
       "tribute": "菡云芝",
       "rarity": "SR",
       "ip": "凡人修仙传",
@@ -2583,7 +2583,7 @@
     },
     {
       "id": "sr_mupeiling",
-      "name": "慕沛灵",
+      "name": "暮佩翎",
       "tribute": "慕沛灵",
       "rarity": "SR",
       "ip": "凡人修仙传",
@@ -2629,7 +2629,7 @@
     },
     {
       "id": "sr_chenqiaoqian",
-      "name": "陈巧倩",
+      "name": "沉俏茜",
       "tribute": "陈巧倩",
       "rarity": "SR",
       "ip": "凡人修仙传",
@@ -2657,7 +2657,7 @@
     },
     {
       "id": "sr_yuanyao",
-      "name": "元瑶",
+      "name": "缘瑶",
       "tribute": "元瑶",
       "rarity": "SR",
       "ip": "凡人修仙传",
@@ -2690,7 +2690,7 @@
         },
         "ultimate": {
           "name": "阴灵蔽日",
-          "desc": "元瑶退场时（主动/被动），可指定夺取对方1名角色成为己方角色（主角卡除外，继承所有状态）",
+          "desc": "缘瑶退场时（主动/被动），可指定夺取对方1名角色成为己方角色（主角卡除外，继承所有状态）",
           "type": "battle",
           "trigger": "on_self_leave",
           "params": {
@@ -2702,7 +2702,7 @@
     },
     {
       "id": "sr_bingfeng",
-      "name": "冰凤",
+      "name": "冰凰",
       "tribute": "冰凤",
       "rarity": "SR",
       "ip": "凡人修仙传",
@@ -2721,7 +2721,7 @@
       "skills": {
         "run_skill": null,
         "battle_skill": {
-          "name": "冰凤寒啸",
+          "name": "冰凰寒啸",
           "desc": "被攻击时，可将心境值和修为值相加来进行防守判定（投\"心境+修为\"颗骰子），若如此做则气血-1",
           "type": "battle",
           "trigger": "on_before_defend_roll",
@@ -2752,7 +2752,7 @@
     },
     {
       "id": "sr_hongdie",
-      "name": "红蝶",
+      "name": "鸿蝶",
       "tribute": "红蝶",
       "rarity": "SR",
       "ip": "仙逆",
@@ -2772,7 +2772,7 @@
         "run_skill": null,
         "battle_skill": {
           "name": "蝶舞红尘",
-          "desc": "红蝶退场时（主动/被动），可指定任一角色1个未使用的绝技作废（本场不可再使用）",
+          "desc": "鸿蝶退场时（主动/被动），可指定任一角色1个未使用的绝技作废（本场不可再使用）",
           "type": "battle",
           "trigger": "on_self_leave",
           "params": {
@@ -2781,7 +2781,7 @@
           }
         },
         "ultimate": {
-          "name": "红蝶蛊惑",
+          "name": "鸿蝶蛊惑",
           "desc": "主动发动，选1名敌人，使其下一个行动轮强制依次攻击其相邻的己方友军（若无则跳过行动）",
           "type": "battle",
           "trigger": "active_once",
@@ -2795,7 +2795,7 @@
     },
     {
       "id": "sr_liumei",
-      "name": "柳眉",
+      "name": "留眉",
       "tribute": "柳眉",
       "rarity": "SR",
       "ip": "仙逆",
@@ -2830,7 +2830,7 @@
         },
         "ultimate": {
           "name": "道破情牵",
-          "desc": "主动发动，柳眉退场，可指定1名已退场的友军回到手牌中（主角卡除外）",
+          "desc": "主动发动，留眉退场，可指定1名已退场的友军回到手牌中（主角卡除外）",
           "type": "battle",
           "trigger": "on_self_sacrifice",
           "params": {
@@ -2843,7 +2843,7 @@
     },
     {
       "id": "sr_tenghuayuan",
-      "name": "藤化原",
+      "name": "腾华原",
       "tribute": "藤化原",
       "rarity": "SR",
       "ip": "仙逆",
@@ -2874,7 +2874,7 @@
         },
         "ultimate": {
           "name": "黑泥潭·聚魂幡",
-          "desc": "藤化原退场时（主动/被动），可操纵最多3个角色各移动一次（按其心境值的距离）",
+          "desc": "腾华原退场时（主动/被动），可操纵最多3个角色各移动一次（按其心境值的距离）",
           "type": "battle",
           "trigger": "on_self_leave",
           "params": {
@@ -2887,7 +2887,7 @@
     },
     {
       "id": "sr_yunquezi",
-      "name": "云雀子",
+      "name": "云鹊子",
       "tribute": "云雀子",
       "rarity": "SR",
       "ip": "仙逆",
@@ -2939,7 +2939,7 @@
     },
     {
       "id": "sr_xuliguo",
-      "name": "许立国",
+      "name": "徐立国",
       "tribute": "许立国",
       "rarity": "SR",
       "ip": "仙逆",
@@ -2959,7 +2959,7 @@
         "run_skill": null,
         "battle_skill": {
           "name": "剑魂·威慑",
-          "desc": "被攻击时，若攻击方修为值高于许立国修为值，则本次伤害减半（向下取整）",
+          "desc": "被攻击时，若攻击方修为值高于徐立国修为值，则本次伤害减半（向下取整）",
           "type": "battle",
           "trigger": "on_damage_calc",
           "params": {
@@ -2983,7 +2983,7 @@
     },
     {
       "id": "sr_wangping",
-      "name": "王平",
+      "name": "旺平",
       "tribute": "王平",
       "rarity": "SR",
       "ip": "仙逆",
@@ -3013,7 +3013,7 @@
   "pool_r": [
     {
       "id": "r_liuerlong",
-      "name": "柳二龙",
+      "name": "刘二陇",
       "tribute": "柳二龙",
       "rarity": "R",
       "ip": "斗罗大陆",
@@ -3044,7 +3044,7 @@
     },
     {
       "id": "r_dugubo",
-      "name": "独孤博",
+      "name": "独孤搏",
       "tribute": "独孤博",
       "rarity": "R",
       "ip": "斗罗大陆",
@@ -3075,7 +3075,7 @@
     },
     {
       "id": "r_beibei",
-      "name": "贝贝",
+      "name": "卑卑",
       "tribute": "贝贝",
       "rarity": "R",
       "ip": "斗罗大陆",
@@ -3106,7 +3106,7 @@
     },
     {
       "id": "r_xusanshi",
-      "name": "徐三石",
+      "name": "徐叁石",
       "tribute": "徐三石",
       "rarity": "R",
       "ip": "斗罗大陆",
@@ -3139,7 +3139,7 @@
     },
     {
       "id": "r_zhaowuji",
-      "name": "赵无极",
+      "name": "召无极",
       "tribute": "赵无极",
       "rarity": "R",
       "ip": "斗罗大陆",
@@ -3174,7 +3174,7 @@
     },
     {
       "id": "r_fulande",
-      "name": "弗兰德",
+      "name": "福兰德",
       "tribute": "弗兰德",
       "rarity": "R",
       "ip": "斗罗大陆",
@@ -3205,7 +3205,7 @@
     },
     {
       "id": "r_qinglin",
-      "name": "青鳞",
+      "name": "清麟",
       "tribute": "青鳞",
       "rarity": "R",
       "ip": "斗破苍穹",
@@ -3237,7 +3237,7 @@
     },
     {
       "id": "r_xiaoxiao",
-      "name": "萧潇",
+      "name": "肖筱",
       "tribute": "萧潇（萧炎之女）",
       "rarity": "R",
       "ip": "斗破苍穹",
@@ -3268,7 +3268,7 @@
     },
     {
       "id": "r_ruolin",
-      "name": "若琳",
+      "name": "偌琳",
       "tribute": "若琳",
       "rarity": "R",
       "ip": "斗破苍穹",
@@ -3301,7 +3301,7 @@
     },
     {
       "id": "r_fama",
-      "name": "法犸",
+      "name": "法蟆",
       "tribute": "法犸（炼药师公会会长）",
       "rarity": "R",
       "ip": "斗破苍穹",
@@ -3332,7 +3332,7 @@
     },
     {
       "id": "r_haibodong",
-      "name": "海波东",
+      "name": "海勃东",
       "tribute": "海波东",
       "rarity": "R",
       "ip": "斗破苍穹",
@@ -3363,7 +3363,7 @@
     },
     {
       "id": "r_linxiuya",
-      "name": "林修涯",
+      "name": "林秀崖",
       "tribute": "林修涯",
       "rarity": "R",
       "ip": "斗破苍穹",
@@ -3395,7 +3395,7 @@
     },
     {
       "id": "r_xinruyin",
-      "name": "辛如音",
+      "name": "辛如茵",
       "tribute": "辛如音",
       "rarity": "R",
       "ip": "凡人修仙传",
@@ -3430,7 +3430,7 @@
     },
     {
       "id": "r_manhuzi",
-      "name": "蛮胡子",
+      "name": "蛮虎髭",
       "tribute": "蛮胡子",
       "rarity": "R",
       "ip": "凡人修仙传",
@@ -3462,7 +3462,7 @@
     },
     {
       "id": "r_dongxuaner",
-      "name": "董萱儿",
+      "name": "董轩儿",
       "tribute": "董萱儿",
       "rarity": "R",
       "ip": "凡人修仙传",
@@ -3495,7 +3495,7 @@
     },
     {
       "id": "r_wangchan",
-      "name": "王蝉",
+      "name": "汪蝉",
       "tribute": "王蝉",
       "rarity": "R",
       "ip": "凡人修仙传",
@@ -3526,7 +3526,7 @@
     },
     {
       "id": "r_lihuayuan",
-      "name": "李化元",
+      "name": "黎华元",
       "tribute": "李化元",
       "rarity": "R",
       "ip": "凡人修仙传",
@@ -3557,7 +3557,7 @@
     },
     {
       "id": "r_songyu",
-      "name": "宋玉",
+      "name": "颂玉",
       "tribute": "宋玉",
       "rarity": "R",
       "ip": "凡人修仙传",
@@ -3587,7 +3587,7 @@
     },
     {
       "id": "r_wangzhuo",
-      "name": "王卓",
+      "name": "旺卓",
       "tribute": "王卓",
       "rarity": "R",
       "ip": "仙逆",
@@ -3620,7 +3620,7 @@
     },
     {
       "id": "r_meiji",
-      "name": "魅姬",
+      "name": "媚姬",
       "tribute": "魅姬",
       "rarity": "R",
       "ip": "仙逆",
@@ -3651,7 +3651,7 @@
     },
     {
       "id": "r_jimolaoren",
-      "name": "即墨老人",
+      "name": "季墨老人",
       "tribute": "即墨老人",
       "rarity": "R",
       "ip": "仙逆",
@@ -3685,7 +3685,7 @@
     },
     {
       "id": "r_suntai",
-      "name": "孙泰",
+      "name": "孙太",
       "tribute": "孙泰",
       "rarity": "R",
       "ip": "仙逆",
@@ -3717,7 +3717,7 @@
     },
     {
       "id": "r_zhouru",
-      "name": "周茹",
+      "name": "邹儒",
       "tribute": "周茹",
       "rarity": "R",
       "ip": "仙逆",
@@ -3748,7 +3748,7 @@
     },
     {
       "id": "r_duntian",
-      "name": "遁天",
+      "name": "顿天",
       "tribute": "遁天",
       "rarity": "R",
       "ip": "仙逆",
@@ -3785,7 +3785,7 @@
   "pool_n": [
     {
       "id": "n_tailong",
-      "name": "泰隆",
+      "name": "泰珑",
       "tribute": "泰隆",
       "rarity": "N",
       "ip": "斗罗大陆",
@@ -3808,7 +3808,7 @@
     },
     {
       "id": "n_jiangnannan",
-      "name": "江楠楠",
+      "name": "江南南",
       "tribute": "江楠楠",
       "rarity": "N",
       "ip": "斗罗大陆",
@@ -3831,7 +3831,7 @@
     },
     {
       "id": "n_xuxiaoyan",
-      "name": "许小言",
+      "name": "徐小焉",
       "tribute": "许小言",
       "rarity": "N",
       "ip": "斗罗大陆",
@@ -3855,7 +3855,7 @@
     },
     {
       "id": "n_fengqinger",
-      "name": "凤清儿",
+      "name": "凤青儿",
       "tribute": "凤清儿",
       "rarity": "N",
       "ip": "斗破苍穹",
@@ -3878,7 +3878,7 @@
     },
     {
       "id": "n_xiaoding",
-      "name": "萧鼎",
+      "name": "肖顶",
       "tribute": "萧鼎",
       "rarity": "N",
       "ip": "斗破苍穹",
@@ -3901,7 +3901,7 @@
     },
     {
       "id": "n_gena",
-      "name": "格娜",
+      "name": "戈娜",
       "tribute": "格娜",
       "rarity": "N",
       "ip": "斗破苍穹",
@@ -3925,7 +3925,7 @@
     },
     {
       "id": "n_zhangtie",
-      "name": "张铁",
+      "name": "章铁",
       "tribute": "张铁",
       "rarity": "N",
       "ip": "凡人修仙传",
@@ -3948,7 +3948,7 @@
     },
     {
       "id": "n_meining",
-      "name": "梅凝",
+      "name": "莓凝",
       "tribute": "梅凝",
       "rarity": "N",
       "ip": "凡人修仙传",
@@ -3971,7 +3971,7 @@
     },
     {
       "id": "n_mojuren",
-      "name": "墨居仁",
+      "name": "墨菊仁",
       "tribute": "墨居仁",
       "rarity": "N",
       "ip": "凡人修仙传",
@@ -3995,7 +3995,7 @@
     },
     {
       "id": "n_zhanghu",
-      "name": "张虎",
+      "name": "章虎",
       "tribute": "张虎",
       "rarity": "N",
       "ip": "仙逆",
@@ -4019,7 +4019,7 @@
     },
     {
       "id": "n_daniu",
-      "name": "大牛",
+      "name": "达牛",
       "tribute": "大牛",
       "rarity": "N",
       "ip": "仙逆",
@@ -4042,7 +4042,7 @@
     },
     {
       "id": "n_tengli",
-      "name": "藤厉",
+      "name": "腾沥",
       "tribute": "藤厉",
       "rarity": "N",
       "ip": "仙逆",

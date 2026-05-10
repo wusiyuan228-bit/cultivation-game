@@ -1,5 +1,5 @@
 /**
- * 【千仞雪 / 天使之光】通用SR · 战斗技能
+ * 【千刃雪 / 天使之光】通用SR · 战斗技能
  * 原文：受到攻击时，可消耗 2 点心境，将本次伤害降为 1
  * trigger: on_damage_calc  effect: reduce_damage_to_at_cost  MVP：若 mnd≥2 且预览伤害≥2，自动发动
  */

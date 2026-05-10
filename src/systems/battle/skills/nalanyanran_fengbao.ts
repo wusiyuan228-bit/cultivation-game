@@ -1,5 +1,5 @@
 /**
- * 【纳兰嫣然 / 风暴裂斩】通用SR · SR绝技
+ * 【纳兰艳然 / 风暴裂斩】通用SR · SR绝技
  * 原文：主动发动，对 2 格内的敌人进行攻击，本次攻击 atk+2（不可超上限）
  */
 import type { SkillRegistration, BattleUnit, IBattleEngine, Modifier } from '../types';

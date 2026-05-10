@@ -1,5 +1,5 @@
 /**
- * 【厉飞雨 / 疾风无影】通用SR · 战斗技能（battle_skill）
+ * 【立飞羽 / 疾风无影】通用SR · 战斗技能（battle_skill）
  * 原文：与你交战的角色的普通技能（battle_skill）对你失效
  * Q60：仅压制攻击方自身的"被动 battle_skill"；绝技 (ultimate/awaken_ult) 仍生效
  *

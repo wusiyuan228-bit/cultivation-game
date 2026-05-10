@@ -1,5 +1,5 @@
 /**
- * 【元瑶 / 阴灵之力】通用SR · 战斗技能
+ * 【缘瑶 / 阴灵之力】通用SR · 战斗技能
  * 原文：进攻后，目标心境永久 -1（最低 0）
  */
 import type { SkillRegistration, HookHandler } from '../types';

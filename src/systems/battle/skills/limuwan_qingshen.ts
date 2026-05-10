@@ -1,7 +1,7 @@
 /**
- * 【李慕婉 / 情深不渝】绑定SR · 绝技
+ * 【黎慕婉 / 情深不渝】绑定SR · 绝技
  *
- * 策划原文：李慕婉主动退场时，使旺林所有属性永久+2（可突破上限）
+ * 策划原文：黎慕婉主动退场时，使旺林所有属性永久+2（可突破上限）
  *
  * 契约登记：
  *   trigger  : active_once + on_self_sacrifice
@@ -18,7 +18,7 @@ import type { SkillRegistration, HookHandler } from '../types';
 export const skill_limuwan_qingshen: SkillRegistration = {
   id: 'bsr_limuwan.ult',
   name: '情深不渝',
-  description: '李慕婉主动退场时，使旺林所有属性永久+2（可突破上限）',
+  description: '黎慕婉主动退场时，使旺林所有属性永久+2（可突破上限）',
   isActive: true,
   targetSelector: { kind: 'none' },
   maxCasts: 1,
@@ -48,7 +48,7 @@ export const skill_limuwan_qingshen: SkillRegistration = {
     engine.emit(
       'skill_active_cast',
       { skillId: 'bsr_limuwan.ult' },
-      `「情深不渝」发动：李慕婉以生命托付旺林`,
+      `「情深不渝」发动：黎慕婉以生命托付旺林`,
       { actorId: self.id, targetIds: [wanglin.id], skillId: 'bsr_limuwan.ult', severity: 'climax' },
     );
     // 先给旺林加成
@@ -70,7 +70,7 @@ export const skill_limuwan_qingshen: SkillRegistration = {
       reason: '情深不渝',
       skillId: 'bsr_limuwan.ult',
     });
-    // 再让李慕婉献祭退场
+    // 再让黎慕婉献祭退场
     engine.changeStat(self.id, 'hp', -self.hp.current, {
       permanent: false,
       reason: '情深不渝·自我献祭',

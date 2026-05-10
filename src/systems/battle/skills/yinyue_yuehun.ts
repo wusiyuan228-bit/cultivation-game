@@ -1,7 +1,7 @@
 /**
- * 【银月 / 月魂献祭】绑定SR · 绝技
+ * 【隐月 / 月魂献祭】绑定SR · 绝技
  *
- * 策划原文：银月退场时（主动/被动），寒立永久修为+2、气血+2（可突破上限）
+ * 策划原文：隐月退场时（主动/被动），寒立永久修为+2、气血+2（可突破上限）
  *
  * 契约登记：
  *   trigger  : on_self_leave
@@ -12,7 +12,7 @@ import type { SkillRegistration, HookHandler } from '../types';
 export const skill_yinyue_yuehun: SkillRegistration = {
   id: 'bsr_yinyue.ult',
   name: '月魂献祭',
-  description: '银月退场时（主动/被动），寒立永久修为+2、气血+2（可突破上限）',
+  description: '隐月退场时（主动/被动），寒立永久修为+2、气血+2（可突破上限）',
   hooks: {
     on_self_leave: ((ctx, engine) => {
       const self = engine.getUnit(ctx.defender.id);

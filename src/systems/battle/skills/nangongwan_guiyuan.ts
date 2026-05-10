@@ -1,7 +1,7 @@
 /**
- * 【南宫婉 / 灵阵·归元】绑定SSR · 绝技（被动死亡触发）
+ * 【南宫宛 / 灵阵·归元】绑定SSR · 绝技（被动死亡触发）
  *
- * 策划原文：南宫婉死亡时（仅被动触发），可以使1名敌人的修为值归零（永久）
+ * 策划原文：南宫宛死亡时（仅被动触发），可以使1名敌人的修为值归零（永久）
  *
  * 契约登记：
  *   trigger  : on_self_death（triggerMode=passive_only）
@@ -17,7 +17,7 @@ import type { SkillRegistration, HookHandler } from '../types';
 export const skill_nangongwan_guiyuan: SkillRegistration = {
   id: 'bssr_nangongwan.ult',
   name: '灵阵·归元',
-  description: '南宫婉死亡时（仅被动触发），可以使1名敌人的修为值归零（永久）',
+  description: '南宫宛死亡时（仅被动触发），可以使1名敌人的修为值归零（永久）',
   hooks: {
     on_self_death: ((ctx, engine) => {
       const self = engine.getUnit(ctx.defender.id);

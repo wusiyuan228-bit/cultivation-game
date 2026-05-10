@@ -1,5 +1,5 @@
 /**
- * 【红蝶 / 红蝶蛊惑】通用SR · SR绝技
+ * 【鸿蝶 / 鸿蝶蛊惑】通用SR · SR绝技
  * 原文：主动发动，选 1 名敌人，使其下一个行动轮强制依次攻击其相邻的己方友军
  *
  * 实装说明（E2）：
@@ -12,7 +12,7 @@ import type { SkillRegistration, BattleUnit, IBattleEngine } from '../types';
 
 export const skill_hongdie_guhuo: SkillRegistration = {
   id: 'sr_hongdie.ultimate',
-  name: '红蝶蛊惑',
+  name: '鸿蝶蛊惑',
   description: '使目标下一行动轮强制依次攻击其相邻友军',
   isActive: true,
   maxCasts: 1,
@@ -29,7 +29,7 @@ export const skill_hongdie_guhuo: SkillRegistration = {
     engine.emit(
       'skill_active_cast',
       { skillId: 'sr_hongdie.ultimate' },
-      `红蝶蛊惑：${target.name} 下一行动轮将倒戈攻击其友军`,
+      `鸿蝶蛊惑：${target.name} 下一行动轮将倒戈攻击其友军`,
       { actorId: self.id, targetIds: [target.id], skillId: 'sr_hongdie.ultimate', severity: 'climax' },
     );
     return { consumed: true };

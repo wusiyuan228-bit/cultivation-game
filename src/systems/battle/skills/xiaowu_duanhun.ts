@@ -7,7 +7,7 @@
  *   effect   : lost_hp_as_damage
  *   targetSelector: single_adjacent_enemy
  *   裁决：
- *     Q7（2026-05-01）: 主动退场不走 on_after_being_hit → 不触发二明反伤
+ *     Q7（2026-05-01）: 主动退场不走 on_after_being_hit → 不触发尔铭反伤
  *     Q8（2026-05-01）: on_self_sacrifice ⊂ on_self_leave → 会触发塘散觉醒（十万年魂骨献祭）等 on_self_leave 监听
  *
  * 实装要点：

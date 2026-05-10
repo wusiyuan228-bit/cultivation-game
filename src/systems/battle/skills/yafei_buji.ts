@@ -1,5 +1,5 @@
 /**
- * 【雅妃 / 迦南商会·补给】通用SR · 战斗技能
+ * 【娅妃 / 迦南商会·补给】通用SR · 战斗技能
  * 原文：行动轮开始时，可指定 1 名友军和自己各 +1 气血（不可超上限）
  */
 import type { SkillRegistration, TurnHookHandler } from '../types';

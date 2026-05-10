@@ -1,5 +1,5 @@
 /**
- * 【菡云芝 / 化形·镜像】通用SR · SR绝技
+ * 【涵云芝 / 化形·镜像】通用SR · SR绝技
  * 原文：主动发动，选 1 名敌人，本大回合剩余时间内自身 atk 变为该敌人的 atk
  */
 import type { SkillRegistration, BattleUnit, IBattleEngine, Modifier } from '../types';

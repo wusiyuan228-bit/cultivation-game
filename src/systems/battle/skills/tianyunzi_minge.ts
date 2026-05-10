@@ -1,5 +1,5 @@
 /**
- * 【天运子 / 天运·命格逆转】通用SSR · 战斗技能
+ * 【天蕴子 / 天运·命格逆转】通用SSR · 战斗技能
  * 策划原文：行动轮开始时，可选1名相邻敌人，使其修为-1（永久，最低为1）
  */
 import type { SkillRegistration, TurnHookHandler } from '../types';

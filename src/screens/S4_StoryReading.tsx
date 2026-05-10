@@ -769,12 +769,12 @@ export const S4_StoryReading: React.FC = () => {
 //   - 点击「领取」后关闭弹窗并跳转 /s8?round=3（最终密谈）
 // ==============================================================
 const BOUND_REWARD_MAP: Record<string, { ssrId: string; ssrName: string; srId: string; srName: string }> = {
-  hero_tangsan:  { ssrId: 'bssr_tanghao',    ssrName: '塘昊',   srId: 'bsr_tangya',      srName: '唐雅' },
-  hero_xiaowu:   { ssrId: 'bssr_erming',     ssrName: '二明',   srId: 'bsr_wangdonger',  srName: '王冬儿' },
-  hero_xiaoyan:  { ssrId: 'bssr_yaochen',    ssrName: '药尘',   srId: 'bsr_xiaozhan',    srName: '萧战' },
-  hero_xuner:    { ssrId: 'bssr_guyuan',     ssrName: '古元',   srId: 'bsr_xiaoyixian',  srName: '小医仙' },
-  hero_hanli:    { ssrId: 'bssr_nangongwan', ssrName: '南宫婉', srId: 'bsr_yinyue',      srName: '银月' },
-  hero_wanglin:  { ssrId: 'bssr_situnan',    ssrName: '司徒南', srId: 'bsr_limuwan',     srName: '李慕婉' },
+  hero_tangsan:  { ssrId: 'bssr_tanghao',    ssrName: '塘昊',   srId: 'bsr_tangya',      srName: '塘雅' },
+  hero_xiaowu:   { ssrId: 'bssr_erming',     ssrName: '尔铭',   srId: 'bsr_wangdonger',  srName: '汪冬儿' },
+  hero_xiaoyan:  { ssrId: 'bssr_yaochen',    ssrName: '曜尘',   srId: 'bsr_xiaozhan',    srName: '霄战' },
+  hero_xuner:    { ssrId: 'bssr_guyuan',     ssrName: '顾元',   srId: 'bsr_xiaoyixian',  srName: '小忆仙' },
+  hero_hanli:    { ssrId: 'bssr_nangongwan', ssrName: '南宫宛', srId: 'bsr_yinyue',      srName: '隐月' },
+  hero_wanglin:  { ssrId: 'bssr_situnan',    ssrName: '司图楠', srId: 'bsr_limuwan',     srName: '黎慕婉' },
 };
 
 const BoundRewardModal: React.FC<{

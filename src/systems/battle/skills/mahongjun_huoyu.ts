@@ -1,5 +1,5 @@
 /**
- * 【马红俊 / 凤凰火雨】通用SR · SR绝技
+ * 【马洪骏 / 凤凰火雨】通用SR · SR绝技
  * 原文：主动发动，对相邻所有敌人各进行1次攻击（与佛怒火莲同构）
  */
 import type { SkillRegistration, BattleUnit, IBattleEngine } from '../types';

@@ -1,5 +1,5 @@
 /**
- * 【古河 / 丹师秘药·破境丹】通用SR · SR绝技
+ * 【顾河 / 丹师秘药·破境丹】通用SR · SR绝技
  * 原文：主动发动，选1名友军，永久 atk+3、hp+3（可突破上限）
  */
 import type { SkillRegistration, BattleUnit, IBattleEngine } from '../types';

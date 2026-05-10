@@ -1,5 +1,5 @@
 /**
- * 【墨彩环 / 蓄力·彩环缚】通用SSR · 战斗技能
+ * 【墨采寰 / 蓄力·彩环缚】通用SSR · 战斗技能
  * 策划原文：本行动轮不攻击，下一个行动轮修为+4（不可超过上限）
  */
 import type { Modifier, SkillRegistration, TurnHookHandler } from '../types';

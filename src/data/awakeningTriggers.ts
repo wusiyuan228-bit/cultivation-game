@@ -64,13 +64,13 @@ export const AWAKEN_TRIGGERS: Record<AwakenTriggerKind, AwakenTriggerFn> = {
     return doupoCount >= 3;
   },
 
-  /** 薰儿：古元（绑定SSR）在场时气血降至3以下 */
+  /** 薰儿：顾元（绑定SSR）在场时气血降至3以下 */
   xuner_guyuan_hp_le_3: (self, engine) => {
     if (!self.isAlive) return false;
     if (self.hp.current > 3) return false;
-    // 阶段 C 古元绑定SSR未实装 → 永远找不到 guyuan → 永远不触发
+    // 阶段 C 顾元绑定SSR未实装 → 永远找不到 guyuan → 永远不触发
     const guyuan = engine.getAllUnits().find(
-      (u) => u.isAlive && (u.id.includes('guyuan') || u.name === '古元'),
+      (u) => u.isAlive && (u.id.includes('guyuan') || u.name === '顾元'),
     );
     return !!guyuan;
   },
@@ -81,12 +81,12 @@ export const AWAKEN_TRIGGERS: Record<AwakenTriggerKind, AwakenTriggerFn> = {
     return self.killCount >= 2;
   },
 
-  /** 旺林：司徒南（绑定SSR）退场 */
+  /** 旺林：司图楠（绑定SSR）退场 */
   ally_situnan_leave: (_self, engine) => {
     const situnan = engine.getAllUnits().find(
-      (u) => u.id.includes('situnan') || u.name === '司徒南',
+      (u) => u.id.includes('situnan') || u.name === '司图楠',
     );
-    // 司徒南不存在 → 阶段 C 永远不触发
+    // 司图楠不存在 → 阶段 C 永远不触发
     if (!situnan) return false;
     return !situnan.isAlive;
   },

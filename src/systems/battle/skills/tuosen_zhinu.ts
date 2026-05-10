@@ -1,5 +1,5 @@
 /**
- * 【拓森 / 古神之怒】通用SSR · 绝技
+ * 【沱森 / 古神之怒】通用SSR · 绝技
  * 策划原文：主动发动，对1名相邻敌人造成自身当前气血值的固定伤害
  */
 import type { SkillRegistration } from '../types';

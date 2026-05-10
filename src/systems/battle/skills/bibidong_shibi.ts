@@ -1,5 +1,5 @@
 /**
- * 【比比东 / 死蛛皇·噬】通用SSR · 战斗技能
+ * 【碧碧栋 / 死蛛皇·噬】通用SSR · 战斗技能
  * 策划原文：进攻时，永久降低目标1点修为（最低为1）
  */
 import type { SkillRegistration, HookHandler } from '../types';

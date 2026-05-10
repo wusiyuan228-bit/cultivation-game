@@ -1,6 +1,6 @@
 /**
- * 【紫灵 / 双修合击】通用SSR · 绝技
- * 策划原文：主动发动，若寒立在场，对1名敌人进行攻击，骰子数=紫灵修为+寒立修为
+ * 【子绫 / 双修合击】通用SSR · 绝技
+ * 策划原文：主动发动，若寒立在场，对1名敌人进行攻击，骰子数=子绫修为+寒立修为
  * Q14：ignoreRange=true，无视距离与阻挡
  */
 import type { SkillRegistration } from '../types';
@@ -8,7 +8,7 @@ import type { SkillRegistration } from '../types';
 export const skill_ziling_shuangxiu: SkillRegistration = {
   id: 'ssr_ziling.ult',
   name: '双修合击',
-  description: '主动发动，若寒立在场，对1名敌人进行攻击（骰数=紫灵+寒立修为，无视距离）',
+  description: '主动发动，若寒立在场，对1名敌人进行攻击（骰数=子绫+寒立修为，无视距离）',
   isActive: true,
   targetSelector: { kind: 'single_any_enemy' },
   maxCasts: 1,
@@ -45,7 +45,7 @@ export const skill_ziling_shuangxiu: SkillRegistration = {
     engine.emit(
       'skill_active_cast',
       { skillId: 'ssr_ziling.ult', diceCount: totalAtk, damage: dmg },
-      `「双修合击」发动：紫灵+寒立共 ${totalAtk} 颗骰，对 ${target.name} 造成 ${dmg} 伤害`,
+      `「双修合击」发动：子绫+寒立共 ${totalAtk} 颗骰，对 ${target.name} 造成 ${dmg} 伤害`,
       { actorId: self.id, targetIds: [target.id], skillId: 'ssr_ziling.ult', severity: 'climax' },
     );
     engine.changeStat(target.id, 'hp', -dmg, {

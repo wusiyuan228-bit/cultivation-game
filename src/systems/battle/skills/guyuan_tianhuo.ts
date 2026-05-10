@@ -1,5 +1,5 @@
 /**
- * 【古元 / 古族天火阵】绑定SSR · 战斗技能（光环）
+ * 【顾元 / 古族天火阵】绑定SSR · 战斗技能（光环）
  *
  * 策划原文：相邻所有友军修为+1（常驻光环，可突破修为上限）
  *
@@ -8,7 +8,7 @@
  *   effect   : aura_buff（stat_delta atk +1, breakCap=true）
  *   scope    : 相邻友军（曼哈顿 ≤1）
  *   裁决 Q30 ：aura 退出时 cap 突破同步回滚
- *   裁决 Q42 ：与宁风致七宝加持等其它 aura 可叠加（不同 sourceSkillId 独立计算）
+ *   裁决 Q42 ：与凝丰志七宝加持等其它 aura 可叠加（不同 sourceSkillId 独立计算）
  *
  * 实装说明：
  *   aura 型技能不挂持久 modifier，而是通过 on_damage_calc 钩子在"相邻友军进攻"时
@@ -16,10 +16,10 @@
  *   但计算在 damage_calc 阶段即时执行，避免位置变化时要重新遍历所有 modifier。
  *
  *   本方案在所有友军（包括自己）进攻时检查：自己是否相邻？若相邻则 +1。
- *   为此该 handler 挂在"古元自身"，但 on_damage_calc 只对 ctx.attacker 派发——
- *   需要让所有友军都能感知到古元。方案：古元入场时为每个相邻友军挂 modifier。
+ *   为此该 handler 挂在"顾元自身"，但 on_damage_calc 只对 ctx.attacker 派发——
+ *   需要让所有友军都能感知到顾元。方案：顾元入场时为每个相邻友军挂 modifier。
  *
- *   阶段 E1 MVP 采用"古元身上挂 hook，在 attacker 是自己或相邻友军时 +1"
+ *   阶段 E1 MVP 采用"顾元身上挂 hook，在 attacker 是自己或相邻友军时 +1"
  *   但引擎 fireHook 仅按 attacker.skills / defender.skills 派发，所以必须改为
  *   "每个被 buff 的友军身上挂一个 stat_delta modifier"。
  *
@@ -45,7 +45,7 @@ function refreshAura(self: BattleUnit, engine: IBattleEngine): void {
       const mods = engine.queryModifiers(u.id, 'stat_delta');
       mods
         .filter((m) => m.sourceSkillId === SKILL_ID)
-        .forEach((m) => engine.detachModifier(m.id, '古元退场'));
+        .forEach((m) => engine.detachModifier(m.id, '顾元退场'));
     }
     return;
   }
@@ -61,7 +61,7 @@ function refreshAura(self: BattleUnit, engine: IBattleEngine): void {
       .queryModifiers(u.id, 'stat_delta')
       .filter((m) => m.sourceSkillId === SKILL_ID);
     if (!inRangeIds.has(u.id)) {
-      mods.forEach((m) => engine.detachModifier(m.id, '古元光环失效：离开相邻范围'));
+      mods.forEach((m) => engine.detachModifier(m.id, '顾元光环失效：离开相邻范围'));
     }
   }
 
