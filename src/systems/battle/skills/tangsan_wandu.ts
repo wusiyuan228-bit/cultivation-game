@@ -49,8 +49,20 @@ export const skill_tangsan_wandu: SkillRegistration = {
       },
     );
     self.ultimateUsed = true;
-    // 实际多段 resolveAttack 在 store.performUltimate 中执行
-    // 每次命中后对目标 atk -1 永久（在 store 内根据 skillId 识别执行）
+    // 实际多段 resolveAttack 在 store.performUltimate 中通过 followUpAttack 展开
+    // 每次命中后对目标 atk -1 永久（postHit 内执行）
     return { consumed: true };
+  },
+  followUpAttack: {
+    target: 'targetIds',
+    perTarget: true,
+    postHit: (target, addLog) => {
+      if (target.atk > 1) {
+        target.atk = Math.max(1, target.atk - 1);
+        addLog(`${target.name} 修为被万毒淬体永久-1`);
+      } else {
+        addLog(`${target.name} 修为已为1，吞噬未生效`);
+      }
+    },
   },
 };

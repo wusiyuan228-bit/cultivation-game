@@ -45,10 +45,12 @@ export const skill_tanghao_potian: SkillRegistration = {
       `「昊天九绝·破天」发动，对 ${target.name} 发起额外5骰攻击`,
       { actorId: self.id, targetIds: [target.id], skillId: 'bssr_tanghao.ult', severity: 'climax' },
     );
-    // P1（2026-05-01）：activeCast 只发出"意图"emit，store 层在 multiSegmentSkills 路由里
-    // 为本次攻击临时把 attacker.atk += 5（等价于额外投 5 骰子：每骰 3 面期望 1.0 → 总伤期望 +5~10）
-    // 这样走的是真实 resolveAttack 掷骰流程，不再是固定 -5 的近似。
+    // 真正的攻击（含临时 atk+5）由 store 层通过 followUpAttack.diceOverride 路由展开
     return { consumed: true };
   },
   hooks: {},
+  followUpAttack: {
+    target: 'first_only',
+    diceOverride: (self) => self.atk.current + 5,
+  },
 };

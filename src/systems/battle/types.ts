@@ -355,6 +355,45 @@ export interface SkillRegistration {
     movedUnitId: string,
     engine: IBattleEngine,
   ) => void;
+  /**
+   * 主动技绝技释放后的"后置攻击"声明（2026-05-11 架构升级 · 跨 store 通用）
+   *
+   * 设计动机：很多绝技的语义是"挂临时 buff（如 atk+4） + 立刻发起 1 次攻击"。
+   *   activeCast 内部因为没有 store API（无法真正调用 attack→resolveAttack→走全部 hook），
+   *   只能 attach buff + emit 意图。真正的攻击必须由 store 层在 activeCast 返回后接续。
+   *
+   *   旧实现：在 battleStore / s7bBattleStore 的 performUltimate 中维护一份"白名单 + 路由表"，
+   *           每加一张瞄准型攻击绝技就要改 3 个 store。
+   *   新实现：技能文件自己声明 followUpAttack，store 层用统一 helper（runFollowUpAttack）展开。
+   *
+   * 仅"瞄准型攻击绝技"才需要声明（即攻击由真实 attack() 走 resolveAttack 完成的）；
+   * 已自己 engine.changeStat 完成固伤的（如韩立·觉醒大衍、王林·一念逆天）不需要。
+   */
+  followUpAttack?: {
+    /**
+     * 攻击目标解析方式：
+     *   - 'targetIds'   : 使用 effectiveTargetIds（含 AOE 时由 precheck.candidateIds 自动填充）
+     *   - 'first_only'  : 只攻击 effectiveTargetIds[0]（瞄准单体）
+     */
+    target?: 'targetIds' | 'first_only';
+    /** 是否对每个 target 都展开（多段攻击）；默认 false（仅打第一个） */
+    perTarget?: boolean;
+    /**
+     * 攻击前临时改写 attacker.atk（等价于"额外投X骰"语义）
+     * 注意：传入的 self 是 store 侧的简化对象，atk 字段为 { current: number }（兼容引擎 StatBox 形态）
+     * 返回新的 atk 值（store 层会在 attack 后还原）
+     */
+    diceOverride?: (self: { atk: { current: number } }) => number;
+    /**
+     * 命中后回调（每段攻击命中后调用一次，可对 target 做永久 atk-1 等额外效果）
+     * 注意：传入的 target 是 store 侧的 mutable copy，atk/name 都是基础类型；
+     *       store 层会写回 units[]
+     */
+    postHit?: (
+      target: { atk: number; name: string; [key: string]: any },
+      addLog: (text: string) => void,
+    ) => void;
+  };
   /** 描述（未揭示时显示"效果未知"）*/
   description: string;
 }

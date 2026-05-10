@@ -48,4 +48,5 @@ export const skill_xiaoyan_fonu: SkillRegistration = {
     self.ultimateUsed = true;
     return { consumed: true };
   },
+  followUpAttack: { target: 'targetIds', perTarget: true },
 };

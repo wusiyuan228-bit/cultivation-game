@@ -448,15 +448,49 @@ export function castSkillAndApply(
   }
 
   // ==========================================================================
-  // 多段 AOE 展开（Batch 2C）：对每个 target 执行一次带 hook 的攻击
+  // 多段 AOE 展开（Batch 2C → 2026-05-11 架构升级）
+  //   现在根据 skill.followUpAttack 字段动态判断，不再读硬编码白名单 MULTI_SEGMENT_SKILLS
+  //   兼容：如果新技能在 SkillRegistry 注册了 followUpAttack，自动生效
+  //   兜底：旧白名单仍保留（向后兼容，未声明 followUpAttack 的旧技能仍走原路径）
   // ==========================================================================
-  if (regId && MULTI_SEGMENT_SKILLS[regId] && skillType === 'ultimate') {
-    const multi = MULTI_SEGMENT_SKILLS[regId];
-    // 确定目标列表：如果外部传入 targetIds 为空，从 precheck 角度找相邻敌人
-    const effTargets =
+  let followUpInfo: {
+    diceOverride?: (caster: BattleCardInstance) => number;
+    postHit?: (target: BattleCardInstance, log: (msg: string) => void) => void;
+    perTarget: boolean;
+  } | null = null;
+
+  if (regId && skillType === 'ultimate') {
+    const skillReg = SkillRegistry.get(regId);
+    if (skillReg?.followUpAttack) {
+      const fua = skillReg.followUpAttack;
+      followUpInfo = {
+        perTarget: fua.perTarget === true,
+        diceOverride: fua.diceOverride
+          ? (caster) => fua.diceOverride!({ atk: { current: caster.atk } } as any)
+          : undefined,
+        postHit: fua.postHit
+          ? (target, log) => fua.postHit!(target as any, log)
+          : undefined,
+      };
+    } else if (MULTI_SEGMENT_SKILLS[regId]) {
+      // 旧白名单兜底（保留已经手动注册的 6 个绝技兼容性）
+      const old = MULTI_SEGMENT_SKILLS[regId];
+      followUpInfo = {
+        perTarget: true, // 旧白名单一律按多段处理
+        diceOverride: old.diceOverride,
+        postHit: old.postHit,
+      };
+    }
+  }
+
+  if (followUpInfo) {
+    const fu = followUpInfo;
+    // 确定目标列表：如果外部传入 targetIds 为空，从相邻敌人补全
+    const baseTargets =
       targetIds.length > 0
         ? targetIds
         : findAdjacentEnemies(state, casterId);
+    const effTargets = fu.perTarget ? baseTargets : baseTargets.slice(0, 1);
 
     for (const tid of effTargets) {
       const attackerCur = state.units[casterId];
@@ -467,9 +501,9 @@ export function castSkillAndApply(
 
       // 临时改骰数
       let restoreAtk: number | null = null;
-      if (multi.diceOverride) {
+      if (fu.diceOverride) {
         restoreAtk = attackerCur.atk;
-        attackerCur.atk = multi.diceOverride(attackerCur);
+        attackerCur.atk = fu.diceOverride(attackerCur);
       }
 
       // 发动攻击
@@ -481,10 +515,10 @@ export function castSkillAndApply(
       }
 
       // 段后处理（万毒淬体等）
-      if (multi.postHit) {
+      if (fu.postHit) {
         const stillAlive = state.units[tid];
         if (stillAlive && stillAlive.hp > 0) {
-          multi.postHit(stillAlive, (msg) =>
+          fu.postHit(stillAlive, (msg) =>
             appendLog(state, 'skill_cast', msg, { actorId: casterId, targetIds: [tid] }),
           );
         }

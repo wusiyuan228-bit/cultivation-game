@@ -1320,37 +1320,31 @@ export const useS7BBattleStore = create<BattleState>((set, get) => ({
       snapshots[u.id].ultimateUsed = true;
     }
 
-    // —— 对于"每段独立结算"的 AOE 技能（佛怒火莲 / 万毒淬体 / 修罗弑神击 / 万剑归宗）——
-    // 活性 handler 只做了标记(emit skill_active_cast)和 ultimateUsed=true，
-    // 实际 attack 段由下方 per-skill 路由展开
+    // —— 对于"每段独立结算"的攻击型绝技（千仞雪/纳兰嫣然/佛怒火莲/万毒淬体/弑神击/万剑归宗/凤凰火雨/破天等）——
+    // 2026-05-11 架构升级：从"硬编码白名单"改为"读取技能注册表的 skill.followUpAttack 字段"
+    // 新增/修改瞄准型攻击绝技只需在技能文件里声明，store 不再需要改白名单
     const multiSegmentSkills: Record<string, {
       targets: string[];
       diceOverride?: (self: BattleUnit) => number;
       postHit?: (target: BattleUnit) => void;
     }> = {};
 
-    if (regId === 'hero_xiaoyan.ultimate' || regId === 'hero_tangsan.ultimate' ||
-        regId === 'hero_tangsan.awaken.ultimate' || regId === 'hero_hanli.ultimate' ||
-        regId === 'sr_mahongjun.ultimate' || regId === 'bssr_tanghao.ult') {
-      // P3（2026-05-01）: 马红俊凤凰火雨 与 佛怒火莲/万毒淬体 同构 —— 对每个相邻敌人各 1 次
-      // 对 sr_mahongjun.ultimate，effectiveTargetIds 已由 precheck 提供（all_adjacent_enemies）
-      // P1（2026-05-01）: 唐昊·破天：对单目标发起 1 次攻击，attack 前临时 +5 atk 模拟 +5骰
+    if (skill.followUpAttack) {
+      const fua = skill.followUpAttack;
+      const targets =
+        fua.perTarget === true
+          ? effectiveTargetIds.slice()
+          : effectiveTargetIds.slice(0, 1);
       multiSegmentSkills[regId] = {
-        targets: effectiveTargetIds,
-        diceOverride:
-          regId === 'hero_tangsan.awaken.ultimate' || regId === 'hero_hanli.ultimate'
-            ? (self: BattleUnit) => self.atk * 2
-            : regId === 'bssr_tanghao.ult'
-              ? (self: BattleUnit) => self.atk + 5
-              : undefined,
-        postHit: regId === 'hero_tangsan.ultimate'
+        targets,
+        diceOverride: fua.diceOverride
+          ? (self: BattleUnit) =>
+              // s7b 的 BattleUnit.atk 是 number 而不是 StatBox，做兼容封装
+              fua.diceOverride!({ atk: { current: self.atk } } as any)
+          : undefined,
+        postHit: fua.postHit
           ? (target: BattleUnit) => {
-              if (target.atk > 1) {
-                target.atk = Math.max(1, target.atk - 1);
-                addEngineLog(`${target.name} 修为被万毒淬体永久-1`, 'skill');
-              } else {
-                addEngineLog(`${target.name} 修为已为1，吞噬未生效`, 'skill');
-              }
+              fua.postHit!(target as any, (text: string) => addEngineLog(text, 'skill'));
             }
           : undefined,
       };

@@ -30,8 +30,9 @@ export const skill_mahongjun_huoyu: SkillRegistration = {
       `凤凰火雨：对 ${adj.length} 名相邻敌人各发起 1 次攻击`,
       { actorId: self.id, targetIds: adj.map((u) => u.id), skillId: 'sr_mahongjun.ultimate', severity: 'climax' },
     );
-    // store 层会按 segments 循环发起 resolveAttack（MVP：这里仅记录意图）
+    // store 层会按 segments 循环发起 resolveAttack（通过 followUpAttack 展开）
     return { consumed: true };
   },
   hooks: {},
+  followUpAttack: { target: 'targetIds', perTarget: true },
 };

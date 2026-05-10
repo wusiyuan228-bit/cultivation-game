@@ -994,31 +994,29 @@ export const useBattleStore = create<BattleState>((set, get) => ({
       snapshots[u.id].ultimateUsed = true;
     }
 
+    // —— 对于"每段独立结算"的攻击型绝技 —— 2026-05-11 架构升级
+    // 从硬编码白名单改为读取技能注册表的 skill.followUpAttack 字段
     const multiSegmentSkills: Record<string, {
       targets: string[];
       diceOverride?: (self: BattleUnit) => number;
       postHit?: (target: BattleUnit) => void;
     }> = {};
 
-    if (regId === 'hero_xiaoyan.ultimate' || regId === 'hero_tangsan.ultimate' ||
-        regId === 'hero_tangsan.awaken.ultimate' || regId === 'hero_hanli.ultimate' ||
-        regId === 'sr_mahongjun.ultimate' || regId === 'bssr_tanghao.ult') {
+    if (skill.followUpAttack) {
+      const fua = skill.followUpAttack;
+      const targets =
+        fua.perTarget === true
+          ? effectiveTargetIds.slice()
+          : effectiveTargetIds.slice(0, 1);
       multiSegmentSkills[regId] = {
-        targets: effectiveTargetIds,
-        diceOverride:
-          regId === 'hero_tangsan.awaken.ultimate' || regId === 'hero_hanli.ultimate'
-            ? (self: BattleUnit) => self.atk * 2
-            : regId === 'bssr_tanghao.ult'
-              ? (self: BattleUnit) => self.atk + 5
-              : undefined,
-        postHit: regId === 'hero_tangsan.ultimate'
+        targets,
+        diceOverride: fua.diceOverride
+          ? (self: BattleUnit) =>
+              fua.diceOverride!({ atk: { current: self.atk } } as any)
+          : undefined,
+        postHit: fua.postHit
           ? (target: BattleUnit) => {
-              if (target.atk > 1) {
-                target.atk = Math.max(1, target.atk - 1);
-                addEngineLog(`${target.name} 修为被万毒淬体永久-1`, 'skill');
-              } else {
-                addEngineLog(`${target.name} 修为已为1，吞噬未生效`, 'skill');
-              }
+              fua.postHit!(target as any, (text: string) => addEngineLog(text, 'skill'));
             }
           : undefined,
       };

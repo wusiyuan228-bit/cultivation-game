@@ -40,8 +40,9 @@ export const skill_qianrenxue_shengjian: SkillRegistration = {
       `天使圣剑：${self.name} 本次攻击 atk+4，冲向 ${target.name}`,
       { actorId: self.id, targetIds: [target.id], skillId: 'sr_qianrenxue.ultimate', severity: 'climax' },
     );
-    // 攻击由 store 层 performUltimate 后置发起（MVP：这里仅挂 buff 并记日志）
+    // 攻击由 store 层 performUltimate 后置发起（已通过 followUpAttack 声明）
     return { consumed: true };
   },
   hooks: {},
+  followUpAttack: { target: 'first_only' },
 };

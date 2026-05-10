@@ -57,4 +57,8 @@ export const skill_tangsan_shisha: SkillRegistration = {
     self.ultimateUsed = true;
     return { consumed: true };
   },
+  followUpAttack: {
+    target: 'first_only',
+    diceOverride: (self) => self.atk.current * 2,
+  },
 };

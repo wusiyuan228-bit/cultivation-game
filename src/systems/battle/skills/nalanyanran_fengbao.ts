@@ -44,4 +44,5 @@ export const skill_nalanyanran_fengbao: SkillRegistration = {
     return { consumed: true };
   },
   hooks: {},
+  followUpAttack: { target: 'first_only' },
 };
