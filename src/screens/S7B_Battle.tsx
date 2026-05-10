@@ -342,6 +342,16 @@ function DiceModal({
 
 /* ======== 结算面板 ======== */
 
+interface ResultPanelProps {
+  battleResult: 'win' | 'lose' | 'draw' | null;
+  killCount: number;
+  mode: 'test' | 'sect';
+  match: 1 | 2;
+  rewardStones: number;
+  onContinue: () => void;
+  onReturnMenu?: () => void;
+}
+
 function ResultPanel({
   battleResult,
   killCount,
@@ -349,14 +359,8 @@ function ResultPanel({
   match,
   rewardStones,
   onContinue,
-}: {
-  battleResult: 'win' | 'lose' | 'draw' | null;
-  killCount: number;
-  mode: 'test' | 'sect';
-  match: 1 | 2;
-  rewardStones: number;
-  onContinue: () => void;
-}) {
+  onReturnMenu,
+}: ResultPanelProps) {
   const isSect = mode === 'sect';
   const isFinalWin = isSect && match === 2 && battleResult === 'win';
   const isFirstWin = isSect && match === 1 && battleResult === 'win';
@@ -365,8 +369,8 @@ function ResultPanel({
     battleResult === 'win'
       ? (isSect ? (match === 1 ? '🏆 宗门大比 · 首场告捷！' : '🏆 宗门大比 · 决胜夺魁！') : '🏆 宗门比武 · 胜利！')
       : battleResult === 'lose'
-      ? (isSect ? '💀 宗门大比 · 折戟而归' : '💀 宗门比武 · 失败')
-      : (isSect ? '⚖ 宗门大比 · 握手言和' : '⚖ 宗门比武 · 平局');
+      ? (isSect ? `💀 宗门大比 · 第${match}场（${match === 1 ? '2v2' : '3v3'}）折戟而归` : '💀 宗门比武 · 失败')
+      : (isSect ? `⚖ 宗门大比 · 第${match}场（${match === 1 ? '2v2' : '3v3'}）握手言和` : '⚖ 宗门比武 · 平局');
 
   const subText =
     battleResult === 'win'
@@ -374,14 +378,22 @@ function ResultPanel({
           ? '两场大比连胜，宗门高层刮目相看！'
           : (isFirstWin ? '首场胜利，正赛仍需再接再厉。' : '敌方全员倒下，恭喜取得胜利！'))
       : battleResult === 'lose'
-      ? '我方全员倒下，挑战失败...'
-      : '20 回合内未分胜负。';
+      ? (isSect
+          ? (match === 1
+              ? '我方全员倒下！点击下方按钮重新挑战首场 2v2，赢下后才能进入 3v3 决赛。'
+              : '我方全员倒下！次场 3v3 失利。点击下方按钮可原地重新挑战 3v3（首场战绩保留）。')
+          : '我方全员倒下，挑战失败...')
+      : (isSect
+          ? (match === 1
+              ? '20 回合未分胜负，平局视同首场失利。点击下方按钮重新挑战首场 2v2。'
+              : '20 回合未分胜负，平局视同次场失利。点击下方按钮原地重新挑战 3v3。')
+          : '20 回合内未分胜负。');
 
   const btnText =
     isSect && battleResult === 'win'
       ? (match === 1 ? '迎战第二场（3v3）' : '领取奖励 · 进入精英招募')
       : isSect
-      ? '返回主菜单'
+      ? `重新挑战 · ${match === 1 ? '首场 2v2' : '次场 3v3'}`
       : '返回主菜单';
 
   return (
@@ -414,6 +426,23 @@ function ResultPanel({
         <button className={styles.resultBtn} onClick={onContinue}>
           {btnText}
         </button>
+        {/* 失败/平局：增加次级"返回主菜单"按钮，给玩家退出口 */}
+        {battleResult !== 'win' && onReturnMenu && (
+          <button
+            className={styles.resultBtn}
+            onClick={onReturnMenu}
+            style={{
+              marginTop: 8,
+              background: 'linear-gradient(180deg, rgba(50,50,50,0.85), rgba(30,30,30,0.95))',
+              borderColor: '#666',
+              color: '#bbb',
+              fontSize: 15,
+              padding: '8px 18px',
+            }}
+          >
+            返回主菜单（保留当前进度）
+          </button>
+        )}
       </motion.div>
     </div>
   );
@@ -2217,6 +2246,10 @@ export const S7B_Battle: React.FC = () => {
             match={matchNo}
             rewardStones={sectReward}
             onContinue={handleContinue}
+            onReturnMenu={() => {
+              SaveSystem.save(1);
+              returnToMenu();
+            }}
           />
         )}
       </AnimatePresence>
