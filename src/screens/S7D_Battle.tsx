@@ -1632,6 +1632,14 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ battleState, selectedUnitId, onReturnMenu }) => {
   // 战报筛选：'all' 显示全部 / number 显示指定大回合
   const [logFilter, setLogFilter] = useState<number | 'all'>('all');
+  // 自动滚动锚点（与 S7B 一致：仅"全部"模式下追加新日志时滚到底）
+  const logEndRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (logFilter === 'all') {
+      logEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
+  }, [battleState.log.length, logFilter]);
+
   return (
     <motion.div
       className={styles.sidebar}
@@ -1642,7 +1650,7 @@ const Sidebar: React.FC<SidebarProps> = ({ battleState, selectedUnitId, onReturn
       {/* 行动队列面板 / 三区概览 / 选中单位详情 —— 已移除，
           右侧整列留给战报（参考 S7B 风格） */}
 
-      {/* 战报（参考 S7B 风格：按 kind 分色 + 大字号 + 顶部表头 + 回合筛选） */}
+      {/* 战报（参考 S7B 风格：按 kind 分色 + 大字号 + 顶部表头 + 回合筛选 + 正序滚到底） */}
       <div className={styles.logPanel}>
         <div className={styles.logHeader}>
           <span className={styles.logTitle}>📜 战报</span>
@@ -1674,8 +1682,6 @@ const Sidebar: React.FC<SidebarProps> = ({ battleState, selectedUnitId, onReturn
         <div className={styles.logList}>
           {battleState.log
             .filter((entry) => logFilter === 'all' || entry.bigRound === logFilter)
-            .slice(-200)
-            .reverse()
             .map((entry) => {
               // 按 kind 分类样式（与 S7B 相同的语义分色）
               const kindClass =
@@ -1690,14 +1696,12 @@ const Sidebar: React.FC<SidebarProps> = ({ battleState, selectedUnitId, onReturn
                   : styles.logSystem;
               return (
                 <div key={entry.seq} className={`${styles.logItem} ${kindClass}`}>
-                  <span className={styles.logRoundTag}>
-                    R{entry.bigRound}
-                    {entry.subRound ? `.${entry.subRound}` : ''}
-                  </span>
+                  <span className={styles.logRoundTag}>R{entry.bigRound}</span>
                   <span className={styles.logText}>{entry.text}</span>
                 </div>
               );
             })}
+          <div ref={logEndRef} />
         </div>
       </div>
     </motion.div>
