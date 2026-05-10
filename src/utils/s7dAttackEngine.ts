@@ -145,7 +145,7 @@ export function executeAttackWithHooks(
   };
 
   let diceAttack = Math.max(1, snapshots[attackerId].atk.current);
-  let diceDefend = Math.max(0, snapshots[defenderId].mnd.current);
+  let diceDefend = Math.max(0, snapshots[defenderId].atk.current);
 
   const calcLog: Array<{ source: string; delta: number; note: string }> = [];
   const hookFiredSet = new Set<string>();

@@ -3,7 +3,7 @@
  *
  * 对齐 S7B 的骰子玩法：
  *   - 攻方掷 atk 个六面骰
- *   - 防方掷 mnd 个六面骰
+ *   - 防方掷 atk 个六面骰（修为对修为，与 S7A/S7B/S7C 一致）
  *   - 伤害 = max(0, 攻方点数和 - 防方点数和) + 技能/克制加成
  *   - 同时支持对水晶的攻击（水晶无防骰，直接扣 1 点 HP）
  *
@@ -57,7 +57,7 @@ export function resolveUnitAttack(
   opts?: { skillMod?: number; counterMod?: number },
 ): S7DDiceResult {
   const atkDice = rollDice(Math.max(1, attacker.atk));
-  const defDice = rollDice(Math.max(0, defender.mnd));
+  const defDice = rollDice(Math.max(0, defender.atk));
   const atkSum = atkDice.reduce((a, b) => a + b, 0);
   const defSum = defDice.reduce((a, b) => a + b, 0);
   const base = Math.max(0, atkSum - defSum);

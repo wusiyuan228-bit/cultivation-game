@@ -468,6 +468,17 @@ function buildLineups(
       rng,
     );
 
+    // ★ FIX 2026-05-10：把本 AI 抽到的卡从共享池中永久移除，
+    //   避免后续 AI 抽到同一张卡，导致决战地图出现多个同名角色。
+    //   原 bug 表现：5 个 AI 各自从同一份未变动的 availablePool 抽卡，
+    //   同一张热门 SSR/SR 会被多位 AI 选中，进入战场后出现"4 个紫灵"等异常。
+    const pickedSet = new Set(deployedCards);
+    for (let i = availablePool.length - 1; i >= 0; i--) {
+      if (pickedSet.has(availablePool[i].id)) {
+        availablePool.splice(i, 1);
+      }
+    }
+
     // 把这 5 张的 role 累加到同阵营统计
     for (const cid of deployedCards) {
       const info = cardMap.get(cid);
