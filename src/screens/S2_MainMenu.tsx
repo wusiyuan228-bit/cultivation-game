@@ -9,6 +9,7 @@ import { SaveSystem, useGameStore } from '@/stores/gameStore';
 import { useRecruitStore } from '@/stores/recruitStore';
 import { useBattleStore } from '@/stores/battleStore';
 import { useS7BBattleStore } from '@/stores/s7bBattleStore';
+import { useAudioStore } from '@/stores/audioStore';
 import { getCachedImage } from '@/utils/imageCache';
 import type { SaveSlot } from '@/types/game';
 import styles from './S2_MainMenu.module.css';
@@ -50,6 +51,12 @@ export const S2_MainMenu: React.FC = () => {
   const loadFromSave = useGameStore((s) => s.loadFromSave);
   const slots = SaveSystem.getAllSlots();          // [slot1, slot2, slot3]
   const autoSlot = SaveSystem.getAutoSlot();       // slot 0（自动存档）
+
+  // 音频设置（响应式订阅，滑动滑条/切换开关时实时刷新 UI）
+  const bgmEnabled = useAudioStore((s) => s.bgmEnabled);
+  const volume = useAudioStore((s) => s.volume);
+  const toggleBgm = useAudioStore((s) => s.toggleBgm);
+  const setVolume = useAudioStore((s) => s.setVolume);
 
   /** 载入存档：先重置运行期状态，再写入 store 后跳剧情页 */
   const handleLoadSlot = (s: SaveSlot) => {
@@ -125,7 +132,38 @@ export const S2_MainMenu: React.FC = () => {
           <motion.div className={styles.overlay} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowSettingsModal(false)}>
             <motion.div className={styles.modal} initial={{ scale: 0.92 }} animate={{ scale: 1 }} exit={{ scale: 0.92 }} onClick={(e) => e.stopPropagation()}>
               <h2 className={styles.mTitle}>游戏设置</h2>
-              <p className={styles.placeholder}>开发中...</p>
+
+              {/* 音乐开关 */}
+              <div className={styles.settingRow}>
+                <span className={styles.settingLabel}>背景音乐</span>
+                <button
+                  className={`${styles.settingSwitch} ${bgmEnabled ? styles.switchOn : ''}`}
+                  onClick={toggleBgm}
+                  type="button"
+                  aria-label={bgmEnabled ? '关闭音乐' : '开启音乐'}
+                >
+                  <span className={styles.switchThumb} />
+                </button>
+              </div>
+
+              {/* 音量滑条 */}
+              <div className={styles.settingRow}>
+                <span className={styles.settingLabel}>音量</span>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={volume}
+                  onChange={(e) => setVolume(Number(e.target.value))}
+                  className={styles.volumeSlider}
+                  disabled={!bgmEnabled}
+                  aria-label="音量"
+                  style={{ ['--vol' as any]: volume }}
+                />
+                <span className={styles.volumeValue}>{volume}</span>
+              </div>
+
               <button className={styles.closeBtn} onClick={() => setShowSettingsModal(false)}>关闭</button>
             </motion.div>
           </motion.div>

@@ -18,6 +18,7 @@ import { S7D_Lineup } from '@/screens/S7D_Lineup';
 import { S7D_LineupReinforceDemo } from '@/screens/S7D_LineupReinforceDemo';
 import { S7D_MapPreview } from '@/screens/S7D_MapPreview';
 import { S7D_Battle } from '@/screens/S7D_Battle';
+import { bootBgm } from '@/stores/audioStore';
 
 /** 设计稿基准尺寸 */
 const DESIGN_W = 1920;
@@ -50,6 +51,12 @@ export default function App() {
     window.addEventListener('resize', resize);
     return () => window.removeEventListener('resize', resize);
   }, [resize]);
+
+  // 启动全局 BGM（默认主题曲，循环播放，初始音量 50%）
+  // 浏览器自动播放策略：若被拦截，audioStore 会监听首次用户交互后再尝试播放
+  useEffect(() => {
+    bootBgm();
+  }, []);
 
   return (
     <HashRouter>
