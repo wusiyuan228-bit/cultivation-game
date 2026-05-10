@@ -424,10 +424,29 @@ export const S4_StoryReading: React.FC = () => {
                             </div>
                             <div className={styles.detailSection}>
                               <h3 className={styles.sectionTitle}>战斗技能</h3>
-                              <div className={styles.awakeningHidden}>
-                                <span className={styles.lockIcon}>🔒</span>
-                                <span>战斗环节揭晓</span>
-                              </div>
+                              {((poolCard.rarity as string) === 'N' || (poolCard.rarity as string) === 'R') ? (
+                                <div className={styles.skillNone}>此卡无战斗技能（仅数值上阵）</div>
+                              ) : chapter < 3 ? (
+                                <div className={styles.awakeningHidden}>
+                                  <span className={styles.lockIcon}>🔒</span>
+                                  <span>战斗环节揭晓</span>
+                                </div>
+                              ) : (
+                                <>
+                                  {poolCard.battleSkill ? (
+                                    <div className={styles.skillRow}>
+                                      <span className={styles.skillName}>{poolCard.battleSkill.name}</span>
+                                      <span className={styles.skillDesc}>{poolCard.battleSkill.desc}</span>
+                                    </div>
+                                  ) : <div className={styles.skillNone}>无</div>}
+                                  {poolCard.ultimate && (
+                                    <div className={styles.skillRow}>
+                                      <span className={styles.skillName}>绝技：{poolCard.ultimate.name}</span>
+                                      <span className={styles.skillDesc}>{poolCard.ultimate.desc}（单场战斗仅限释放1次）</span>
+                                    </div>
+                                  )}
+                                </>
+                              )}
                             </div>
                             <div className={styles.detailDivider} />
                             <div className={styles.detailSection}>
@@ -561,7 +580,7 @@ export const S4_StoryReading: React.FC = () => {
                           )}
                           <div className={styles.detailSection}>
                             <h3 className={styles.sectionTitle}>战斗技能</h3>
-                            {chapter < 5 ? (
+                            {chapter < 3 ? (
                               <div className={styles.awakeningHidden}>
                                 <span className={styles.lockIcon}>🔒</span>
                                 <span>战斗环节揭晓</span>
