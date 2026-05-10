@@ -5,7 +5,7 @@
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { asset } from '@/utils/assetPath';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { BackButton } from '@/components/BackButton';
 import { useReturnToMenu } from '@/hooks/useReturnToMenu';
@@ -438,17 +438,17 @@ export const S7B_Battle: React.FC = () => {
   const aiRecruitState = useGameStore((s) => s.aiRecruitState);
 
   // ====== URL 参数解析：区分「单机测试 / 宗门大比」以及「第一场 2v2 / 第二场 3v3」 ======
-  // 统一从 hash query 读取，兼容 HashRouter 场景
-  // 为规避部分工具对 '&' 的限制，sect 模式额外支持简写：?sect1 / ?sect2
-  // 订阅 hashchange，以便同一组件内切换 match 时重新解析参数
-  const [hashStr, setHashStr] = useState(() => window.location.hash);
-  useEffect(() => {
-    const onHashChange = () => setHashStr(window.location.hash);
-    window.addEventListener('hashchange', onHashChange);
-    return () => window.removeEventListener('hashchange', onHashChange);
-  }, []);
+  // ★ 2026-05-10：改用 react-router 的 useLocation() 订阅 url 变化。
+  //   原方案用 window.addEventListener('hashchange') 监听 hash 变化，
+  //   但 navigate('/s7c?sect2') 走的是 react-router 内部 history.pushState，
+  //   不会触发原生 hashchange 事件 → urlParams 不会重算 → 仍以为是首场 2v2。
+  //   useLocation 直接订阅 router 内部的 location，路径或 search 变化都会重渲染。
+  const location = useLocation();
   const urlParams = useMemo(() => {
-    const qs = new URLSearchParams(hashStr.split('?')[1] || '');
+    // HashRouter 模式下，location.search 即 hash 后面 ? 后的部分（如 "?sect2"）
+    // 兼容一下旧路径直接拿 window.location.hash 的写法
+    const searchStr = location.search || (window.location.hash.split('?')[1] ? '?' + window.location.hash.split('?')[1] : '');
+    const qs = new URLSearchParams(searchStr.startsWith('?') ? searchStr.slice(1) : searchStr);
     // 简写：?sect1 → mode=sect, match=1；?sect2 → mode=sect, match=2
     const isSectShort1 = qs.has('sect1');
     const isSectShort2 = qs.has('sect2');
@@ -461,7 +461,7 @@ export const S7B_Battle: React.FC = () => {
       isSect,
       match,
     } as const;
-  }, [hashStr]);
+  }, [location.search, location.pathname]);
   const battleMode: 'test' | 'sect' = urlParams.isSect ? 'sect' : 'test';
   const matchNo: 1 | 2 = urlParams.match;
   /** 我方副卡需要数量（第一场2v2→1，第二场3v3→2；非宗门模式默认1） */
