@@ -1,6 +1,7 @@
 /**
  * 【天蕴子 / 天运·命格逆转】通用SSR · 战斗技能
  * 策划原文：行动轮开始时，可选1名相邻敌人，使其修为-1（永久，最低为1）
+ * 2026-05-11：新增 interactiveOnTurnStart，玩家可手动选相邻敌
  */
 import type { SkillRegistration, TurnHookHandler } from '../types';
 
@@ -8,6 +9,40 @@ export const skill_tianyunzi_minge: SkillRegistration = {
   id: 'ssr_tianyunzi.battle',
   name: '天运·命格逆转',
   description: '行动轮开始时，可选1名相邻敌人，使其修为-1（永久，最低为1）',
+  interactiveOnTurnStart: {
+    promptTitle: '天运·命格逆转',
+    promptBody: '行动开始前可使 1 名相邻敌人修为永久 -1（最低 1）。是否发动？',
+    collectChoices: (self, engine) => {
+      const adj = engine
+        .getEnemiesOf(self)
+        .filter(
+          (u) =>
+            u.isAlive &&
+            Math.abs(u.row - self.row) + Math.abs(u.col - self.col) === 1 &&
+            u.atk.current > 1,
+        );
+      return adj.map((u) => ({ targetId: u.id })); // 固定降 atk，无需选属性
+    },
+    apply: (self, target, _stat, engine) => {
+      engine.changeStat(target.id, 'atk', -1, {
+        permanent: true,
+        floor: 1,
+        reason: '天运·命格逆转',
+        skillId: 'ssr_tianyunzi.battle',
+      });
+      engine.emit(
+        'skill_passive_trigger',
+        { skillId: 'ssr_tianyunzi.battle' },
+        `「天运·命格逆转」：${self.name} → ${target.name} 修为永久 -1（玩家选择）`,
+        {
+          actorId: self.id,
+          targetIds: [target.id],
+          skillId: 'ssr_tianyunzi.battle',
+          severity: 'info',
+        },
+      );
+    },
+  },
   hooks: {
     on_turn_start: ((tctx, engine) => {
       const self = engine.getUnit(tctx.unit.id);

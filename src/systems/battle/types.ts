@@ -394,6 +394,41 @@ export interface SkillRegistration {
       addLog: (text: string) => void,
     ) => void;
   };
+  /**
+   * 玩家可控的 on_turn_start hook 元数据（2026-05-11 玩家选择弹窗）
+   *
+   * 当声明此字段时，turn_start dispatcher 在玩家方控制下会跳过原 hook，
+   * 转而暂存为 store.pendingTurnStartChoice，由 UI 层弹窗。AI 控制下保持
+   * 原 on_turn_start hook 自动逻辑不变（用户偏好 a · 保留当前自动逻辑）。
+   *
+   * 已声明此元数据的技能：云鹊子·癫狂窃元、凝荣荣·七宝琉璃加持、顾河·炼药聚元炉、
+   * 天云子·命格逆转、雅妃·迦南商会补给。
+   */
+  interactiveOnTurnStart?: {
+    /** 弹窗标题（显示在「是否发动」对话框上方） */
+    promptTitle: string;
+    /** 弹窗主文案 */
+    promptBody: string;
+    /**
+     * 收集可选 (target, stats?) 候选。返回空数组 → hook 视为不可触发，跳过弹窗。
+     * 同一 target 可多次出现以表示不同属性可选，但更建议用 stats 字段表达。
+     */
+    collectChoices: (
+      self: BattleUnit,
+      engine: IBattleEngine,
+    ) => Array<{
+      targetId: string;
+      /** 该目标可选的属性（如 ['atk','mnd','hp']）；无此字段则只选目标 */
+      stats?: Array<'atk' | 'mnd' | 'hp'>;
+    }>;
+    /** 选择完成后的执行体（由 store 在玩家点击确认后调用） */
+    apply: (
+      self: BattleUnit,
+      target: BattleUnit,
+      stat: 'atk' | 'mnd' | 'hp' | undefined,
+      engine: IBattleEngine,
+    ) => void;
+  };
   /** 描述（未揭示时显示"效果未知"）*/
   description: string;
 }

@@ -63,6 +63,28 @@ export interface TurnStartDispatchCtx {
   getRound: () => number;
   /** 全局 seq（用于 modifier id），可返回 0 让 modifier 用其他方式去重 */
   nextSeq?: () => number;
+  /**
+   * 该 unitId 是否由真实玩家控制（2026-05-11 玩家选择弹窗）
+   *   返回 true  → dispatcher 检测到 interactiveOnTurnStart 元数据时会阻断派发，
+   *               把决策推给 store.requestTurnStartChoice 处理
+   *   返回 false → AI 控制，走原 hook 的自动逻辑
+   *   若未提供此 callback，视为全部 AI（向后兼容）
+   */
+  isPlayerControlled?: (unitId: string) => boolean;
+  /**
+   * 玩家可控且有可选项时，dispatcher 通知 store"请弹窗让玩家选择"。
+   *   - 此回调内 store 应该把信息暂存到自己的 pendingTurnStartChoice 状态字段
+   *   - skill 的 hook 派发会被 dispatcher 跳过（避免重复结算）
+   *   - 玩家在 UI 完成选择后，由 store 自行调用 SkillRegistry.get(...).interactiveOnTurnStart.apply(...)
+   * 若未提供此 callback，dispatcher 退化为"自动逻辑（旧 hook）"
+   */
+  requestTurnStartChoice?: (req: {
+    actorId: string;
+    skillId: string;
+    promptTitle: string;
+    promptBody: string;
+    choices: Array<{ targetId: string; stats?: Array<'atk' | 'mnd' | 'hp'> }>;
+  }) => void;
 }
 
 let _seqFallback = 0;
@@ -144,6 +166,45 @@ export function dispatchTurnStartHooks(
   for (const sid of skillIds) {
     const reg = SkillRegistry.get(sid);
     if (!reg) continue;
+
+    // ───────── 玩家可控弹窗分流（2026-05-11） ─────────
+    // 若该技能声明了 interactiveOnTurnStart，且当前 actor 由玩家控制：
+    //   - 收集可选项 → 有可选项时通过 ctx.requestTurnStartChoice 通知 store 弹窗
+    //   - 同时跳过原 hook 派发，避免"自动版本+玩家版本"双重结算
+    // AI 控制则继续走原 hook（已有自动逻辑），保持向后兼容。
+    if (reg.interactiveOnTurnStart) {
+      const isPlayer = ctx.isPlayerControlled?.(actorId) ?? false;
+      if (isPlayer && ctx.requestTurnStartChoice) {
+        let choices: Array<{ targetId: string; stats?: Array<'atk' | 'mnd' | 'hp'> }> = [];
+        try {
+          choices = reg.interactiveOnTurnStart.collectChoices(
+            actor,
+            adapter as IBattleEngine,
+          );
+        } catch (e) {
+          console.error(
+            `[turn-start-dispatch] collectChoices of ${sid} threw:`,
+            e,
+          );
+          choices = [];
+        }
+        if (choices.length > 0) {
+          ctx.requestTurnStartChoice({
+            actorId,
+            skillId: sid,
+            promptTitle: reg.interactiveOnTurnStart.promptTitle,
+            promptBody: reg.interactiveOnTurnStart.promptBody,
+            choices,
+          });
+          // 玩家弹窗已暂存，跳过 hook 自动逻辑
+          continue;
+        }
+        // 无可选项：跳过整个技能（不弹窗，也不走自动 hook）
+        continue;
+      }
+      // AI 控制：fallthrough 走原 hook（自动逻辑）
+    }
+
     const handler = reg.hooks.on_turn_start;
     if (!handler) continue;
     try {
@@ -240,5 +301,83 @@ export function dispatchTurnEndHooks(
         e,
       );
     }
+  }
+}
+
+/**
+ * 玩家在弹窗中确认了选择后，store 调用此 helper 跑 interactiveOnTurnStart.apply。
+ * 复用与 dispatchTurnStartHooks 同一份 ctx → adapter 映射，避免重复实现。
+ */
+export function applyTurnStartChoice(
+  actorId: string,
+  skillId: string,
+  targetId: string,
+  stat: 'atk' | 'mnd' | 'hp' | undefined,
+  ctx: TurnStartDispatchCtx,
+): void {
+  const reg = SkillRegistry.get(skillId);
+  if (!reg || !reg.interactiveOnTurnStart) {
+    console.warn(`[applyTurnStartChoice] skill ${skillId} has no interactiveOnTurnStart`);
+    return;
+  }
+  const all = ctx.snapshotAllUnits();
+  const self = all.find((u) => u.id === actorId);
+  const target = all.find((u) => u.id === targetId);
+  if (!self || !target) {
+    console.warn(
+      `[applyTurnStartChoice] missing self(${actorId}) or target(${targetId})`,
+    );
+    return;
+  }
+
+  const adapter: Partial<IBattleEngine> = {
+    getUnit: (id: string) => ctx.snapshotAllUnits().find((x) => x.id === id),
+    getAllUnits: () => ctx.snapshotAllUnits(),
+    getAlliesOf: (u: EngineUnit) =>
+      ctx.snapshotAllUnits().filter(
+        (x) => x.owner === u.owner && x.id !== u.id && x.isAlive,
+      ),
+    getEnemiesOf: (u: EngineUnit) =>
+      ctx.snapshotAllUnits().filter((x) => x.owner !== u.owner && x.isAlive),
+    emit: (kind, _payload, narrative, opts) => {
+      if (opts?.severity === 'debug') return;
+      const type: 'system' | 'skill' | 'damage' | 'kill' | 'action' =
+        kind === 'damage_applied' ? 'damage'
+        : kind === 'unit_leave' ? 'kill'
+        : kind === 'skill_passive_trigger' ||
+          kind === 'skill_effect_applied' ||
+          kind === 'skill_effect_blocked' ||
+          kind === 'skill_active_cast' ||
+          kind === 'modifier_applied' ||
+          kind === 'modifier_expired'
+          ? 'skill'
+          : 'system';
+      ctx.addLog(narrative, type);
+    },
+    changeStat: (unitId, st, delta, opts) =>
+      ctx.applyStatChange(unitId, st, delta, opts),
+    attachModifier: (mod: Modifier) => globalModStore.attach(mod),
+    queryModifiers: (unitId: string, kind: ModifierKind) =>
+      globalModStore.query(unitId, kind) as Modifier[],
+    detachModifier: (modId: string) => globalModStore.detach(modId),
+    fireHook: () => {},
+    fireTurnHook: () => {},
+    getRound: () => ctx.getRound(),
+    nextSeq: () => {
+      if (ctx.nextSeq) return ctx.nextSeq();
+      _seqFallback += 1;
+      return _seqFallback;
+    },
+    getCurrentActorId: () => actorId,
+    triggerAwakening: () => {},
+  };
+
+  try {
+    reg.interactiveOnTurnStart.apply(self, target, stat, adapter as IBattleEngine);
+  } catch (e) {
+    console.error(
+      `[applyTurnStartChoice] apply for ${skillId} threw:`,
+      e,
+    );
   }
 }

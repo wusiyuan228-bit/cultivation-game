@@ -66,6 +66,7 @@ import {
 } from '@/systems/battle/skillCastability';
 import { S7D_Lineup } from './S7D_Lineup';
 import styles from './S7D_Battle.module.css';
+import { TurnStartChoiceModal } from '@/components/battle/TurnStartChoiceModal';
 
 // ==========================================================================
 // 常量
@@ -199,6 +200,10 @@ export const S7D_Battle: React.FC = () => {
   const useUltimateFn = useS7DBattleStore((s) => s.useUltimate);
   const deployFromHand = useS7DBattleStore((s) => s.deployFromHand);
   const getAvailableSpawns = useS7DBattleStore((s) => s.getAvailableSpawns);
+  // 玩家可控 turn-start 弹窗（2026-05-11 玩家选择弹窗）
+  const pendingTurnStartChoice = useS7DBattleStore((s) => s.pendingTurnStartChoice);
+  const confirmTurnStartChoice = useS7DBattleStore((s) => s.confirmTurnStartChoice);
+  const cancelTurnStartChoice = useS7DBattleStore((s) => s.cancelTurnStartChoice);
 
   // ---- 本地 UI ----
   const [loading, setLoading] = useState(true);
@@ -1695,6 +1700,32 @@ export const S7D_Battle: React.FC = () => {
           <RuleModal onClose={() => setShowRule(false)} />
         )}
       </AnimatePresence>
+
+      {/* ─── 玩家可控的 turn-start 技能弹窗（云鹊子/凝荣荣/顾河/天云子/雅妃 等）─── */}
+      <TurnStartChoiceModal
+        pending={pendingTurnStartChoice}
+        resolveUnit={(id) => {
+          const u = battleState?.units[id];
+          if (!u) return null;
+          const playerFaction = battleState?.playerFaction;
+          const isEnemy = playerFaction
+            ? u.faction !== playerFaction
+            : false;
+          return {
+            id: u.instanceId,
+            name: u.name,
+            hp: u.hp,
+            hpMax: u.hpMax,
+            atk: u.atk,
+            mnd: u.mnd,
+            isEnemy,
+          };
+        }}
+        onConfirm={(targetId, stat) =>
+          confirmTurnStartChoice(targetId, stat)
+        }
+        onCancel={() => cancelTurnStartChoice()}
+      />
     </div>
   );
 };

@@ -48,6 +48,7 @@ import { mapInstanceToEngineUnit } from '@/utils/s7dSkillEngine';
 import {
   dispatchTurnStartHooks,
   dispatchTurnEndHooks,
+  applyTurnStartChoice,
   type TurnStartDispatchCtx,
 } from '@/systems/battle/turnStartDispatcher';
 import {
@@ -139,6 +140,28 @@ interface S7DBattleStore {
   ) => Array<{ row: number; col: number }>;
   /** 手动触发觉醒扫描（Batch 2C） */
   scanAwakenings: () => void;
+
+  // ─────────────────────────────────────────────────────────────
+  // 玩家可控的 turn-start 选择（2026-05-11 玩家选择弹窗）
+  // ─────────────────────────────────────────────────────────────
+  /**
+   * 当前 actor 携带 interactiveOnTurnStart 元数据 + 玩家控制 + 有可选项时填入。
+   * UI 监听非空状态并弹窗。
+   */
+  pendingTurnStartChoice: {
+    actorId: string;
+    skillId: string;
+    promptTitle: string;
+    promptBody: string;
+    choices: Array<{ targetId: string; stats?: Array<'atk' | 'mnd' | 'hp'> }>;
+  } | null;
+  /** 玩家点确认 → 跑 apply 并清空 */
+  confirmTurnStartChoice: (
+    targetId: string,
+    stat: 'atk' | 'mnd' | 'hp' | undefined,
+  ) => void;
+  /** 玩家点否 → 仅清空，不结算 */
+  cancelTurnStartChoice: () => void;
 
   /** DEBUG：强制结束战斗（仅测试用） */
   debugForceEnd: (winner: 'A' | 'B' | 'draw', reason?: 'crystal_broken' | 'all_dead' | 'timeout') => void;
@@ -284,6 +307,35 @@ function dispatchS7DTurnHook(
       set({ state: bump(s) });
     },
     getRound: () => get().state?.bigRound ?? 1,
+    // ───────── 玩家弹窗能力（2026-05-11） ─────────
+    isPlayerControlled: (uid) => {
+      const s = get().state;
+      if (!s) return false;
+      const u = s.units[uid];
+      if (!u) return false;
+      // S7D 的玩家方判定：通过 BattlePlayer.isHuman
+      const player = s.players.find((p) => p.ownerId === u.ownerId);
+      return !!player && player.isHuman;
+    },
+    requestTurnStartChoice: (req) => {
+      // 同 actor 多个 interactive 技能仅暂存第一个；dispatcher 会 continue 后续
+      if (get().pendingTurnStartChoice) return;
+      set({ pendingTurnStartChoice: req });
+      // 写一条系统战报作为提示
+      const s = get().state;
+      if (s) {
+        s.log.push({
+          seq: (s.logSeq ?? 0) + 1,
+          bigRound: s.bigRound,
+          subRound: s.subRound,
+          kind: 'text',
+          text: `📜 「${req.promptTitle}」可发动 —— 等待玩家选择`,
+          ts: Date.now(),
+        } as any);
+        (s as any).logSeq = (s.logSeq ?? 0) + 1;
+        set({ state: bump(s) });
+      }
+    },
   };
 
   try {
@@ -307,6 +359,7 @@ function resetS7DTurnHookCache(): void {
 
 export const useS7DBattleStore = create<S7DBattleStore>((set, get) => ({
   state: null,
+  pendingTurnStartChoice: null,
 
   // ------ 生命周期 ------
 
@@ -314,7 +367,7 @@ export const useS7DBattleStore = create<S7DBattleStore>((set, get) => ({
     const fresh = await initS7DBattle(params);
     // 🔧 2026-05-11 修复：清空跨场污染的 turn-hook 去重缓存
     resetS7DTurnHookCache();
-    set({ state: fresh });
+    set({ state: fresh, pendingTurnStartChoice: null });
     // 🔧 2026-05-11 修复：为队首 actor 派发 turn_start，让 turn-start 类技能开局即生效
     if (fresh.currentActorIdx < fresh.actionQueue.length) {
       const firstActorId = fresh.actionQueue[fresh.currentActorIdx]?.instanceId;
@@ -330,7 +383,7 @@ export const useS7DBattleStore = create<S7DBattleStore>((set, get) => ({
   },
 
   clearBattle: () => {
-    set({ state: null });
+    set({ state: null, pendingTurnStartChoice: null });
   },
 
   // ------ 查询 ------
@@ -498,6 +551,107 @@ export const useS7DBattleStore = create<S7DBattleStore>((set, get) => ({
   scanAwakenings: () => {
     mutate(get, set, (s) => checkAndTriggerAwakening(s));
   },
+
+  // ─────────────────────────────────────────────────────────────
+  // 玩家可控的 turn-start 选择确认 / 拒绝（2026-05-11 玩家选择弹窗）
+  // ─────────────────────────────────────────────────────────────
+  confirmTurnStartChoice: (targetId, stat) => {
+    const pending = get().pendingTurnStartChoice;
+    if (!pending) return;
+    const state = get().state;
+    if (!state) {
+      set({ pendingTurnStartChoice: null });
+      return;
+    }
+    const playerFaction = state.playerFaction;
+    const ctx: TurnStartDispatchCtx = {
+      snapshotAllUnits: () => {
+        const s = get().state;
+        if (!s) return [];
+        return Object.values(s.units)
+          .filter((u) => u.zone === 'field' && u.hp > 0)
+          .map((u) => mapInstanceToEngineUnit(u, playerFaction));
+      },
+      applyStatChange: (uid, st, delta, opts) => {
+        const s = get().state;
+        if (!s) return 0;
+        const u = s.units[uid];
+        if (!u) return 0;
+        const floor = opts.floor ?? 1;
+        let actualDelta = 0;
+        if (st === 'hp') {
+          const oldHp = u.hp;
+          let newHp = oldHp + delta;
+          if (!opts.breakCap) newHp = Math.min(newHp, u.hpMax);
+          newHp = Math.max(0, newHp);
+          if (delta < 0 && opts.floor !== undefined) {
+            newHp = Math.max(newHp, oldHp + Math.min(0, opts.floor - oldHp));
+          }
+          u.hp = newHp;
+          actualDelta = newHp - oldHp;
+          if (newHp <= 0) {
+            u.zone = 'grave';
+            u.deadAtBigRound = s.bigRound;
+            u.deadAtSubRound = s.subRound;
+          }
+        } else if (st === 'atk') {
+          const oldVal = u.atk;
+          let newVal = Math.max(floor, oldVal + delta);
+          if (!opts.breakCap) newVal = Math.min(newVal, 99);
+          u.atk = newVal;
+          actualDelta = newVal - oldVal;
+        } else if (st === 'mnd') {
+          const oldVal = u.mnd;
+          let newVal = Math.max(floor, oldVal + delta);
+          if (!opts.breakCap) newVal = Math.min(newVal, 99);
+          u.mnd = newVal;
+          actualDelta = newVal - oldVal;
+        }
+        set({ state: bump(s) });
+        return actualDelta;
+      },
+      addLog: (text) => {
+        const s = get().state;
+        if (!s) return;
+        s.log.push({
+          seq: (s.logSeq ?? 0) + 1,
+          bigRound: s.bigRound,
+          subRound: s.subRound,
+          kind: 'text',
+          text,
+          ts: Date.now(),
+        } as any);
+        (s as any).logSeq = (s.logSeq ?? 0) + 1;
+        set({ state: bump(s) });
+      },
+      getRound: () => get().state?.bigRound ?? 1,
+    };
+    try {
+      applyTurnStartChoice(pending.actorId, pending.skillId, targetId, stat, ctx);
+    } catch (e) {
+      console.error('[s7dBattleStore] applyTurnStartChoice threw:', e);
+    }
+    set({ pendingTurnStartChoice: null });
+  },
+  cancelTurnStartChoice: () => {
+    const pending = get().pendingTurnStartChoice;
+    if (!pending) return;
+    const state = get().state;
+    if (state) {
+      state.log.push({
+        seq: (state.logSeq ?? 0) + 1,
+        bigRound: state.bigRound,
+        subRound: state.subRound,
+        kind: 'text',
+        text: `📜 玩家放弃发动「${pending.promptTitle}」`,
+        ts: Date.now(),
+      } as any);
+      (state as any).logSeq = (state.logSeq ?? 0) + 1;
+      set({ state: bump(state) });
+    }
+    set({ pendingTurnStartChoice: null });
+  },
+
   // ===== DEBUG 专用：强制结束战斗（仅测试用，生产前删除或加开关）=====
   debugForceEnd: (winner: 'A' | 'B' | 'draw', reason: 'crystal_broken' | 'all_dead' | 'timeout' = 'crystal_broken') => {
     mutate(get, set, (s) => {

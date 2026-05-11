@@ -2,13 +2,60 @@
  * 【凝蓉蓉 / 七宝琉璃·加持】通用SR · 战斗技能
  * 原文：行动轮开始时，可指定1名己方角色某项数值（修为/心境/气血）永久+1（受上限约束）
  * trigger: on_turn_start  effect: buff_any_stat  MVP：自动给全场 atk 最低友军+1（atk）
+ * 2026-05-11：新增 interactiveOnTurnStart，玩家可手动选友军 + 选属性
  */
 import type { SkillRegistration, TurnHookHandler } from '../types';
+
+// 数值上限（与全局规则一致）
+const ATK_CAP = 9;
+const MND_CAP = 5;
+// hp 受 hpCap 约束（每个单位独立）
 
 export const skill_ningrongrong_qibao: SkillRegistration = {
   id: 'sr_ningrongrong.battle',
   name: '七宝琉璃·加持',
   description: '行动轮开始时，可指定 1 名己方某项数值永久 +1（受上限约束）',
+  interactiveOnTurnStart: {
+    promptTitle: '七宝琉璃·加持',
+    promptBody: '行动开始前可为 1 名己方角色某项数值永久 +1（受上限约束）。是否发动？',
+    collectChoices: (self, engine) => {
+      const allies = engine.getAlliesOf(self).filter((u) => u.isAlive);
+      // 自身也可作为目标
+      const candidates = [self, ...allies];
+      return candidates
+        .map((u) => {
+          const stats: Array<'atk' | 'mnd' | 'hp'> = [];
+          if (u.atk.current < ATK_CAP) stats.push('atk');
+          if (u.mnd.current < MND_CAP) stats.push('mnd');
+          if (u.hp.current < u.hpCap) stats.push('hp');
+          if (stats.length === 0) return null;
+          return { targetId: u.id, stats };
+        })
+        .filter((x): x is { targetId: string; stats: Array<'atk' | 'mnd' | 'hp'> } => x !== null);
+    },
+    apply: (self, target, stat, engine) => {
+      if (!stat) return;
+      engine.changeStat(target.id, stat, +1, {
+        permanent: stat !== 'hp', // hp 视为治疗（非永久结构），atk/mnd 永久
+        breakCap: false,
+        reason: '七宝琉璃·加持',
+        skillId: 'sr_ningrongrong.battle',
+      });
+      const statLabel =
+        stat === 'atk' ? '修为' : stat === 'mnd' ? '心境' : '气血';
+      engine.emit(
+        'skill_passive_trigger',
+        { skillId: 'sr_ningrongrong.battle', stat },
+        `七宝琉璃·加持：${self.name} → ${target.name} ${statLabel} +1（玩家选择）`,
+        {
+          actorId: self.id,
+          targetIds: [target.id],
+          skillId: 'sr_ningrongrong.battle',
+          severity: 'highlight',
+        },
+      );
+    },
+  },
   hooks: {
     on_turn_start: ((ctx, engine) => {
       const self = ctx.unit;

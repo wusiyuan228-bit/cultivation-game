@@ -33,6 +33,7 @@ import { cleanupOnRoundEnd } from '@/systems/battle/modifierSystem';
 import {
   dispatchTurnStartHooks,
   dispatchTurnEndHooks,
+  applyTurnStartChoice,
   type TurnStartDispatchCtx,
 } from '@/systems/battle/turnStartDispatcher';
 
@@ -432,6 +433,32 @@ interface BattleState {
   /** 当前行动方：player / enemy（AI） */
   currentSide: 'player' | 'enemy';
 
+  /**
+   * 玩家可控的 on_turn_start 待决策状态（2026-05-11 玩家选择弹窗）
+   *
+   * 当 turn_start dispatcher 检测到当前 actor 携带 interactiveOnTurnStart 元数据
+   * 且为玩家控制时，会调用 store.requestTurnStartChoice(...) 写入此字段。
+   * 此时 UI 应弹出"是否发动"对话框，玩家选定后调 confirmTurnStartChoice，
+   * 拒绝则调 cancelTurnStartChoice。
+   *
+   * 该字段非 null 期间，回合 UI 应进入"暂停-等待玩家"语义，避免玩家在做无关操作时
+   * 误关闭弹窗（也不阻塞行动 —— 玩家点否后即正常进入行动选择）。
+   */
+  pendingTurnStartChoice: {
+    actorId: string;
+    skillId: string;
+    promptTitle: string;
+    promptBody: string;
+    choices: Array<{ targetId: string; stats?: Array<'atk' | 'mnd' | 'hp'> }>;
+  } | null;
+  /** 玩家点确认；store 内会调 applyTurnStartChoice 跑技能并清空 pendingTurnStartChoice */
+  confirmTurnStartChoice: (
+    targetId: string,
+    stat: 'atk' | 'mnd' | 'hp' | undefined,
+  ) => void;
+  /** 玩家点否；store 仅清空 pendingTurnStartChoice，不结算技能 */
+  cancelTurnStartChoice: () => void;
+
   // === 方法 ===
   initBattle: (
     playerUnits: Array<Omit<BattleUnit, 'acted' | 'dead' | 'ultimateUsed' | 'immobilized' | 'stunned' | 'lastTerrain' | 'stepsUsedThisTurn' | 'attackedThisTurn'>>,
@@ -529,6 +556,7 @@ const initialState = {
   actionQueue: [] as string[],
   actionIndex: 0,
   currentSide: 'player' as 'player' | 'enemy',
+  pendingTurnStartChoice: null as BattleState['pendingTurnStartChoice'],
 };
 
 /**
@@ -541,6 +569,80 @@ const initialState = {
  */
 let _s7bTurnStartFiredThisRound = new Set<string>();
 let _s7bTurnEndFiredThisRound = new Set<string>();
+
+/**
+ * 构造 TurnStartDispatchCtx —— 3 处派发点（initBattle / startNewRound / advanceAction / endUnitTurn）
+ * 共用同一份逻辑，避免重复代码。
+ *
+ * 玩家弹窗能力（isPlayerControlled / requestTurnStartChoice）被绑定为 store 闭包：
+ *   - isPlayerControlled：actor.isEnemy === false 即玩家方
+ *   - requestTurnStartChoice：写入 store.pendingTurnStartChoice，UI 监听后弹窗
+ */
+function buildS7BTurnHookCtx(
+  get: () => BattleState,
+  set: (partial: Partial<BattleState>) => void,
+): TurnStartDispatchCtx {
+  return {
+    snapshotAllUnits: () =>
+      get().units.filter((u) => !u.dead).map(mapUnitToEngine),
+    applyStatChange: (uid, stat, delta, opts) => {
+      const cur = get().units;
+      const i = cur.findIndex((x) => x.id === uid);
+      if (i < 0) return 0;
+      const tu = cur[i];
+      const floor = opts.floor ?? 1;
+      if (stat === 'hp') {
+        const oldHp = tu.hp;
+        let newHp = oldHp + delta;
+        if (!opts.breakCap) newHp = Math.min(newHp, tu.maxHp);
+        newHp = Math.max(0, newHp);
+        // 不致死：调用方 floor 控制
+        if (delta < 0 && opts.floor !== undefined) {
+          newHp = Math.max(newHp, oldHp + Math.min(0, opts.floor - oldHp));
+        }
+        const next = [...cur];
+        next[i] = { ...tu, hp: newHp, dead: newHp <= 0 ? true : tu.dead };
+        set({ units: next });
+        return newHp - oldHp;
+      }
+      if (stat === 'atk') {
+        const oldVal = tu.atk;
+        let newVal = Math.max(floor, oldVal + delta);
+        if (!opts.breakCap) newVal = Math.min(newVal, 15);
+        const next = [...cur];
+        next[i] = { ...tu, atk: newVal };
+        set({ units: next });
+        return newVal - oldVal;
+      }
+      if (stat === 'mnd') {
+        const oldVal = tu.mnd;
+        let newVal = Math.max(floor, oldVal + delta);
+        if (!opts.breakCap) newVal = Math.min(newVal, 5);
+        const next = [...cur];
+        next[i] = { ...tu, mnd: newVal };
+        set({ units: next });
+        return newVal - oldVal;
+      }
+      return 0;
+    },
+    addLog: (text, type) => get().addLog(text, type ?? 'skill'),
+    getRound: () => get().round,
+    isPlayerControlled: (uid) => {
+      const u = get().units.find((x) => x.id === uid);
+      return !!u && !u.isEnemy && !u.dead;
+    },
+    requestTurnStartChoice: (req) => {
+      // 同一 actor 在一个回合内有多个 interactive 技能时，仅暂存第一个
+      // （后续 dispatcher 已 continue 跳过，不会重复 set）
+      if (get().pendingTurnStartChoice) return;
+      set({ pendingTurnStartChoice: req });
+      get().addLog(
+        `📜 「${req.promptTitle}」可发动 —— 等待玩家选择`,
+        'system',
+      );
+    },
+  };
+}
 
 export const useS7BBattleStore = create<BattleState>((set, get) => ({
   ...initialState,
@@ -646,6 +748,7 @@ export const useS7BBattleStore = create<BattleState>((set, get) => ({
       actionQueue: queue,
       actionIndex: 0,
       currentSide: 'player',
+      pendingTurnStartChoice: null,
     });
 
     // 🔧 2026-05-11 修复：第 1 大回合开局，立即为队首 actor 派发 turn_start hook
@@ -656,48 +759,7 @@ export const useS7BBattleStore = create<BattleState>((set, get) => ({
         const firstActor = get().units.find((u) => u.id === firstActorId);
         if (firstActor && !firstActor.dead) {
           _s7bTurnStartFiredThisRound.add(firstActorId);
-          const ctx: TurnStartDispatchCtx = {
-            snapshotAllUnits: () =>
-              get().units.filter((u) => !u.dead).map(mapUnitToEngine),
-            applyStatChange: (uid, stat, delta, opts) => {
-              const cur = get().units;
-              const i = cur.findIndex((x) => x.id === uid);
-              if (i < 0) return 0;
-              const tu = cur[i];
-              const floor = opts.floor ?? 1;
-              if (stat === 'hp') {
-                const oldHp = tu.hp;
-                let newHp = oldHp + delta;
-                if (!opts.breakCap) newHp = Math.min(newHp, tu.maxHp);
-                newHp = Math.max(0, newHp);
-                const next = [...cur];
-                next[i] = { ...tu, hp: newHp, dead: newHp <= 0 ? true : tu.dead };
-                set({ units: next });
-                return newHp - oldHp;
-              }
-              if (stat === 'atk') {
-                const oldVal = tu.atk;
-                let newVal = Math.max(floor, oldVal + delta);
-                if (!opts.breakCap) newVal = Math.min(newVal, 15);
-                const next = [...cur];
-                next[i] = { ...tu, atk: newVal };
-                set({ units: next });
-                return newVal - oldVal;
-              }
-              if (stat === 'mnd') {
-                const oldVal = tu.mnd;
-                let newVal = Math.max(floor, oldVal + delta);
-                if (!opts.breakCap) newVal = Math.min(newVal, 5);
-                const next = [...cur];
-                next[i] = { ...tu, mnd: newVal };
-                set({ units: next });
-                return newVal - oldVal;
-              }
-              return 0;
-            },
-            addLog: (text, type) => get().addLog(text, type ?? 'skill'),
-            getRound: () => get().round,
-          };
+          const ctx = buildS7BTurnHookCtx(get, set);
           try {
             dispatchTurnStartHooks(firstActorId, ctx);
           } catch (e) {
@@ -1835,54 +1897,37 @@ export const useS7BBattleStore = create<BattleState>((set, get) => ({
     //   牧沛玲·妙手、刘媚·清羽、药尘·冷火、古元·古族天火阵 aura 等）
     if (!_s7bTurnEndFiredThisRound.has(unitId)) {
       _s7bTurnEndFiredThisRound.add(unitId);
-      const ctx: TurnStartDispatchCtx = {
-        snapshotAllUnits: () =>
-          get().units.filter((x) => !x.dead).map(mapUnitToEngine),
-        applyStatChange: (uid, stat, delta, opts) => {
-          const cur = get().units;
-          const i = cur.findIndex((x) => x.id === uid);
-          if (i < 0) return 0;
-          const tu = cur[i];
-          const floor = opts.floor ?? 1;
-          if (stat === 'hp') {
-            const oldHp = tu.hp;
-            let newHp = oldHp + delta;
-            if (!opts.breakCap) newHp = Math.min(newHp, tu.maxHp);
-            newHp = Math.max(0, newHp);
-            const next = [...cur];
-            next[i] = { ...tu, hp: newHp, dead: newHp <= 0 ? true : tu.dead };
-            set({ units: next });
-            return newHp - oldHp;
-          }
-          if (stat === 'atk') {
-            const oldVal = tu.atk;
-            let newVal = Math.max(floor, oldVal + delta);
-            if (!opts.breakCap) newVal = Math.min(newVal, 15);
-            const next = [...cur];
-            next[i] = { ...tu, atk: newVal };
-            set({ units: next });
-            return newVal - oldVal;
-          }
-          if (stat === 'mnd') {
-            const oldVal = tu.mnd;
-            let newVal = Math.max(floor, oldVal + delta);
-            if (!opts.breakCap) newVal = Math.min(newVal, 5);
-            const next = [...cur];
-            next[i] = { ...tu, mnd: newVal };
-            set({ units: next });
-            return newVal - oldVal;
-          }
-          return 0;
-        },
-        addLog: (text, type) => get().addLog(text, type ?? 'skill'),
-        getRound: () => get().round,
-      };
+      const ctx = buildS7BTurnHookCtx(get, set);
       try {
         dispatchTurnEndHooks(unitId, ctx);
       } catch (e) {
         console.error('[s7bBattleStore] dispatchTurnEndHooks threw:', e);
       }
     }
+  },
+
+  // ─────────────────────────────────────────────────────────────
+  // 玩家可控的 turn-start 选择确认 / 拒绝（2026-05-11 玩家选择弹窗）
+  // ─────────────────────────────────────────────────────────────
+  confirmTurnStartChoice: (targetId, stat) => {
+    const pending = get().pendingTurnStartChoice;
+    if (!pending) return;
+    const ctx = buildS7BTurnHookCtx(get, set);
+    try {
+      applyTurnStartChoice(pending.actorId, pending.skillId, targetId, stat, ctx);
+    } catch (e) {
+      console.error('[s7bBattleStore] applyTurnStartChoice threw:', e);
+    }
+    set({ pendingTurnStartChoice: null });
+  },
+  cancelTurnStartChoice: () => {
+    const pending = get().pendingTurnStartChoice;
+    if (!pending) return;
+    get().addLog(
+      `📜 玩家放弃发动「${pending.promptTitle}」`,
+      'system',
+    );
+    set({ pendingTurnStartChoice: null });
   },
 
   advanceAction: () => {
@@ -1961,58 +2006,7 @@ export const useS7BBattleStore = create<BattleState>((set, get) => ({
         //   后续会再叠加玩家选择弹窗（云鹊子选目标/选属性等）。
         if (!_s7bTurnStartFiredThisRound.has(nextActor.id)) {
           _s7bTurnStartFiredThisRound.add(nextActor.id);
-          const ctx: TurnStartDispatchCtx = {
-            snapshotAllUnits: () =>
-              get().units.filter((u) => !u.dead).map(mapUnitToEngine),
-            applyStatChange: (unitId, stat, delta, opts) => {
-              const cur = get().units;
-              const idx = cur.findIndex((x) => x.id === unitId);
-              if (idx < 0) return 0;
-              const u = cur[idx];
-              const floor = opts.floor ?? 1;
-              if (stat === 'hp') {
-                const oldHp = u.hp;
-                let newHp = oldHp + delta;
-                // 不可越过当前血量 cap（除非 breakCap）；不可低于 0；最低保留 floor（不击杀型）
-                if (!opts.breakCap) newHp = Math.min(newHp, u.maxHp);
-                newHp = Math.max(0, newHp);
-                if (delta < 0 && opts.floor !== undefined) {
-                  newHp = Math.max(newHp, oldHp + Math.min(0, opts.floor - oldHp));
-                }
-                const next = [...cur];
-                next[idx] = {
-                  ...u,
-                  hp: newHp,
-                  dead: newHp <= 0 ? true : u.dead,
-                };
-                set({ units: next });
-                return newHp - oldHp;
-              }
-              if (stat === 'atk') {
-                const oldVal = u.atk;
-                let newVal = oldVal + delta;
-                newVal = Math.max(floor, newVal);
-                if (!opts.breakCap) newVal = Math.min(newVal, 15);
-                const next = [...cur];
-                next[idx] = { ...u, atk: newVal };
-                set({ units: next });
-                return newVal - oldVal;
-              }
-              if (stat === 'mnd') {
-                const oldVal = u.mnd;
-                let newVal = oldVal + delta;
-                newVal = Math.max(floor, newVal);
-                if (!opts.breakCap) newVal = Math.min(newVal, 5);
-                const next = [...cur];
-                next[idx] = { ...u, mnd: newVal };
-                set({ units: next });
-                return newVal - oldVal;
-              }
-              return 0;
-            },
-            addLog: (text, type) => get().addLog(text, type ?? 'skill'),
-            getRound: () => get().round,
-          };
+          const ctx = buildS7BTurnHookCtx(get, set);
           try {
             dispatchTurnStartHooks(nextActor.id, ctx);
           } catch (e) {
@@ -2144,48 +2138,7 @@ export const useS7BBattleStore = create<BattleState>((set, get) => ({
         const firstActor = get().units.find((u) => u.id === firstActorId);
         if (firstActor && !firstActor.dead) {
           _s7bTurnStartFiredThisRound.add(firstActorId);
-          const ctx: TurnStartDispatchCtx = {
-            snapshotAllUnits: () =>
-              get().units.filter((u) => !u.dead).map(mapUnitToEngine),
-            applyStatChange: (uid, stat, delta, opts) => {
-              const cur = get().units;
-              const i = cur.findIndex((x) => x.id === uid);
-              if (i < 0) return 0;
-              const tu = cur[i];
-              const floor = opts.floor ?? 1;
-              if (stat === 'hp') {
-                const oldHp = tu.hp;
-                let newHp = oldHp + delta;
-                if (!opts.breakCap) newHp = Math.min(newHp, tu.maxHp);
-                newHp = Math.max(0, newHp);
-                const next = [...cur];
-                next[i] = { ...tu, hp: newHp, dead: newHp <= 0 ? true : tu.dead };
-                set({ units: next });
-                return newHp - oldHp;
-              }
-              if (stat === 'atk') {
-                const oldVal = tu.atk;
-                let newVal = Math.max(floor, oldVal + delta);
-                if (!opts.breakCap) newVal = Math.min(newVal, 15);
-                const next = [...cur];
-                next[i] = { ...tu, atk: newVal };
-                set({ units: next });
-                return newVal - oldVal;
-              }
-              if (stat === 'mnd') {
-                const oldVal = tu.mnd;
-                let newVal = Math.max(floor, oldVal + delta);
-                if (!opts.breakCap) newVal = Math.min(newVal, 5);
-                const next = [...cur];
-                next[i] = { ...tu, mnd: newVal };
-                set({ units: next });
-                return newVal - oldVal;
-              }
-              return 0;
-            },
-            addLog: (text, type) => get().addLog(text, type ?? 'skill'),
-            getRound: () => get().round,
-          };
+          const ctx = buildS7BTurnHookCtx(get, set);
           try {
             dispatchTurnStartHooks(firstActorId, ctx);
           } catch (e) {
