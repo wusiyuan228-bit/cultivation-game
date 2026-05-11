@@ -33,6 +33,7 @@ import type {
   Modifier,
   ModifierKind,
 } from './types';
+import type { PendingChoice } from './flow/pendingChoice';
 
 /**
  * store 必须提供的最小 callback 集合
@@ -85,6 +86,16 @@ export interface TurnStartDispatchCtx {
     promptBody: string;
     choices: Array<{ targetId: string; stats?: Array<'atk' | 'mnd' | 'hp'> }>;
   }) => void;
+  /**
+   * 【方案 A · 流程钩子层】统一回调：dispatcher 通知 store 写入 pendingChoice。
+   *
+   * 优先级：若 store 同时实现了 submitPendingChoice 和 requestTurnStartChoice，
+   *         dispatcher 优先调用 submitPendingChoice（新架构）。
+   *
+   * 这样旧 store 不改也能继续工作（通过 requestTurnStartChoice 兜底），
+   * 已迁移到新架构的 store 走统一通道。
+   */
+  submitPendingChoice?: (choice: PendingChoice) => void;
 }
 
 let _seqFallback = 0;
@@ -174,7 +185,9 @@ export function dispatchTurnStartHooks(
     // AI 控制则继续走原 hook（已有自动逻辑），保持向后兼容。
     if (reg.interactiveOnTurnStart) {
       const isPlayer = ctx.isPlayerControlled?.(actorId) ?? false;
-      if (isPlayer && ctx.requestTurnStartChoice) {
+      const hasUnifiedSink = !!ctx.submitPendingChoice;
+      const hasLegacySink = !!ctx.requestTurnStartChoice;
+      if (isPlayer && (hasUnifiedSink || hasLegacySink)) {
         let choices: Array<{ targetId: string; stats?: Array<'atk' | 'mnd' | 'hp'> }> = [];
         try {
           choices = reg.interactiveOnTurnStart.collectChoices(
@@ -189,13 +202,25 @@ export function dispatchTurnStartHooks(
           choices = [];
         }
         if (choices.length > 0) {
-          ctx.requestTurnStartChoice({
-            actorId,
-            skillId: sid,
-            promptTitle: reg.interactiveOnTurnStart.promptTitle,
-            promptBody: reg.interactiveOnTurnStart.promptBody,
-            choices,
-          });
+          // 优先走统一通道（方案 A）；否则降级旧通道（向下兼容）
+          if (hasUnifiedSink) {
+            ctx.submitPendingChoice!({
+              kind: 'turn_start_skill',
+              actorId,
+              skillId: sid,
+              promptTitle: reg.interactiveOnTurnStart.promptTitle,
+              promptBody: reg.interactiveOnTurnStart.promptBody,
+              choices,
+            });
+          } else {
+            ctx.requestTurnStartChoice!({
+              actorId,
+              skillId: sid,
+              promptTitle: reg.interactiveOnTurnStart.promptTitle,
+              promptBody: reg.interactiveOnTurnStart.promptBody,
+              choices,
+            });
+          }
           // 玩家弹窗已暂存，跳过 hook 自动逻辑
           continue;
         }
