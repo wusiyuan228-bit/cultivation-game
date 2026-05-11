@@ -725,6 +725,17 @@ export const S7D_Battle: React.FC = () => {
             .map((u) => u.instanceId);
         } else if (selectorKind === 'single_any_character') {
           candidates = allUnits.map((u) => u.instanceId);
+        } else if (selectorKind === 'single_any_ally') {
+          // 🔧 2026-05-12 修复：补全 single_any_ally 候选集
+          //   覆盖九宝琉璃·极光（凝蓉蓉）、镜像（奥斯卡）、破境丹（谷鹤）、
+          //   续命丹（沐佩玲）、千梦痴情（留眉）等所有 single_any_ally 绝技
+          //   可选 = 同 faction 所有 field 单位（含自身）
+          candidates = allUnits
+            .filter((u) => u.faction === currentActor.faction)
+            .map((u) => u.instanceId);
+          // 若 precheck 在 SkillRegistry 提供了更精细的 candidateIds（例如沐佩玲只能选已退场的），
+          // 这里需以 precheck 结果做交集。但当前 precheck 在 castSkillAndApply 内重新检查，
+          // UI 候选只做粗筛即可。
         } else if (selectorKind === 'position_pick') {
           candidates = [];
         }

@@ -22,27 +22,56 @@ export const skill_ningrongrong_qibao: SkillRegistration = {
       const allies = engine.getAlliesOf(self).filter((u) => u.isAlive);
       // 自身也可作为目标
       const candidates = [self, ...allies];
+      // 🔧 2026-05-12 修复：始终列出三种属性供玩家选择，apply 时再判断是否已达上限
+      // 避免"目标只剩一个未满属性时弹窗自动跳过 stat 阶段"的问题
       return candidates
-        .map((u) => {
-          const stats: Array<'atk' | 'mnd' | 'hp'> = [];
-          if (u.atk.current < ATK_CAP) stats.push('atk');
-          if (u.mnd.current < MND_CAP) stats.push('mnd');
-          if (u.hp.current < u.hpCap) stats.push('hp');
-          if (stats.length === 0) return null;
-          return { targetId: u.id, stats };
-        })
-        .filter((x): x is { targetId: string; stats: Array<'atk' | 'mnd' | 'hp'> } => x !== null);
+        .map((u) => ({
+          targetId: u.id,
+          stats: ['atk', 'mnd', 'hp'] as Array<'atk' | 'mnd' | 'hp'>,
+        }))
+        // 全部三种属性都到顶了的目标才剔除
+        .filter((c) => {
+          const u = candidates.find((x) => x.id === c.targetId)!;
+          return (
+            u.atk.current < ATK_CAP ||
+            u.mnd.current < MND_CAP ||
+            u.hp.current < u.hpCap
+          );
+        });
     },
     apply: (self, target, stat, engine) => {
       if (!stat) return;
+      // 🔧 2026-05-12 修复：玩家选了某项已达上限的属性 → 友好提示并不施加
+      const cap =
+        stat === 'atk' ? ATK_CAP : stat === 'mnd' ? MND_CAP : target.hpCap;
+      const cur =
+        stat === 'atk'
+          ? target.atk.current
+          : stat === 'mnd'
+            ? target.mnd.current
+            : target.hp.current;
+      const statLabel =
+        stat === 'atk' ? '修为' : stat === 'mnd' ? '心境' : '气血';
+      if (cur >= cap) {
+        engine.emit(
+          'skill_effect_blocked',
+          { skillId: 'sr_ningrongrong.battle' },
+          `七宝琉璃·加持：${target.name} 的${statLabel}已达上限（${cur}/${cap}），技能未生效`,
+          {
+            actorId: self.id,
+            targetIds: [target.id],
+            skillId: 'sr_ningrongrong.battle',
+            severity: 'info',
+          },
+        );
+        return;
+      }
       engine.changeStat(target.id, stat, +1, {
         permanent: stat !== 'hp', // hp 视为治疗（非永久结构），atk/mnd 永久
         breakCap: false,
         reason: '七宝琉璃·加持',
         skillId: 'sr_ningrongrong.battle',
       });
-      const statLabel =
-        stat === 'atk' ? '修为' : stat === 'mnd' ? '心境' : '气血';
       engine.emit(
         'skill_passive_trigger',
         { skillId: 'sr_ningrongrong.battle', stat },

@@ -404,6 +404,99 @@ function dispatchS7DTurnHook(
     }
   }
 
+  // ─────────────────────────────────────────────────────────────────────
+  // 🦋 2026-05-12：S7D 接入鸿蝶蛊惑消费
+  //   actor 自己的回合开始时若 charmedNextTurn=true，则强制：
+  //     1. 找其相邻所有友军（曼哈顿距离=1）
+  //     2. 按 instanceId 字典序依次发起 attackAndApply
+  //     3. 标记 hasActedThisTurn / attackedThisTurn → 跳过本轮剩余操作
+  //     4. 清除 charmedNextTurn 标记
+  //   随后调用 advanceActor 推进队列。
+  // ─────────────────────────────────────────────────────────────────────
+  if (phase === 'start') {
+    const s3 = get().state;
+    if (s3) {
+      const victim = s3.units[instanceId];
+      if (victim && victim.charmedNextTurn && victim.zone === 'field' && victim.hp > 0) {
+        // 找相邻同 faction 的友军
+        const adj: BattleCardInstance[] = Object.values(s3.units).filter((u) => {
+          if (u.zone !== 'field' || u.hp <= 0) return false;
+          if (u.faction !== victim.faction) return false;
+          if (u.instanceId === victim.instanceId) return false;
+          if (!u.position || !victim.position) return false;
+          return (
+            Math.abs(u.position.row - victim.position.row) +
+              Math.abs(u.position.col - victim.position.col) ===
+            1
+          );
+        });
+        // 按 instanceId 字典序排序，保证可重现
+        adj.sort((a, b) => a.instanceId.localeCompare(b.instanceId));
+
+        // 写一条系统战报
+        s3.log.push({
+          seq: (s3.logSeq ?? 0) + 1,
+          bigRound: s3.bigRound,
+          subRound: s3.subRound,
+          kind: 'text',
+          text:
+            adj.length > 0
+              ? `🦋 ${victim.name} 被红蝶蛊惑！本行动轮倒戈攻击其相邻友军（${adj.length} 个）`
+              : `🦋 ${victim.name} 被红蝶蛊惑，但周围无相邻友军 → 本轮跳过行动`,
+          ts: Date.now(),
+        } as any);
+        (s3 as any).logSeq = (s3.logSeq ?? 0) + 1;
+
+        // 依次攻击
+        for (const ally of adj) {
+          // 攻击前再校验 victim/ally 仍在场（避免连击中击杀导致状态失效）
+          const cur = get().state!;
+          const v = cur.units[victim.instanceId];
+          const a = cur.units[ally.instanceId];
+          if (!v || v.zone !== 'field' || v.hp <= 0) break;
+          if (!a || a.zone !== 'field' || a.hp <= 0) continue;
+          mutate(get, set, (s) => attackAndApply(s, victim.instanceId, ally.instanceId));
+        }
+
+        // 清除标记 + 立即标记本回合已行动 → 后续 advanceActor 会跳过
+        const after = get().state!;
+        const v2 = after.units[victim.instanceId];
+        if (v2) {
+          v2.charmedNextTurn = false;
+          v2.hasActedThisTurn = true;
+          v2.attackedThisTurn = true;
+          v2.skillUsedThisTurn = true;
+          set({ state: bump(after) });
+        }
+        after.log.push({
+          seq: (after.logSeq ?? 0) + 1,
+          bigRound: after.bigRound,
+          subRound: after.subRound,
+          kind: 'text',
+          text: `🦋 红蝶蛊惑效果结束`,
+          ts: Date.now(),
+        } as any);
+        (after as any).logSeq = (after.logSeq ?? 0) + 1;
+        set({ state: bump(after) });
+
+        // 立即推进队列：跳过 victim 本轮剩余操作
+        // 注意：必须放在 dispatch hooks 之后是否安全？这里我们直接 schedule
+        //   通过 setTimeout(0) 让本轮 dispatch 流程完整结束再 advance
+        setTimeout(() => {
+          try {
+            const cur = get().state;
+            if (cur && !cur.winner) get().advanceActor();
+          } catch (e) {
+            console.error('[s7dBattleStore] charmed advanceActor threw:', e);
+          }
+        }, 0);
+
+        // 既然 victim 本轮已被剥夺，下方的常规 dispatchTurnStartHooks 跳过
+        return;
+      }
+    }
+  }
+
   try {
     if (phase === 'start') {
       dispatchTurnStartHooks(instanceId, ctx);

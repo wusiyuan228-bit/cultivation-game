@@ -130,6 +130,14 @@ export interface BattleCardInstance {
 
   // ---- 上回合地形（用于下回合结算 buff 地形）----
   lastTerrain?: string | null;
+
+  // ---- 鸿蝶蛊惑（红蝶绝技）----
+  /**
+   * 🦋 2026-05-12：被鸿蝶蛊惑标记
+   *   - true → 该单位下一行动轮强制依次攻击其相邻友军，并跳过本轮剩余操作
+   *   - 由 dispatchS7DTurnHook(start) 在该单位回合开始时消费并清除
+   */
+  charmedNextTurn?: boolean;
 }
 
 // ==========================================================================

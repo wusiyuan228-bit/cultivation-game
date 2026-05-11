@@ -459,6 +459,26 @@ export function castSkillAndApply(
   }
 
   // ==========================================================================
+  // 🦋 鸿蝶蛊惑专用路由（2026-05-12 实装至 S7D）
+  //   activeCast 仅 emit 战报，store 层负责给目标打 charmedNextTurn 标记
+  //   下一回合该单位行动开始时，dispatchS7DTurnHook(start) 会消费并强制其攻击友军
+  // ==========================================================================
+  if (regId === 'sr_hongdie.ultimate' && skillType === 'ultimate') {
+    for (const ti of targetIds) {
+      const t = state.units[ti];
+      if (t && t.zone === 'field' && t.hp > 0) {
+        t.charmedNextTurn = true;
+        appendLog(
+          state,
+          'skill_cast',
+          `🦋 红蝶蛊惑：${t.name} 下一行动轮将倒戈攻击其相邻友军`,
+          { actorId: casterId, targetIds: [ti] },
+        );
+      }
+    }
+  }
+
+  // ==========================================================================
   // 萧战祖树盾专用路由（2026-05-11 实装至 S7D）
   // 在 pickedPosition 落点放置永久障碍（任何人不可通过）
   // ==========================================================================
