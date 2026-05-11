@@ -294,6 +294,16 @@
   /* 宽高由 CSS 变量驱动 */
   width: calc(var(--map-width, 1296px) + 28px);
   height: calc(var(--map-height, 862px) + 28px);
+  /* 🔧 2026-05-11 修复：放大后地图模糊
+     原因：transform: scale 在 GPU 合成层上是位图拉伸（已栅格化的图层放大）
+     方案：transform-origin + will-change + 让浏览器在缩放时使用高质量插值 */
+  transform-origin: 0 0;
+  will-change: transform;
+  /* 高质量渲染（Chrome 会在 scale > 1 时按高分辨率重栅格化） */
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  /* 强制独立合成层但保持质量 */
+  backface-visibility: hidden;
 }
 
 .mapBgLayer {
@@ -307,6 +317,9 @@
   background-position: center;
   background-repeat: no-repeat;
   transform: translateZ(0);
+  /* 子图层显式声明高质量插值，缓解放大后模糊 */
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: high-quality;
   will-change: transform;
   pointer-events: none;
   z-index: 0;
