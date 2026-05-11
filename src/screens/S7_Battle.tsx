@@ -26,6 +26,7 @@ import {
   hasAnyLivingEnemyOf,
 } from '@/systems/battle/skillCastability';
 import { SkillRegistry } from '@/systems/battle/skillRegistry';
+import { ReviveAllocateModal } from '@/components/battle/ReviveAllocateModal';
 import styles from './S7_Battle.module.css';
 
 /* ======== 地图格子尺寸常量 ======== */
@@ -1741,6 +1742,13 @@ export const S7_Battle: React.FC = () => {
           <ResultPanel killCount={battle.killCount} onContinue={handleContinue} />
         )}
       </AnimatePresence>
+
+      {/* ─── 玩家可控的复活分配弹窗（徐立国 · 天罡元婴·重塑）─── */}
+      <ReviveAllocateModal
+        pending={battle.pendingRevive}
+        onConfirm={(payload) => battle.confirmReviveAllocate(payload)}
+        onCancel={() => battle.cancelReviveAllocate()}
+      />
     </div>
   );
 };

@@ -30,6 +30,7 @@ import {
   hasAnyLivingEnemyOf,
 } from '@/systems/battle/skillCastability';
 import { TurnStartChoiceModal } from '@/components/battle/TurnStartChoiceModal';
+import { ReviveAllocateModal } from '@/components/battle/ReviveAllocateModal';
 import styles from './S7_Battle.module.css';
 
 /* ======== 地图格子尺寸常量 ======== */
@@ -2478,6 +2479,13 @@ export const S7B_Battle: React.FC = () => {
           battle.confirmTurnStartChoice(targetId, stat)
         }
         onCancel={() => battle.cancelTurnStartChoice()}
+      />
+
+      {/* ─── 玩家可控的复活分配弹窗（徐立国 · 天罡元婴·重塑）─── */}
+      <ReviveAllocateModal
+        pending={battle.pendingRevive}
+        onConfirm={(payload) => battle.confirmReviveAllocate(payload)}
+        onCancel={() => battle.cancelReviveAllocate()}
       />
     </div>
   );

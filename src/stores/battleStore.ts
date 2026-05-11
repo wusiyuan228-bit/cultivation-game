@@ -226,6 +226,20 @@ interface BattleState {
   actionQueue: string[];
   actionIndex: number;
 
+  /**
+   * 玩家可控的复活分配弹窗（2026-05-11）
+   * 当玩家方角色因徐立国"天罡元婴·重塑"复活时填入，UI 弹出 ReviveAllocateModal
+   */
+  pendingRevive: {
+    unitId: string;
+    unitName: string;
+    current: { atk: number; mnd: number; hp: number };
+  } | null;
+  /** 玩家点确认 → 用新分配重写角色属性 */
+  confirmReviveAllocate: (payload: { atk: number; mnd: number; hp: number }) => void;
+  /** 玩家放弃调整 → 保持默认 */
+  cancelReviveAllocate: () => void;
+
   initBattle: (
     heroUnit: Omit<BattleUnit, 'acted' | 'dead' | 'ultimateUsed' | 'immobilized' | 'stunned' | 'lastTerrain' | 'stepsUsedThisTurn' | 'attackedThisTurn'>,
     partnerUnit: Omit<BattleUnit, 'acted' | 'dead' | 'ultimateUsed' | 'immobilized' | 'stunned' | 'lastTerrain' | 'stepsUsedThisTurn' | 'attackedThisTurn'>,
@@ -275,6 +289,7 @@ const initialState = {
   battleResult: null as 'win' | 'lose' | 'timeout' | null,
   actionQueue: [] as string[],
   actionIndex: 0,
+  pendingRevive: null as BattleState['pendingRevive'],
 };
 
 export const useBattleStore = create<BattleState>((set, get) => ({
@@ -765,6 +780,20 @@ export const useBattleStore = create<BattleState>((set, get) => ({
         };
         finalVictimHp = p.hp;
         addEngineLog(reviveLogText(finalVictim.name, p, 'auto'), 'skill');
+        // 玩家方：弹窗让玩家分配 8 点
+        if (!finalVictim.isEnemy) {
+          setTimeout(() => {
+            const cur = get().pendingRevive;
+            if (cur) return;
+            set({
+              pendingRevive: {
+                unitId: finalVictim.id,
+                unitName: finalVictim.name,
+                current: { atk: p.atk, mnd: p.mnd, hp: p.hp },
+              },
+            });
+          }, 200);
+        }
       }
     }
 
@@ -1399,6 +1428,41 @@ export const useBattleStore = create<BattleState>((set, get) => ({
   },
 
   reset: () => set(initialState),
+
+  confirmReviveAllocate: (payload) => {
+    const pending = get().pendingRevive;
+    if (!pending) return;
+    if (payload.atk + payload.mnd + payload.hp !== 8) {
+      set({ pendingRevive: null });
+      return;
+    }
+    const us = [...get().units];
+    const i = us.findIndex((u) => u.id === pending.unitId);
+    if (i >= 0) {
+      us[i] = {
+        ...us[i],
+        atk: payload.atk,
+        mnd: payload.mnd,
+        hp: payload.hp,
+        maxHp: Math.max(us[i].maxHp ?? payload.hp, payload.hp),
+      };
+      set({ units: us });
+      get().addLog(
+        `✨ 天罡元婴·重塑：${pending.unitName} 重新分配 → 修为 ${payload.atk} / 心境 ${payload.mnd} / 气血 ${payload.hp}`,
+        'skill',
+      );
+    }
+    set({ pendingRevive: null });
+  },
+  cancelReviveAllocate: () => {
+    const pending = get().pendingRevive;
+    if (!pending) return;
+    get().addLog(
+      `📜 玩家保持默认复活分配（修为 ${pending.current.atk} / 心境 ${pending.current.mnd} / 气血 ${pending.current.hp}）`,
+      'system',
+    );
+    set({ pendingRevive: null });
+  },
 
   getCurrentActorId: () => {
     const { units, actionQueue } = get();

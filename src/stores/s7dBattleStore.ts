@@ -163,6 +163,20 @@ interface S7DBattleStore {
   /** 玩家点否 → 仅清空，不结算 */
   cancelTurnStartChoice: () => void;
 
+  // ─────────────────────────────────────────────────────────────
+  // 玩家可控的复活分配弹窗（2026-05-11 ReviveAllocateModal）
+  // ─────────────────────────────────────────────────────────────
+  /** 玩家方角色因徐立国"天罡元婴·重塑"复活时弹出，让玩家分配 8 点 atk/mnd/hp */
+  pendingRevive: {
+    unitId: string;
+    unitName: string;
+    current: { atk: number; mnd: number; hp: number };
+  } | null;
+  /** 玩家点确认 → 用新分配重写角色属性 */
+  confirmReviveAllocate: (payload: { atk: number; mnd: number; hp: number }) => void;
+  /** 玩家放弃调整 → 保持默认 */
+  cancelReviveAllocate: () => void;
+
   /** DEBUG：强制结束战斗（仅测试用） */
   debugForceEnd: (winner: 'A' | 'B' | 'draw', reason?: 'crystal_broken' | 'all_dead' | 'timeout') => void;
 }
@@ -360,6 +374,7 @@ function resetS7DTurnHookCache(): void {
 export const useS7DBattleStore = create<S7DBattleStore>((set, get) => ({
   state: null,
   pendingTurnStartChoice: null,
+  pendingRevive: null,
 
   // ------ 生命周期 ------
 
@@ -367,7 +382,7 @@ export const useS7DBattleStore = create<S7DBattleStore>((set, get) => ({
     const fresh = await initS7DBattle(params);
     // 🔧 2026-05-11 修复：清空跨场污染的 turn-hook 去重缓存
     resetS7DTurnHookCache();
-    set({ state: fresh, pendingTurnStartChoice: null });
+    set({ state: fresh, pendingTurnStartChoice: null, pendingRevive: null });
     // 🔧 2026-05-11 修复：为队首 actor 派发 turn_start，让 turn-start 类技能开局即生效
     if (fresh.currentActorIdx < fresh.actionQueue.length) {
       const firstActorId = fresh.actionQueue[fresh.currentActorIdx]?.instanceId;
@@ -383,7 +398,7 @@ export const useS7DBattleStore = create<S7DBattleStore>((set, get) => ({
   },
 
   clearBattle: () => {
-    set({ state: null, pendingTurnStartChoice: null });
+    set({ state: null, pendingTurnStartChoice: null, pendingRevive: null });
   },
 
   // ------ 查询 ------
@@ -457,7 +472,38 @@ export const useS7DBattleStore = create<S7DBattleStore>((set, get) => ({
   },
 
   damageUnit: (instanceId, amount, reason, attackerId) => {
+    // 复活前的状态：是否处于"将死"
+    const before = get().state?.units[instanceId];
+    const wasAlive = before ? before.hp > 0 : false;
+
     const ret = mutate(get, set, (s) => damageUnit(s, instanceId, amount, reason, attackerId));
+
+    // 复活后的状态：若依旧 hp>0 但 ultimateUsed 刚被设置 → 触发了复活
+    const after = get().state?.units[instanceId];
+    if (
+      wasAlive &&
+      after &&
+      after.hp > 0 &&
+      after.ultimateUsed &&
+      // 仅玩家方
+      get().state?.playerFaction === after.faction &&
+      !get().pendingRevive &&
+      // 仅徐立国类绝技触发
+      (after.ultimateId === 'sr_xuliguo.ultimate' || after.registrySkills?.includes('sr_xuliguo.ultimate'))
+    ) {
+      // 弹窗让玩家分配（异步设置避免在攻击主流程中触发 rerender）
+      setTimeout(() => {
+        if (get().pendingRevive) return;
+        set({
+          pendingRevive: {
+            unitId: instanceId,
+            unitName: after.name,
+            current: { atk: after.atk, mnd: after.mnd, hp: after.hp },
+          },
+        });
+      }, 200);
+    }
+
     return ret ?? 0;
   },
 
@@ -650,6 +696,53 @@ export const useS7DBattleStore = create<S7DBattleStore>((set, get) => ({
       set({ state: bump(state) });
     }
     set({ pendingTurnStartChoice: null });
+  },
+
+  // ===== 复活分配确认 / 取消（2026-05-11 ReviveAllocateModal）=====
+  confirmReviveAllocate: (payload) => {
+    const pending = get().pendingRevive;
+    if (!pending) return;
+    if (payload.atk + payload.mnd + payload.hp !== 8) {
+      set({ pendingRevive: null });
+      return;
+    }
+    mutate(get, set, (s) => {
+      const u = s.units[pending.unitId];
+      if (u) {
+        u.atk = payload.atk;
+        u.mnd = payload.mnd;
+        u.hp = payload.hp;
+        u.hpMax = Math.max(u.hpMax, payload.hp);
+        s.log.push({
+          seq: (s.logSeq ?? 0) + 1,
+          bigRound: s.bigRound,
+          subRound: s.subRound,
+          kind: 'skill_cast',
+          text: `✨ 天罡元婴·重塑：${pending.unitName} 重新分配 → 修为 ${payload.atk} / 心境 ${payload.mnd} / 气血 ${payload.hp}`,
+          ts: Date.now(),
+        } as any);
+        (s as any).logSeq = (s.logSeq ?? 0) + 1;
+      }
+    });
+    set({ pendingRevive: null });
+  },
+  cancelReviveAllocate: () => {
+    const pending = get().pendingRevive;
+    if (!pending) return;
+    const state = get().state;
+    if (state) {
+      state.log.push({
+        seq: (state.logSeq ?? 0) + 1,
+        bigRound: state.bigRound,
+        subRound: state.subRound,
+        kind: 'text',
+        text: `📜 玩家保持默认复活分配（修为 ${pending.current.atk} / 心境 ${pending.current.mnd} / 气血 ${pending.current.hp}）`,
+        ts: Date.now(),
+      } as any);
+      (state as any).logSeq = (state.logSeq ?? 0) + 1;
+      set({ state: bump(state) });
+    }
+    set({ pendingRevive: null });
   },
 
   // ===== DEBUG 专用：强制结束战斗（仅测试用，生产前删除或加开关）=====

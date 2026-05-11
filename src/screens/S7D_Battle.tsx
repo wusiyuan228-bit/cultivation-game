@@ -67,6 +67,8 @@ import {
 import { S7D_Lineup } from './S7D_Lineup';
 import styles from './S7D_Battle.module.css';
 import { TurnStartChoiceModal } from '@/components/battle/TurnStartChoiceModal';
+import { ReviveAllocateModal } from '@/components/battle/ReviveAllocateModal';
+
 
 // ==========================================================================
 // 常量
@@ -204,6 +206,10 @@ export const S7D_Battle: React.FC = () => {
   const pendingTurnStartChoice = useS7DBattleStore((s) => s.pendingTurnStartChoice);
   const confirmTurnStartChoice = useS7DBattleStore((s) => s.confirmTurnStartChoice);
   const cancelTurnStartChoice = useS7DBattleStore((s) => s.cancelTurnStartChoice);
+  // 玩家可控复活分配弹窗（2026-05-11 徐立国 · 天罡元婴·重塑）
+  const pendingRevive = useS7DBattleStore((s) => s.pendingRevive);
+  const confirmReviveAllocate = useS7DBattleStore((s) => s.confirmReviveAllocate);
+  const cancelReviveAllocate = useS7DBattleStore((s) => s.cancelReviveAllocate);
 
   // ---- 本地 UI ----
   const [loading, setLoading] = useState(true);
@@ -1725,6 +1731,18 @@ export const S7D_Battle: React.FC = () => {
           confirmTurnStartChoice(targetId, stat)
         }
         onCancel={() => cancelTurnStartChoice()}
+      />
+
+      {/* ─── 玩家可控的复活分配弹窗（徐立国 · 天罡元婴·重塑）─── */}
+      <ReviveAllocateModal
+        pending={pendingRevive}
+        onConfirm={(payload) => confirmReviveAllocate(payload)}
+        onCancel={() => cancelReviveAllocate()}
+      />
+      <ReviveAllocateModal
+        pending={pendingRevive}
+        onConfirm={(payload) => confirmReviveAllocate(payload)}
+        onCancel={() => cancelReviveAllocate()}
       />
     </div>
   );

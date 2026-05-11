@@ -464,6 +464,25 @@ interface BattleState {
   /** 玩家点否；store 仅清空 pendingTurnStartChoice，不结算技能 */
   cancelTurnStartChoice: () => void;
 
+  /**
+   * 玩家可控的复活属性分配待决策状态（2026-05-11）
+   *
+   * 当玩家方角色因徐立国"天罡元婴·重塑"等绝技复活时，
+   * 该字段会被设置，UI 弹出 ReviveAllocateModal 让玩家分配 8 点 atk/mnd/hp。
+   *
+   * 设计为非阻塞：角色已经按默认 3/2/3 复活，弹窗只是让玩家选择性调整。
+   * 玩家点"使用默认"或关闭弹窗 → 保持 3/2/3。
+   */
+  pendingRevive: {
+    unitId: string;
+    unitName: string;
+    current: { atk: number; mnd: number; hp: number };
+  } | null;
+  /** 玩家点确认 → 用新分配重写角色属性 */
+  confirmReviveAllocate: (payload: { atk: number; mnd: number; hp: number }) => void;
+  /** 玩家放弃调整 → 保持默认 */
+  cancelReviveAllocate: () => void;
+
   // === 方法 ===
   initBattle: (
     playerUnits: Array<Omit<BattleUnit, 'acted' | 'dead' | 'ultimateUsed' | 'immobilized' | 'stunned' | 'lastTerrain' | 'stepsUsedThisTurn' | 'attackedThisTurn'>>,
@@ -562,6 +581,7 @@ const initialState = {
   actionIndex: 0,
   currentSide: 'player' as 'player' | 'enemy',
   pendingTurnStartChoice: null as BattleState['pendingTurnStartChoice'],
+  pendingRevive: null as BattleState['pendingRevive'],
 };
 
 /**
@@ -754,6 +774,7 @@ export const useS7BBattleStore = create<BattleState>((set, get) => ({
       actionIndex: 0,
       currentSide: 'player',
       pendingTurnStartChoice: null,
+      pendingRevive: null,
     });
 
     // 🔧 2026-05-11 修复：第 1 大回合开局，立即为队首 actor 派发 turn_start hook
@@ -1232,6 +1253,21 @@ export const useS7BBattleStore = create<BattleState>((set, get) => ({
         // 同步 finalVictimHp 让后续逻辑认为没死
         finalVictimHp = p.hp;
         addEngineLog(reviveLogText(finalVictim.name, p, 'auto'), 'skill');
+        // 玩家方：稍后弹窗让玩家分配 8 点
+        if (!finalVictim.isEnemy) {
+          // 通过宏延迟设置，避免在攻击主流程中触发 UI rerender
+          setTimeout(() => {
+            const cur = get().pendingRevive;
+            if (cur) return; // 已有 pending（多次复活极罕见）：放弃覆盖
+            set({
+              pendingRevive: {
+                unitId: finalVictim.id,
+                unitName: finalVictim.name,
+                current: { atk: p.atk, mnd: p.mnd, hp: p.hp },
+              },
+            });
+          }, 200);
+        }
       }
     }
 
@@ -1963,6 +1999,45 @@ export const useS7BBattleStore = create<BattleState>((set, get) => ({
       'system',
     );
     set({ pendingTurnStartChoice: null });
+  },
+
+  // ─────────────────────────────────────────────────────────────
+  // 玩家可控的复活分配确认 / 拒绝（2026-05-11 ReviveAllocateModal）
+  // ─────────────────────────────────────────────────────────────
+  confirmReviveAllocate: (payload) => {
+    const pending = get().pendingRevive;
+    if (!pending) return;
+    if (payload.atk + payload.mnd + payload.hp !== 8) {
+      // 校验失败：保持默认
+      set({ pendingRevive: null });
+      return;
+    }
+    const us = [...get().units];
+    const i = us.findIndex((u) => u.id === pending.unitId);
+    if (i >= 0) {
+      us[i] = {
+        ...us[i],
+        atk: payload.atk,
+        mnd: payload.mnd,
+        hp: payload.hp,
+        maxHp: Math.max(us[i].maxHp ?? payload.hp, payload.hp),
+      };
+      set({ units: us });
+      get().addLog(
+        `✨ 天罡元婴·重塑：${pending.unitName} 重新分配 → 修为 ${payload.atk} / 心境 ${payload.mnd} / 气血 ${payload.hp}`,
+        'skill',
+      );
+    }
+    set({ pendingRevive: null });
+  },
+  cancelReviveAllocate: () => {
+    const pending = get().pendingRevive;
+    if (!pending) return;
+    get().addLog(
+      `📜 玩家选择保持默认复活分配（修为 ${pending.current.atk} / 心境 ${pending.current.mnd} / 气血 ${pending.current.hp}）`,
+      'system',
+    );
+    set({ pendingRevive: null });
   },
 
   advanceAction: () => {

@@ -448,6 +448,15 @@ export function castSkillAndApply(
   }
 
   // ==========================================================================
+  // 续命丹专用路由（2026-05-11 D1 实装）
+  // 沐佩玲·灵药·续命丹：activeCast 仅 emit 战报，store 层负责真实复活
+  // 找一名已退场（zone='grave'）的非主角友军，hp=3 重新入场
+  // ==========================================================================
+  if (regId === 'sr_mupeiling.ultimate' && skillType === 'ultimate') {
+    revivableViaXumingDan(state, caster);
+  }
+
+  // ==========================================================================
   // 多段 AOE 展开（Batch 2C → 2026-05-11 架构升级）
   //   现在根据 skill.followUpAttack 字段动态判断，不再读硬编码白名单 MULTI_SEGMENT_SKILLS
   //   兼容：如果新技能在 SkillRegistry 注册了 followUpAttack，自动生效
@@ -534,8 +543,6 @@ export function castSkillAndApply(
 // ============================================================================
 
 function findAdjacentEnemies(state: S7DBattleState, casterId: string): string[] {
-  const caster = state.units[casterId];
-  if (!caster || !caster.position) return [];
   const { row, col } = caster.position;
   const result: string[] = [];
   for (const u of Object.values(state.units)) {
