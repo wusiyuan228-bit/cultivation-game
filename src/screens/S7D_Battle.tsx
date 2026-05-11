@@ -2264,10 +2264,21 @@ const UnitPiece: React.FC<UnitPieceProps> = ({
 
   // 头像底图：优先 unit.portrait，缺失时用 getCachedImage(cardId) 兜底
   // 兼容主角卡（cardId 形如 hero_xiaoyan）和绑定卡（cardId 形如 bssr_yaochen）
-  const portraitUrl =
-    unit.portrait && !unit.portrait.startsWith('hero/')
-      ? unit.portrait
-      : getCachedImage(unit.isHero && unit.heroId ? unit.heroId : unit.cardId);
+  // 🔧 2026-05-11 修复：觉醒后 portrait 写入的是 imageCache key（如 'hero_tangsan_awaken'）
+  //   而非 URL，原代码直接当 URL 用导致觉醒后头像不见。
+  //   规则：portrait 看似一个 imageCache key（无斜杠/无协议）时，走 getCachedImage 解析。
+  const resolvePortrait = (raw: string | undefined, fallbackKey: string): string => {
+    if (!raw) return getCachedImage(fallbackKey);
+    if (raw.startsWith('hero/')) return getCachedImage(fallbackKey);
+    // URL（含 http(s)://、blob:、data:、/、./）直接用
+    if (/^(https?:|blob:|data:|\/|\.)/.test(raw)) return raw;
+    // 否则视为 imageCache key
+    return getCachedImage(raw) || raw;
+  };
+  const portraitUrl = resolvePortrait(
+    unit.portrait,
+    unit.isHero && unit.heroId ? unit.heroId : unit.cardId,
+  );
   const portraitStyle = portraitUrl
     ? { backgroundImage: `url(${portraitUrl})` }
     : undefined;
@@ -2892,10 +2903,17 @@ const ZonePeekModal: React.FC<ZonePeekModalProps> = ({ zone, units, onClose }) =
               <div key={u.instanceId} className={`${styles.zonePeekCard} ${styles[`rarity_${u.rarity}`] ?? ''}`}>
                 <div className={styles.zonePeekCardHead}>
                   {(() => {
-                    const url =
-                      u.portrait && !u.portrait.startsWith('hero/')
-                        ? u.portrait
-                        : getCachedImage(u.isHero && u.heroId ? u.heroId : u.cardId);
+                    // 🔧 2026-05-11 修复：同 unit piece，portrait 可能是 imageCache key
+                    const raw = u.portrait;
+                    const fallbackKey = u.isHero && u.heroId ? u.heroId : u.cardId;
+                    let url: string;
+                    if (!raw || raw.startsWith('hero/')) {
+                      url = getCachedImage(fallbackKey);
+                    } else if (/^(https?:|blob:|data:|\/|\.)/.test(raw)) {
+                      url = raw;
+                    } else {
+                      url = getCachedImage(raw) || raw;
+                    }
                     return url ? (
                       <div
                         className={styles.zonePeekAvatar}

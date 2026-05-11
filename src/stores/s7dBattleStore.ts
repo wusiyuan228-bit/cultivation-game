@@ -70,6 +70,9 @@ import {
   getUnit,
   getUnitAt,
 } from '@/utils/s7dBattleQueries';
+// 🔒 2026-05-11 P5：S7D 接入全局 modifier store 以消费 disable_move
+import { globalModStore } from '@/systems/battle/e2Helpers';
+import type { Modifier } from '@/systems/battle/types';
 
 // ==========================================================================
 // Store 接口
@@ -356,6 +359,50 @@ function dispatchS7DTurnHook(
       }
     },
   };
+
+  // ─────────────────────────────────────────────────────────────────────
+  // 🔒 2026-05-11 P5 修复：S7D 接入 disable_move modifier 消费
+  //   精神风暴/冰碧帝皇蝎/塘散蓝银囚笼等技能挂的 disable_move modifier，
+  //   在 S7D 之前完全不生效（advanceActor/dispatchS7DTurnHook 均未消费），
+  //   导致绝技"全场停滞"等效果失效。
+  //   规则：actor 进入"自己回合开始(start)"时检测 → 命中则 immobilized=true 并消费。
+  // ─────────────────────────────────────────────────────────────────────
+  if (phase === 'start') {
+    const s2 = get().state;
+    if (s2) {
+      const u2 = s2.units[instanceId];
+      if (u2) {
+        const disableMods = globalModStore.query(instanceId, 'disable_move') as Modifier[];
+        if (disableMods.length > 0) {
+          u2.immobilized = true;
+          // 写战报让玩家看到"被定身"
+          const sourceNames = disableMods
+            .map((m) => m.sourceSkillId ?? 'unknown')
+            .join('、');
+          s2.log.push({
+            seq: (s2.logSeq ?? 0) + 1,
+            bigRound: s2.bigRound,
+            subRound: s2.subRound,
+            kind: 'text',
+            text: `🔒 ${u2.name} 受【${sourceNames}】影响，本回合无法移动`,
+            ts: Date.now(),
+          } as any);
+          (s2 as any).logSeq = (s2.logSeq ?? 0) + 1;
+          // 消费：next_turn 类 modifier 一次性生效后 detach
+          for (const m of disableMods) {
+            if (m.duration?.type === 'next_turn') {
+              globalModStore.detach(m.id);
+            }
+          }
+          set({ state: bump(s2) });
+        } else if (u2.immobilized) {
+          // 上回合的 immobilized 标记本回合已没有 modifier 撑腰 → 解除
+          u2.immobilized = false;
+          set({ state: bump(s2) });
+        }
+      }
+    }
+  }
 
   try {
     if (phase === 'start') {

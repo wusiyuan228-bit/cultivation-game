@@ -20,6 +20,13 @@ import { getCachedImage } from '@/utils/imageCache';
 import { sortCardsForDisplay } from '@/utils/cardDisplayOrder';
 import { TYPE_CHAR } from '@/data/heroConstants';
 import type { HeroId, CultivationType } from '@/types/game';
+
+// 🔧 2026-05-11 修复：觉醒后 unit.portrait 写入的是 imageCache key，需走 resolve 兜底
+function resolvePortraitUrl(raw: string | undefined, heroId?: string): string {
+  if (!raw) return heroId ? getCachedImage(heroId) : '';
+  if (/^(https?:|blob:|data:|\/|\.)/.test(raw)) return raw;
+  return getCachedImage(raw) || (heroId ? getCachedImage(heroId) : raw);
+}
 import {
   checkSkillCastability,
   hasAdjacentEnemyOf,
@@ -1314,7 +1321,7 @@ export const S7_Battle: React.FC = () => {
               >
                 <div
                   className={styles.unitEnemyTileImg}
-                  style={{ backgroundImage: `url(${unit.portrait})` }}
+                  style={{ backgroundImage: `url(${resolvePortraitUrl(unit.portrait, unit.heroId)})` }}
                 />
                 <div className={styles.unitEnemyName}>{unit.name}</div>
                 <div className={styles.unitEnemyType}>{TYPE_CHAR[unit.type] || unit.type}</div>
@@ -1373,7 +1380,7 @@ export const S7_Battle: React.FC = () => {
               <div className={styles.unitName}>{unit.name}</div>
               <div
                 className={styles.unitPortrait}
-                style={{ backgroundImage: unit.portrait ? `url(${unit.portrait})` : undefined, backgroundColor: '#203a20' }}
+                style={{ backgroundImage: unit.portrait ? `url(${resolvePortraitUrl(unit.portrait, unit.heroId)})` : undefined, backgroundColor: '#203a20' }}
               />
 <div className={styles.unitType}>{TYPE_CHAR[unit.type] || unit.type}</div>
               {/* 常驻显示属性条 */}

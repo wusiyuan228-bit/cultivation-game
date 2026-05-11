@@ -33,6 +33,27 @@ import { TurnStartChoiceModal } from '@/components/battle/TurnStartChoiceModal';
 import { ReviveAllocateModal } from '@/components/battle/ReviveAllocateModal';
 import styles from './S7_Battle.module.css';
 
+/**
+ * 🔧 2026-05-11 修复：觉醒后 portrait 兼容 imageCache key
+ *
+ * 背景：awakeningEngine 写入 unit.portrait 时塞的是 imageCache 的 key
+ *   （如 'hero_tangsan_awaken'），而非 URL。直接当 URL 用会触发 404，
+ *   表现为"觉醒后头像消失"。
+ *
+ * 规则（与 S7D_Battle.tsx::resolvePortrait 保持一致）：
+ *   - 空值 → 用 heroId 兜底走 imageCache
+ *   - 'hero/...' 历史前缀 → 视为 key，走 imageCache 兜底
+ *   - URL（http(s):/blob:/data:/绝对路径/./）→ 直传
+ *   - 其他 → 视为 imageCache key
+ */
+function resolvePortraitUrl(raw: string | undefined, heroId?: string): string {
+  const fallback = heroId ? getCachedImage(heroId) : '';
+  if (!raw) return fallback;
+  if (raw.startsWith('hero/')) return fallback || raw;
+  if (/^(https?:|blob:|data:|\/|\.)/.test(raw)) return raw;
+  return getCachedImage(raw) || fallback || raw;
+}
+
 /* ======== 地图格子尺寸常量 ======== */
 const CELL_SIZE = 192; // 190px格子 + 2px gap（放大至1.5倍）
 const UNIT_OFFSET = 20; // 单位在格子内的边距 (150 单位居中于 190 格子)
@@ -1871,7 +1892,7 @@ export const S7B_Battle: React.FC = () => {
               >
                 <div
                   className={styles.unitEnemyTileImg}
-                  style={{ backgroundImage: `url(${unit.portrait})` }}
+                  style={{ backgroundImage: `url(${resolvePortraitUrl(unit.portrait, unit.heroId)})` }}
                 />
                 <div className={styles.unitEnemyName}>
                   {unit.awakened && <span style={{ color: '#ffd966', marginRight: 2 }}>⚡</span>}
@@ -1933,7 +1954,7 @@ export const S7B_Battle: React.FC = () => {
               </div>
               <div
                 className={styles.unitPortrait}
-                style={{ backgroundImage: unit.portrait ? `url(${unit.portrait})` : undefined, backgroundColor: '#203a20' }}
+                style={{ backgroundImage: unit.portrait ? `url(${resolvePortraitUrl(unit.portrait, unit.heroId)})` : undefined, backgroundColor: '#203a20' }}
               />
 <div className={styles.unitType}>{TYPE_CHAR[unit.type] || unit.type}</div>
               {/* 常驻显示属性条 */}
