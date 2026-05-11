@@ -11,7 +11,7 @@ export const skill_liumei_qianmeng: SkillRegistration = {
   description: '留眉退场，选择 1 名已退场友军回到可用池',
   isActive: true,
   maxCasts: 1,
-  targetSelector: { kind: 'all_allies_incl_self' },
+  targetSelector: { kind: 'single_any_ally' },
   precheck: (self: BattleUnit, engine: IBattleEngine) => {
     const deads = engine
       .getAllUnits()

@@ -12,8 +12,14 @@ export const skill_aoska_jingxiang: SkillRegistration = {
   description: '选 1 名友军，本大回合剩余时间内自身 atk 变为该友军 atk（快照）',
   isActive: true,
   maxCasts: 1,
-  targetSelector: { kind: 'all_allies_incl_self' },
-  precheck: (self: BattleUnit) => ({ ok: self.isAlive }),
+  targetSelector: { kind: 'single_any_ally' },
+  precheck: (self: BattleUnit, engine: IBattleEngine) => {
+    if (!self.isAlive) return { ok: false, reason: '施法者已退场' };
+    const allies = [self, ...engine.getAlliesOf(self)].filter((u) => u.isAlive);
+    return allies.length > 0
+      ? { ok: true, candidateIds: allies.map((u) => u.id) }
+      : { ok: false, reason: '无可选友军' };
+  },
   activeCast: (self: BattleUnit, targetIds: string[], engine: IBattleEngine) => {
     const target = engine.getUnit(targetIds[0]);
     if (!target) return { consumed: false };

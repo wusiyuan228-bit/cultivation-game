@@ -291,7 +291,8 @@ export type TargetSelector =
   | { kind: 'all_adjacent_enemies' }         // 相邻所有敌（佛怒火莲）
   | { kind: 'cross_adjacent_enemies' }       // 十字四向敌（万毒淬体）
   | { kind: 'all_enemies' }                  // 全场敌（逆·天地崩）
-  | { kind: 'all_allies_incl_self' }         // 全场己方（薰儿天火阵）
+  | { kind: 'all_allies_incl_self' }         // 全场己方（薰儿天火阵 等真 AOE）
+  | { kind: 'single_any_ally' }              // 任选1名友军（含自身/含已退场，由 precheck.candidateIds 过滤）
   | { kind: 'position_pick' };               // 选棋盘空格子（如小战祖树盾放障碍）
 
 /** 主动技预检返回 */

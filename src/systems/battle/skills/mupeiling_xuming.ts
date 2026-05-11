@@ -12,7 +12,7 @@ export const skill_mupeiling_xuming: SkillRegistration = {
   description: '复活 1 名已退场友军，以 3 点气血重入场（主角除外，本场 1 次）',
   isActive: true,
   maxCasts: 1,
-  targetSelector: { kind: 'all_allies_incl_self' }, // UI 这里要过滤"已退场的非主角"
+  targetSelector: { kind: 'single_any_ally' }, // precheck 限定为"已退场的非主角"
   precheck: (self: BattleUnit, engine: IBattleEngine) => {
     const deads = engine
       .getAllUnits()

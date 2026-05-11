@@ -95,6 +95,7 @@ function describeSelectorHint(
     case 'single_line_enemy':     return '点击同行或同列的敌方单位为目标';
     case 'single_adjacent_enemy': return '点击相邻（上下左右）的敌方单位为目标';
     case 'single_any_character':  return '点击目标单位';
+    case 'single_any_ally':       return '点击任意己方单位（含自身）为目标';
     case 'position_pick':         return '点击棋盘任意空格子放置障碍';
     default:                       return '点击目标';
   }
@@ -1359,6 +1360,7 @@ export const S7B_Battle: React.FC = () => {
           single_line_enemy: true,
           single_adjacent_enemy: true,
           single_any_character: true,
+          single_any_ally: true,
           position_pick: true,
         };
         if (selectorKind && NEEDS_TARGET[selectorKind]) {
@@ -1411,6 +1413,7 @@ export const S7B_Battle: React.FC = () => {
             single_line_enemy: true,
             single_adjacent_enemy: true,
             single_any_character: true,
+            single_any_ally: true,
             position_pick: true,
           };
           if (selectorKind && NEEDS_TARGET[selectorKind]) {

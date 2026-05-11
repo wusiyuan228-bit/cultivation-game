@@ -197,10 +197,11 @@ export function checkSkillCastability(
     }
     case 'single_any_character':
     case 'all_allies_incl_self':
+    case 'single_any_ally':
     case 'none':
     case 'position_pick':
     default: {
-      // auto_self / 全场 allies AOE / 无目标型 / 位置选 → 无条件可放（施法者存活即可）
+      // auto_self / 全场 allies AOE / 任选友军 / 无目标型 / 位置选 → 无条件可放（施法者存活即可）
       // position_pick 的合法空格校验由 UI 层瞄准态实时判定，这里只确认施法者存活
       return { hasCharges: true, interactable: true, isPassive: false };
     }

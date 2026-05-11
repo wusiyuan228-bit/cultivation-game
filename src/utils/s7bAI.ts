@@ -244,6 +244,46 @@ function evaluateUltimate(
     return { shouldCast: false, targetIds: [], reason: '友方血量充足' };
   }
 
+  // ④' 选 1 名友军（凝蓉蓉极光 / 谷鹤破境丹 / 奥斯卡镜像 / 沐佩翎续命 / 留眉道破情牵）
+  // AI 简化策略：根据技能 ID 挑合理目标；无候选则不放
+  if (kind === 'single_any_ally') {
+    // 复活类（沐佩翎/留眉）：候选是已退场的非主角友军
+    if (regId === 'sr_mupeiling.ultimate' || regId === 'sr_liumei.ultimate') {
+      const deads = allUnits.filter(
+        (u) => u.dead && u.isEnemy === self.isEnemy && !u.id.includes('hero_'),
+      );
+      if (deads.length === 0) {
+        return { shouldCast: false, targetIds: [], reason: '无已退场友军可复活' };
+      }
+      return {
+        shouldCast: true,
+        targetIds: [deads[0].id],
+        reason: `复活 ${deads[0].name}`,
+      };
+    }
+    // 增益类（凝蓉蓉极光 / 谷鹤破境丹）：选 hp 最低存活友军
+    const liveAllies = [...allies, self].filter((u) => !u.dead);
+    if (liveAllies.length === 0) {
+      return { shouldCast: false, targetIds: [], reason: '无存活友军' };
+    }
+    if (regId === 'sr_aoska.ultimate') {
+      // 镜像：挑 atk 最高的友军
+      const best = [...liveAllies].sort((a, b) => b.atk - a.atk)[0];
+      if (best.atk > self.atk) {
+        return { shouldCast: true, targetIds: [best.id], reason: `镜像 ${best.name} atk=${best.atk}` };
+      }
+      return { shouldCast: false, targetIds: [], reason: '无 atk 更高的友军' };
+    }
+    // 其它：挑 hp 最低
+    const lowHp = [...liveAllies].sort((a, b) => a.hp / a.maxHp - b.hp / b.maxHp)[0];
+    return {
+      shouldCast: true,
+      targetIds: [lowHp.id],
+      reason: `选友军 ${lowHp.name}（hp=${lowHp.hp}/${lowHp.maxHp}）`,
+    };
+  }
+
+
   // ⑤ 任意单位（柔骨·缠魂）：只在 self.hp==1 已觉醒状态下考虑，"选威胁最大的敌人换血"
   if (kind === 'single_any_character') {
     if (enemies.length === 0) return { shouldCast: false, targetIds: [], reason: '无敌方' };
