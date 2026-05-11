@@ -63,3 +63,9 @@ img {
   justify-content: center;
   z-index: 100;
 }
+
+/* 战斗页路径预览箭头虚线行进动画（S7B/S7D 共用） */
+@keyframes pathMarch {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: -16; }
+}
