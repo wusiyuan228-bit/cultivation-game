@@ -10,11 +10,11 @@
 
 .scroll {
   position: relative;
-  /* 横屏游戏：拉宽 */
-  width: min(960px, 94vw);
+  /* 横屏游戏：拉宽 + 占满主区域高度，避免内部滚动 */
+  width: min(1080px, 94vw);
   max-width: 94vw;
-  max-height: 88vh;
-  min-height: 60vh;
+  max-height: 96vh;
+  min-height: 78vh;
   display: flex;
   flex-direction: column;
 }
@@ -47,7 +47,7 @@
     linear-gradient(180deg, #f7f1e3 0%, #efe6ce 100%);
   border-left: 3px solid var(--color-gold-dark);
   border-right: 3px solid var(--color-gold-dark);
-  padding: 32px 48px;
+  padding: 24px 48px;
   overflow-y: auto;
   position: relative;
 }
