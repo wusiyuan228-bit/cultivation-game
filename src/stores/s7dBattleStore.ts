@@ -102,6 +102,11 @@ interface S7DBattleStore {
   // ------ 操作（mutator） ------
   /** 移动单位到指定位置（由上层校验可达性） */
   moveUnit: (instanceId: string, to: GridPos, steps: number) => boolean;
+  /**
+   * 单步移动（用于逐格动画）：仅推进一格 + 累加 1 步，**不写战报**。
+   * 与 S7B `moveUnitStep` 对齐 —— 战报由 UI 层在动画结束后补写一条总结。
+   */
+  moveUnitStep: (instanceId: string, to: GridPos) => boolean;
   /** 对单位造成伤害 */
   damageUnit: (instanceId: string, amount: number, reason: string, attackerId?: string) => number;
   /** 治疗单位 */
@@ -468,6 +473,33 @@ export const useS7DBattleStore = create<S7DBattleStore>((set, get) => ({
 
   moveUnit: (instanceId, to, steps) => {
     const ret = mutate(get, set, (s) => moveUnit(s, instanceId, to, steps));
+    return ret ?? false;
+  },
+
+  /**
+   * 单步移动（静默版）：推进一格、累加 1 步、不写战报。
+   * 用于 useBattleMapInteractions 的逐格动画 —— 总战报由调用方在动画结束后补写。
+   */
+  moveUnitStep: (instanceId, to) => {
+    const ret = mutate(get, set, (s) => {
+      const u = s.units[instanceId];
+      if (!u || u.zone !== 'field' || u.hp <= 0 || !u.position) return false;
+      if (u.immobilized) return false;
+      // 目标格已被占（其他活着的 field 单位）→ 拒绝
+      const occupied = Object.values(s.units).some(
+        (other) =>
+          other.instanceId !== instanceId &&
+          other.zone === 'field' &&
+          other.hp > 0 &&
+          other.position?.row === to.row &&
+          other.position?.col === to.col,
+      );
+      if (occupied) return false;
+      u.position = { row: to.row, col: to.col };
+      u.stepsUsedThisTurn += 1;
+      u.hasMovedThisTurn = true;
+      return true;
+    });
     return ret ?? false;
   },
 

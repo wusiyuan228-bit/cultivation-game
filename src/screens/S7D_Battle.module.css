@@ -2318,13 +2318,14 @@
 /* ==========================================================================
  * 左下角 hover/selected 信息面板（S7B 同款）
  * ========================================================================== */
+/* 与 S7B(S7_Battle.module.css .unitInfoPanel) 完全同尺寸 —— 确保跨场景一致 */
 .unitInfoPanel {
   position: absolute;
   left: 16px;
   bottom: 20px;
-  width: 320px;
-  background: rgba(20, 18, 14, 0.94);
-  border: 1px solid rgba(200, 161, 75, 0.35);
+  width: 300px;
+  background: rgba(20, 18, 14, 0.92);
+  border: 1px solid rgba(200, 161, 75, 0.25);
   border-radius: 10px;
   padding: 14px 16px;
   z-index: 12;
@@ -2332,25 +2333,32 @@
 }
 
 .unitInfoName {
-  font-size: 19px;
-  font-weight: 800;
+  font-size: 20px;
+  font-weight: 700;
   color: #e8dcc0;
-  margin-bottom: 4px;
-  letter-spacing: 1px;
+  margin-bottom: 8px;
 }
 
+/* S7D 专用：阵营/归属信息行（S7B 用的是 .unitInfoType，S7D 叫 .unitInfoMeta；样式一致） */
 .unitInfoMeta {
-  font-size: 12px;
+  font-size: 13px;
   color: #a09878;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
+}
+
+/* 兼容：若有地方用 .unitInfoType 也能用 */
+.unitInfoType {
+  font-size: 13px;
+  color: #a09878;
+  margin-bottom: 10px;
 }
 
 .unitInfoStats {
   display: flex;
   gap: 14px;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .unitInfoStats span {
@@ -2358,17 +2366,17 @@
 }
 
 .unitInfoSkill {
-  font-size: 13px;
+  font-size: 14px;
   margin: 6px 0;
-  padding: 7px 10px;
-  background: rgba(60, 40, 80, 0.32);
+  padding: 6px 10px;
+  background: rgba(60, 40, 80, 0.3);
   border-radius: 6px;
 }
 
 .unitInfoSkill strong {
   color: #c0a0e0;
-  font-size: 14px;
-  font-weight: 800;
+  font-size: 16px;
+  font-weight: 700;
   display: block;
   margin-bottom: 3px;
 }
@@ -2378,23 +2386,23 @@
   font-style: normal;
   display: block;
   margin-top: 2px;
-  font-size: 13px;
-  line-height: 1.55;
+  font-size: 14px;
+  line-height: 1.6;
 }
 
 .unitInfoUltimate {
-  font-size: 13px;
+  font-size: 14px;
   margin: 6px 0;
-  padding: 7px 10px;
-  background: rgba(80, 60, 20, 0.32);
+  padding: 6px 10px;
+  background: rgba(80, 60, 20, 0.3);
   border: 1px solid rgba(200, 161, 75, 0.25);
   border-radius: 6px;
 }
 
 .unitInfoUltimate strong {
   color: #ffd98a;
-  font-size: 14px;
-  font-weight: 800;
+  font-size: 16px;
+  font-weight: 700;
   display: block;
   margin-bottom: 3px;
 }
@@ -2404,13 +2412,13 @@
   font-style: normal;
   display: block;
   margin-top: 2px;
-  font-size: 13px;
-  line-height: 1.55;
+  font-size: 14px;
+  line-height: 1.6;
 }
 
 .unitInfoUltimateUsed {
   color: #7a6840;
-  font-size: 11px;
+  font-size: 12px;
   margin-left: 6px;
   font-weight: normal;
 }

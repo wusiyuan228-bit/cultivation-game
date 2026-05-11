@@ -38,6 +38,7 @@ import {
   isCrystalB,
   isSpawnA,
   isSpawnB,
+  isWalkable,
   type S7DTile,
 } from '@/data/s7dMap';
 import { generateAllAiLineups } from '@/utils/s7dAiLineup';
@@ -68,6 +69,7 @@ import { S7D_Lineup } from './S7D_Lineup';
 import styles from './S7D_Battle.module.css';
 import { TurnStartChoiceModal } from '@/components/battle/TurnStartChoiceModal';
 import { ReviveAllocateModal } from '@/components/battle/ReviveAllocateModal';
+import { useBattleMapInteractions } from '@/hooks/useBattleMapInteractions';
 
 
 // ==========================================================================
@@ -279,92 +281,6 @@ export const S7D_Battle: React.FC = () => {
 
   const mapData = useMemo<S7DTile[][]>(() => generateS7DMap(), []);
 
-  // ============================================================
-  // 地图拖动 & 缩放（移植自 S7B：直接操作 DOM transform，绕过 React 重渲染）
-  // ============================================================
-  const mapAreaRef = useRef<HTMLDivElement>(null);
-  const mapViewportRef = useRef<HTMLDivElement>(null);
-  const transformRef = useRef({ x: 0, y: 0, scale: 1 });
-  const rafIdRef = useRef<number | null>(null);
-
-  const applyTransform = useCallback(() => {
-    if (rafIdRef.current != null) return;
-    rafIdRef.current = requestAnimationFrame(() => {
-      rafIdRef.current = null;
-      const el = mapViewportRef.current;
-      if (!el) return;
-      const { x, y, scale } = transformRef.current;
-      el.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${scale})`;
-    });
-  }, []);
-
-  const dragState = useRef<{
-    isDragging: boolean;
-    hasMovedEnough: boolean;
-    startX: number;
-    startY: number;
-    startOffsetX: number;
-    startOffsetY: number;
-  }>({ isDragging: false, hasMovedEnough: false, startX: 0, startY: 0, startOffsetX: 0, startOffsetY: 0 });
-
-  // 滚轮缩放（以鼠标点为锚点；non-passive 以确保 preventDefault 生效）
-  useEffect(() => {
-    const el = mapAreaRef.current;
-    if (!el) return;
-    const handler = (e: WheelEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const t = transformRef.current;
-      const delta = e.deltaY > 0 ? -0.1 : 0.1;
-      const nextScale = Math.min(2, Math.max(0.4, t.scale + delta));
-      if (nextScale === t.scale) return;
-      const rect = el.getBoundingClientRect();
-      const mx = e.clientX - rect.left;
-      const my = e.clientY - rect.top;
-      const ratio = nextScale / t.scale;
-      t.x = mx - (mx - t.x) * ratio;
-      t.y = my - (my - t.y) * ratio;
-      t.scale = nextScale;
-      applyTransform();
-    };
-    el.addEventListener('wheel', handler, { passive: false });
-    return () => el.removeEventListener('wheel', handler);
-  }, [applyTransform]);
-
-  const handlePointerDown = useCallback((e: React.PointerEvent) => {
-    if (e.button !== 0 && e.pointerType === 'mouse') return;
-    const ds = dragState.current;
-    ds.startX = e.clientX;
-    ds.startY = e.clientY;
-    ds.startOffsetX = transformRef.current.x;
-    ds.startOffsetY = transformRef.current.y;
-    ds.isDragging = true;
-    ds.hasMovedEnough = false;
-    (e.target as Element).setPointerCapture?.(e.pointerId);
-  }, []);
-
-  const handlePointerMove = useCallback((e: React.PointerEvent) => {
-    const ds = dragState.current;
-    if (!ds.isDragging) return;
-    const dx = e.clientX - ds.startX;
-    const dy = e.clientY - ds.startY;
-    if (!ds.hasMovedEnough && Math.abs(dx) + Math.abs(dy) < 4) return;
-    ds.hasMovedEnough = true;
-    transformRef.current.x = ds.startOffsetX + dx;
-    transformRef.current.y = ds.startOffsetY + dy;
-    applyTransform();
-  }, [applyTransform]);
-
-  const handlePointerUp = useCallback((e: React.PointerEvent) => {
-    const ds = dragState.current;
-    ds.isDragging = false;
-    setTimeout(() => { ds.hasMovedEnough = false; }, 0);
-    (e.target as Element).releasePointerCapture?.(e.pointerId);
-  }, []);
-
-  /** 拖动判定 —— 在 cell/unit 点击时调用，避免拖动时误触发点击 */
-  const isDraggingNow = useCallback(() => dragState.current.hasMovedEnough, []);
-
   // ---- 战场初始化 ----
   useEffect(() => {
     let cancelled = false;
@@ -458,6 +374,75 @@ export const S7D_Battle: React.FC = () => {
   const currentActor = currentAction ? battleState!.units[currentAction.instanceId] : undefined;
   const isPlayerTurn = currentActor?.ownerId === 'player';
   const isBattleEnded = !!battleState?.winner;
+
+  // ==========================================================================
+  // 地图交互（拖拽 / 缩放 / 路径预览 / 逐格动画）
+  // —— 复用 useBattleMapInteractions，与 S7B/S7C 体验对齐
+  // ==========================================================================
+  // canStand: BFS 寻路时判断某格是否可"路过"
+  //   - 必须 isWalkable（非河道非边界）
+  //   - 必须没有别的活单位占位（自身 currentActor 不算占位）
+  const canStandForCurrentActor = useCallback(
+    (row: number, col: number): boolean => {
+      if (!isWalkable(row, col)) return false;
+      const s = battleState;
+      if (!s) return true;
+      const selfId = currentAction?.instanceId;
+      const blocked = Object.values(s.units).some(
+        (u) =>
+          u.instanceId !== selfId &&
+          u.zone === 'field' &&
+          u.hp > 0 &&
+          u.position?.row === row &&
+          u.position?.col === col,
+      );
+      return !blocked;
+    },
+    [battleState, currentAction],
+  );
+
+  // moveRange（GridPos[]）—— 玩家方当前行动者的可达格
+  const moveRangeList = useMemo<GridPos[]>(() => {
+    if (!currentActor || !isPlayerTurn || isBattleEnded) return [];
+    return getReachableCells(currentActor.instanceId);
+  }, [currentActor, isPlayerTurn, isBattleEnded, getReachableCells]);
+
+  // selectedUnitPos：仅在玩家方行动且有位置时启用路径预览
+  const selectedPosForHook = useMemo<{ row: number; col: number } | null>(() => {
+    if (!currentActor || !currentActor.position) return null;
+    if (!isPlayerTurn || isBattleEnded) return null;
+    return { row: currentActor.position.row, col: currentActor.position.col };
+  }, [currentActor, isPlayerTurn, isBattleEnded]);
+
+  const moveStepForHook = useCallback(
+    (to: GridPos) => {
+      if (!currentAction) return;
+      useS7DBattleStore.getState().moveUnitStep(currentAction.instanceId, to);
+    },
+    [currentAction],
+  );
+
+  const {
+    mapAreaRef,
+    mapViewportRef,
+    handlePointerDown,
+    handlePointerMove,
+    handlePointerUp,
+    hoverPath,
+    movingPath,
+    isDraggingNow,
+    startMoveAlong,
+    computePathTo,
+  } = useBattleMapInteractions({
+    rows: S7D_MAP_ROWS,
+    cols: S7D_MAP_COLS,
+    selectedUnitPos: selectedPosForHook,
+    hoverCell,
+    moveRange: moveRangeList,
+    canStand: canStandForCurrentActor,
+    onStepMove: moveStepForHook,
+    stepInterval: 200,
+  });
 
   // ==========================================================================
   // 派生：当前可达格 / 可攻击目标
@@ -596,6 +581,8 @@ export const S7D_Battle: React.FC = () => {
 
   // ==========================================================================
   // 玩家操作：移动到某格
+  //   - 玩家方：走 hoverPath 路径，逐格动画（200ms/格），最后补一条总日志
+  //   - AI 方：直接瞬移（保持原行为，避免拖慢 AI 节奏）
   // ==========================================================================
   const performMove = useCallback(
     (unitId: string, to: GridPos) => {
@@ -603,10 +590,51 @@ export const S7D_Battle: React.FC = () => {
       if (!s) return;
       const u = s.units[unitId];
       if (!u || !u.position) return;
-      const steps = manhattan(u.position, to);
-      moveUnit(unitId, to, steps);
+      const isPlayer = u.ownerId === 'player';
+      const from = { row: u.position.row, col: u.position.col };
+      const steps = manhattan(from, to);
+
+      if (!isPlayer) {
+        // AI / 其他玩家：瞬移
+        moveUnit(unitId, to, steps);
+        return;
+      }
+
+      // 玩家：尝试用 hover 路径或重新 BFS
+      let path: GridPos[] | null = null;
+      if (
+        hoverPath &&
+        hoverPath.length > 0 &&
+        hoverPath[hoverPath.length - 1].row === to.row &&
+        hoverPath[hoverPath.length - 1].col === to.col
+      ) {
+        path = hoverPath.map((p) => ({ row: p.row, col: p.col }));
+      } else {
+        const computed = computePathTo({ row: to.row, col: to.col });
+        if (computed && computed.length > 0) {
+          path = computed.map((p) => ({ row: p.row, col: p.col }));
+        }
+      }
+      if (!path || path.length === 0) {
+        // 兜底：直接瞬移（含日志）
+        moveUnit(unitId, to, steps);
+        return;
+      }
+      // 启动逐格动画 —— 每步只 moveUnitStep（不写日志），动画结束后补一条统一日志
+      startMoveAlong(path, () => {
+        const stateNow = useS7DBattleStore.getState().state;
+        if (!stateNow) return;
+        const unit = stateNow.units[unitId];
+        if (!unit) return;
+        // 补一条总移动日志（与瞬移版本一致）
+        useS7DBattleStore
+          .getState()
+          .log(
+            `${unit.name} 从 (${from.row},${from.col}) 移动至 (${to.row},${to.col}) · 消耗 ${steps} 步`,
+          );
+      });
     },
-    [moveUnit],
+    [moveUnit, hoverPath, computePathTo, startMoveAlong],
   );
 
   // ==========================================================================
@@ -906,6 +934,7 @@ export const S7D_Battle: React.FC = () => {
   const handleCellClick = useCallback(
     (row: number, col: number) => {
       if (isDraggingNow()) return; // 拖动中不触发点击
+      if (movingPath) return; // 逐格移动动画中：阻止再次点击
       if (!isPlayerTurn || isBattleEnded || aiBusy || !currentActor) return;
       const key = posKey(row, col);
 
@@ -984,6 +1013,8 @@ export const S7D_Battle: React.FC = () => {
       useUltimateFn,
       fengshuPick,
       completeFengShuAttack,
+      movingPath,
+      isDraggingNow,
     ],
   );
 
@@ -1197,6 +1228,74 @@ export const S7D_Battle: React.FC = () => {
                 }),
               )}
             </div>
+
+            {/* 路径预览 SVG —— S7B 同款，玩家方 hover 到可达格时显示前进箭头 */}
+            {currentActor && selectedPosForHook && hoverPath && hoverPath.length > 0 && (
+              <svg
+                className={styles.pathSvg}
+                width={S7D_MAP_COLS * (CELL_SIZE + 2)}
+                height={S7D_MAP_ROWS * (CELL_SIZE + 2)}
+                style={{
+                  position: 'absolute',
+                  left: 14,
+                  top: 14,
+                  pointerEvents: 'none',
+                  zIndex: 4,
+                  overflow: 'visible',
+                }}
+              >
+                {(() => {
+                  // 每格实际占 CELL_SIZE+2（含 gap）；格子左上角偏 2，中心再 + CELL_SIZE/2
+                  const stride = CELL_SIZE + 2;
+                  const toXY = (r: number, c: number): [number, number] => [
+                    c * stride + 2 + CELL_SIZE / 2,
+                    r * stride + 2 + CELL_SIZE / 2,
+                  ];
+                  const pts: Array<[number, number]> = [];
+                  pts.push(toXY(selectedPosForHook.row, selectedPosForHook.col));
+                  for (const step of hoverPath) pts.push(toXY(step.row, step.col));
+                  const d = pts
+                    .map((p, i) => `${i === 0 ? 'M' : 'L'} ${p[0]} ${p[1]}`)
+                    .join(' ');
+                  const last = pts[pts.length - 1];
+                  const prev = pts[pts.length - 2] || last;
+                  const dx = last[0] - prev[0];
+                  const dy = last[1] - prev[1];
+                  const angle = Math.atan2(dy, dx);
+                  const arrowSize = 12;
+                  const ax = last[0];
+                  const ay = last[1];
+                  const a1x = ax - arrowSize * Math.cos(angle - Math.PI / 6);
+                  const a1y = ay - arrowSize * Math.sin(angle - Math.PI / 6);
+                  const a2x = ax - arrowSize * Math.cos(angle + Math.PI / 6);
+                  const a2y = ay - arrowSize * Math.sin(angle + Math.PI / 6);
+                  return (
+                    <>
+                      <path
+                        d={d}
+                        stroke="rgba(255,220,120,0.9)"
+                        strokeWidth={5}
+                        strokeDasharray="10 6"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        fill="none"
+                        style={{
+                          filter: 'drop-shadow(0 0 4px rgba(255,210,100,0.6))',
+                          animation: 'pathMarch 0.8s linear infinite',
+                        }}
+                      />
+                      <polygon
+                        points={`${ax},${ay} ${a1x},${a1y} ${a2x},${a2y}`}
+                        fill="rgba(255,220,120,0.95)"
+                        style={{
+                          filter: 'drop-shadow(0 0 4px rgba(255,210,100,0.7))',
+                        }}
+                      />
+                    </>
+                  );
+                })()}
+              </svg>
+            )}
 
             {/* 棋子层 */}
             <div className={styles.unitLayer}>
