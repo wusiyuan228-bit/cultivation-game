@@ -30,6 +30,11 @@ import {
 } from '@/systems/battle/e2Helpers';
 import { applyDamagePipeline } from '@/systems/battle/damagePipeline';
 import { cleanupOnRoundEnd } from '@/systems/battle/modifierSystem';
+import {
+  dispatchTurnStartHooks,
+  dispatchTurnEndHooks,
+  type TurnStartDispatchCtx,
+} from '@/systems/battle/turnStartDispatcher';
 
 /**
  * 统一的技能名→注册id 反查。
@@ -526,12 +531,26 @@ const initialState = {
   currentSide: 'player' as 'player' | 'enemy',
 };
 
+/**
+ * 模块级"本回合已派发 turn-start hook 的 unitId"集合
+ * advanceAction 在切换到某个 actor 时调用 dispatchTurnStartHooks，
+ * 但 advanceAction 可能在同一回合多次重入（如 endUnitTurn 中递归调用），
+ * 必须保证每个 unit 在每个大回合至多触发一次 turn_start。
+ *
+ * 在 startNewRound 中会被清空。
+ */
+let _s7bTurnStartFiredThisRound = new Set<string>();
+let _s7bTurnEndFiredThisRound = new Set<string>();
+
 export const useS7BBattleStore = create<BattleState>((set, get) => ({
   ...initialState,
 
   initBattle: (playerInputs, enemyInputs) => {
     // E2 · 每次初始化时重置全局 modifier store，避免上一局残留
     resetGlobalModStore();
+    // 🔧 2026-05-11 修复：清空跨场污染的 turn-hook fired 标记
+    _s7bTurnStartFiredThisRound = new Set<string>();
+    _s7bTurnEndFiredThisRound = new Set<string>();
     const map = createDefaultMap();
 
     /** 从技能名/技能绝技名反查 registry id，组成 registrySkills 列表 */
@@ -628,6 +647,65 @@ export const useS7BBattleStore = create<BattleState>((set, get) => ({
       actionIndex: 0,
       currentSide: 'player',
     });
+
+    // 🔧 2026-05-11 修复：第 1 大回合开局，立即为队首 actor 派发 turn_start hook
+    //   因为 advanceAction 只在 unit 行动后才被调用，不会派发"第一个 actor"的 turn_start
+    {
+      const firstActorId = get().getCurrentActorId();
+      if (firstActorId && !_s7bTurnStartFiredThisRound.has(firstActorId)) {
+        const firstActor = get().units.find((u) => u.id === firstActorId);
+        if (firstActor && !firstActor.dead) {
+          _s7bTurnStartFiredThisRound.add(firstActorId);
+          const ctx: TurnStartDispatchCtx = {
+            snapshotAllUnits: () =>
+              get().units.filter((u) => !u.dead).map(mapUnitToEngine),
+            applyStatChange: (uid, stat, delta, opts) => {
+              const cur = get().units;
+              const i = cur.findIndex((x) => x.id === uid);
+              if (i < 0) return 0;
+              const tu = cur[i];
+              const floor = opts.floor ?? 1;
+              if (stat === 'hp') {
+                const oldHp = tu.hp;
+                let newHp = oldHp + delta;
+                if (!opts.breakCap) newHp = Math.min(newHp, tu.maxHp);
+                newHp = Math.max(0, newHp);
+                const next = [...cur];
+                next[i] = { ...tu, hp: newHp, dead: newHp <= 0 ? true : tu.dead };
+                set({ units: next });
+                return newHp - oldHp;
+              }
+              if (stat === 'atk') {
+                const oldVal = tu.atk;
+                let newVal = Math.max(floor, oldVal + delta);
+                if (!opts.breakCap) newVal = Math.min(newVal, 15);
+                const next = [...cur];
+                next[i] = { ...tu, atk: newVal };
+                set({ units: next });
+                return newVal - oldVal;
+              }
+              if (stat === 'mnd') {
+                const oldVal = tu.mnd;
+                let newVal = Math.max(floor, oldVal + delta);
+                if (!opts.breakCap) newVal = Math.min(newVal, 5);
+                const next = [...cur];
+                next[i] = { ...tu, mnd: newVal };
+                set({ units: next });
+                return newVal - oldVal;
+              }
+              return 0;
+            },
+            addLog: (text, type) => get().addLog(text, type ?? 'skill'),
+            getRound: () => get().round,
+          };
+          try {
+            dispatchTurnStartHooks(firstActorId, ctx);
+          } catch (e) {
+            console.error('[s7bBattleStore] initial dispatchTurnStartHooks threw:', e);
+          }
+        }
+      }
+    }
   },
 
   selectUnit: (unitId) => {
@@ -1750,6 +1828,61 @@ export const useS7BBattleStore = create<BattleState>((set, get) => ({
       attackedThisTurn: false,
     };
     set({ units: updated, selectedUnitId: null, phase: 'select_unit', moveRange: [], attackRange: [], skillUsedThisTurn: false });
+
+    // 🔧 2026-05-11 修复：行动结束时派发 on_turn_end hook
+    //   覆盖 12 个 turn_end 类技能（凤霓·残云、奥斯卡·香肠、藤化原·搜身扫描、
+    //   雪乃·古族驱散、塔莎·封印、唐雅·岚音、火雨皓·冰玉、莫彩环·蓄力、
+    //   牧沛玲·妙手、刘媚·清羽、药尘·冷火、古元·古族天火阵 aura 等）
+    if (!_s7bTurnEndFiredThisRound.has(unitId)) {
+      _s7bTurnEndFiredThisRound.add(unitId);
+      const ctx: TurnStartDispatchCtx = {
+        snapshotAllUnits: () =>
+          get().units.filter((x) => !x.dead).map(mapUnitToEngine),
+        applyStatChange: (uid, stat, delta, opts) => {
+          const cur = get().units;
+          const i = cur.findIndex((x) => x.id === uid);
+          if (i < 0) return 0;
+          const tu = cur[i];
+          const floor = opts.floor ?? 1;
+          if (stat === 'hp') {
+            const oldHp = tu.hp;
+            let newHp = oldHp + delta;
+            if (!opts.breakCap) newHp = Math.min(newHp, tu.maxHp);
+            newHp = Math.max(0, newHp);
+            const next = [...cur];
+            next[i] = { ...tu, hp: newHp, dead: newHp <= 0 ? true : tu.dead };
+            set({ units: next });
+            return newHp - oldHp;
+          }
+          if (stat === 'atk') {
+            const oldVal = tu.atk;
+            let newVal = Math.max(floor, oldVal + delta);
+            if (!opts.breakCap) newVal = Math.min(newVal, 15);
+            const next = [...cur];
+            next[i] = { ...tu, atk: newVal };
+            set({ units: next });
+            return newVal - oldVal;
+          }
+          if (stat === 'mnd') {
+            const oldVal = tu.mnd;
+            let newVal = Math.max(floor, oldVal + delta);
+            if (!opts.breakCap) newVal = Math.min(newVal, 5);
+            const next = [...cur];
+            next[i] = { ...tu, mnd: newVal };
+            set({ units: next });
+            return newVal - oldVal;
+          }
+          return 0;
+        },
+        addLog: (text, type) => get().addLog(text, type ?? 'skill'),
+        getRound: () => get().round,
+      };
+      try {
+        dispatchTurnEndHooks(unitId, ctx);
+      } catch (e) {
+        console.error('[s7bBattleStore] dispatchTurnEndHooks threw:', e);
+      }
+    }
   },
 
   advanceAction: () => {
@@ -1820,6 +1953,72 @@ export const useS7BBattleStore = create<BattleState>((set, get) => ({
         }
 
         set({ currentSide: nextActor.isEnemy ? 'enemy' : 'player' });
+        // 🔧 2026-05-11 修复：在 actor 行动开始前派发 on_turn_start hook
+        //   原因：3 套 store 的 BattleEngine.fireTurnHook 全为空函数，导致 8+ 个
+        //   on_turn_start 主动/被动技能（云鹊子·窃元、谷鹤·聚元炉、凝荣荣·七宝加持、
+        //   萧炎觉醒·焚天、雅妃·补给、黎沐婉·清思 等）从未被触发。
+        //   现在通过公共 dispatcher 让 hook 自动结算，本批次仅含"自动逻辑"，
+        //   后续会再叠加玩家选择弹窗（云鹊子选目标/选属性等）。
+        if (!_s7bTurnStartFiredThisRound.has(nextActor.id)) {
+          _s7bTurnStartFiredThisRound.add(nextActor.id);
+          const ctx: TurnStartDispatchCtx = {
+            snapshotAllUnits: () =>
+              get().units.filter((u) => !u.dead).map(mapUnitToEngine),
+            applyStatChange: (unitId, stat, delta, opts) => {
+              const cur = get().units;
+              const idx = cur.findIndex((x) => x.id === unitId);
+              if (idx < 0) return 0;
+              const u = cur[idx];
+              const floor = opts.floor ?? 1;
+              if (stat === 'hp') {
+                const oldHp = u.hp;
+                let newHp = oldHp + delta;
+                // 不可越过当前血量 cap（除非 breakCap）；不可低于 0；最低保留 floor（不击杀型）
+                if (!opts.breakCap) newHp = Math.min(newHp, u.maxHp);
+                newHp = Math.max(0, newHp);
+                if (delta < 0 && opts.floor !== undefined) {
+                  newHp = Math.max(newHp, oldHp + Math.min(0, opts.floor - oldHp));
+                }
+                const next = [...cur];
+                next[idx] = {
+                  ...u,
+                  hp: newHp,
+                  dead: newHp <= 0 ? true : u.dead,
+                };
+                set({ units: next });
+                return newHp - oldHp;
+              }
+              if (stat === 'atk') {
+                const oldVal = u.atk;
+                let newVal = oldVal + delta;
+                newVal = Math.max(floor, newVal);
+                if (!opts.breakCap) newVal = Math.min(newVal, 15);
+                const next = [...cur];
+                next[idx] = { ...u, atk: newVal };
+                set({ units: next });
+                return newVal - oldVal;
+              }
+              if (stat === 'mnd') {
+                const oldVal = u.mnd;
+                let newVal = oldVal + delta;
+                newVal = Math.max(floor, newVal);
+                if (!opts.breakCap) newVal = Math.min(newVal, 5);
+                const next = [...cur];
+                next[idx] = { ...u, mnd: newVal };
+                set({ units: next });
+                return newVal - oldVal;
+              }
+              return 0;
+            },
+            addLog: (text, type) => get().addLog(text, type ?? 'skill'),
+            getRound: () => get().round,
+          };
+          try {
+            dispatchTurnStartHooks(nextActor.id, ctx);
+          } catch (e) {
+            console.error('[s7bBattleStore] dispatchTurnStartHooks threw:', e);
+          }
+        }
         // 若为AI方，UI 层会监听 currentSide 变化并触发 runAiTurn()
       }
     }
@@ -1847,6 +2046,10 @@ export const useS7BBattleStore = create<BattleState>((set, get) => ({
       },
     } as any;
     cleanupOnRoundEnd(globalModStore, cleanupEngine);
+
+    // 🔧 2026-05-11 修复：清空"本回合已派发 turn-start"标记，让新回合再次能派发
+    _s7bTurnStartFiredThisRound = new Set<string>();
+    _s7bTurnEndFiredThisRound = new Set<string>();
 
     // ① 地形效果结算：结算上回合结束时停留的增益地形
     const updated = units.map((u) => {
@@ -1933,6 +2136,64 @@ export const useS7BBattleStore = create<BattleState>((set, get) => ({
 
     // ═══ 阶段 C · 觉醒扫描（大回合开始保底） ═══
     get().checkAndTriggerAwakening();
+
+    // 🔧 2026-05-11 修复：新大回合首个 actor 派发 turn_start hook
+    {
+      const firstActorId = newQueue[0];
+      if (firstActorId && !_s7bTurnStartFiredThisRound.has(firstActorId)) {
+        const firstActor = get().units.find((u) => u.id === firstActorId);
+        if (firstActor && !firstActor.dead) {
+          _s7bTurnStartFiredThisRound.add(firstActorId);
+          const ctx: TurnStartDispatchCtx = {
+            snapshotAllUnits: () =>
+              get().units.filter((u) => !u.dead).map(mapUnitToEngine),
+            applyStatChange: (uid, stat, delta, opts) => {
+              const cur = get().units;
+              const i = cur.findIndex((x) => x.id === uid);
+              if (i < 0) return 0;
+              const tu = cur[i];
+              const floor = opts.floor ?? 1;
+              if (stat === 'hp') {
+                const oldHp = tu.hp;
+                let newHp = oldHp + delta;
+                if (!opts.breakCap) newHp = Math.min(newHp, tu.maxHp);
+                newHp = Math.max(0, newHp);
+                const next = [...cur];
+                next[i] = { ...tu, hp: newHp, dead: newHp <= 0 ? true : tu.dead };
+                set({ units: next });
+                return newHp - oldHp;
+              }
+              if (stat === 'atk') {
+                const oldVal = tu.atk;
+                let newVal = Math.max(floor, oldVal + delta);
+                if (!opts.breakCap) newVal = Math.min(newVal, 15);
+                const next = [...cur];
+                next[i] = { ...tu, atk: newVal };
+                set({ units: next });
+                return newVal - oldVal;
+              }
+              if (stat === 'mnd') {
+                const oldVal = tu.mnd;
+                let newVal = Math.max(floor, oldVal + delta);
+                if (!opts.breakCap) newVal = Math.min(newVal, 5);
+                const next = [...cur];
+                next[i] = { ...tu, mnd: newVal };
+                set({ units: next });
+                return newVal - oldVal;
+              }
+              return 0;
+            },
+            addLog: (text, type) => get().addLog(text, type ?? 'skill'),
+            getRound: () => get().round,
+          };
+          try {
+            dispatchTurnStartHooks(firstActorId, ctx);
+          } catch (e) {
+            console.error('[s7bBattleStore] new-round dispatchTurnStartHooks threw:', e);
+          }
+        }
+      }
+    }
   },
 
   processEnemyRound: () => {

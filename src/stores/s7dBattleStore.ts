@@ -44,6 +44,12 @@ import {
   getAvailableSpawnPositions,
 } from '@/utils/s7dBattleActions';
 import { castSkillAndApply } from '@/utils/s7dSkillEngine';
+import { mapInstanceToEngineUnit } from '@/utils/s7dSkillEngine';
+import {
+  dispatchTurnStartHooks,
+  dispatchTurnEndHooks,
+  type TurnStartDispatchCtx,
+} from '@/systems/battle/turnStartDispatcher';
 import {
   attackAndApply,
   checkAndTriggerAwakening,
@@ -185,6 +191,120 @@ function mutate<T>(
   return result;
 }
 
+// ==========================================================================
+// 🔧 2026-05-11 修复：S7D turn-start / turn-end hook 派发器
+// ==========================================================================
+
+/**
+ * 派发某个 actor 的 turn-start / turn-end hook。
+ *
+ * 背景：之前 S7D 战斗系统的 fireTurnHook 为空函数，导致 8+ 个 turn-hook 技能
+ * （云鹊子·窃元、谷鹤·聚元炉、萧炎觉醒·焚天、雅妃·补给、黎沐婉·清思、
+ * 古元·古族天火阵 aura、凝荣荣·七宝加持 aura 等）在决战中从未生效。
+ *
+ * 实现：
+ *   - 只读路径走 mapInstanceToEngineUnit + 全局 globalModStore
+ *   - 写路径仅支持 hp / atk / mnd 三类，直接 mutate state.units[id]
+ *   - 通过 store 的 bump() 触发订阅刷新
+ */
+const _s7dTurnHookFired = new Set<string>(); // key: `${bigRound}:${subRound}:${start|end}:${instanceId}`
+
+function dispatchS7DTurnHook(
+  get: () => S7DBattleStore,
+  set: (partial: Partial<S7DBattleStore>) => void,
+  instanceId: string,
+  phase: 'start' | 'end',
+): void {
+  const state = get().state;
+  if (!state) return;
+  const key = `${state.bigRound}:${state.subRound}:${phase}:${instanceId}`;
+  if (_s7dTurnHookFired.has(key)) return;
+  _s7dTurnHookFired.add(key);
+
+  const playerFaction = state.playerFaction;
+
+  const ctx: TurnStartDispatchCtx = {
+    snapshotAllUnits: () => {
+      const s = get().state;
+      if (!s) return [];
+      return Object.values(s.units)
+        .filter((u) => u.zone === 'field' && u.hp > 0)
+        .map((u) => mapInstanceToEngineUnit(u, playerFaction));
+    },
+    applyStatChange: (uid, stat, delta, opts) => {
+      const s = get().state;
+      if (!s) return 0;
+      const u = s.units[uid];
+      if (!u) return 0;
+      const floor = opts.floor ?? 1;
+      let actualDelta = 0;
+      if (stat === 'hp') {
+        const oldHp = u.hp;
+        let newHp = oldHp + delta;
+        if (!opts.breakCap) newHp = Math.min(newHp, u.hpMax);
+        newHp = Math.max(0, newHp);
+        u.hp = newHp;
+        actualDelta = newHp - oldHp;
+        if (newHp <= 0) {
+          u.zone = 'grave';
+          u.deadAtBigRound = s.bigRound;
+          u.deadAtSubRound = s.subRound;
+          // 从场上移除位置占用：S7D 的实际"清场"由 killUnit 承担，这里只标 zone
+        }
+      } else if (stat === 'atk') {
+        const oldVal = u.atk;
+        let newVal = Math.max(floor, oldVal + delta);
+        if (!opts.breakCap) newVal = Math.min(newVal, 99);
+        u.atk = newVal;
+        actualDelta = newVal - oldVal;
+      } else if (stat === 'mnd') {
+        const oldVal = u.mnd;
+        let newVal = Math.max(floor, oldVal + delta);
+        if (!opts.breakCap) newVal = Math.min(newVal, 99);
+        u.mnd = newVal;
+        actualDelta = newVal - oldVal;
+      }
+      // 触发 store 订阅刷新
+      set({ state: bump(s) });
+      return actualDelta;
+    },
+    addLog: (text, _type) => {
+      const s = get().state;
+      if (!s) return;
+      // S7D 的 log 由 appendLog mutator 维护
+      s.log.push({
+        seq: (s.logSeq ?? 0) + 1,
+        bigRound: s.bigRound,
+        subRound: s.subRound,
+        kind: 'text',
+        text,
+        ts: Date.now(),
+      } as any);
+      (s as any).logSeq = (s.logSeq ?? 0) + 1;
+      set({ state: bump(s) });
+    },
+    getRound: () => get().state?.bigRound ?? 1,
+  };
+
+  try {
+    if (phase === 'start') {
+      dispatchTurnStartHooks(instanceId, ctx);
+    } else {
+      dispatchTurnEndHooks(instanceId, ctx);
+    }
+  } catch (e) {
+    console.error(
+      `[s7dBattleStore] dispatch ${phase} hook for ${instanceId} threw:`,
+      e,
+    );
+  }
+}
+
+/** 重置 turn-hook 去重缓存（initBattle 时调用，避免跨场污染） */
+function resetS7DTurnHookCache(): void {
+  _s7dTurnHookFired.clear();
+}
+
 export const useS7DBattleStore = create<S7DBattleStore>((set, get) => ({
   state: null,
 
@@ -192,7 +312,16 @@ export const useS7DBattleStore = create<S7DBattleStore>((set, get) => ({
 
   initBattle: async (params) => {
     const fresh = await initS7DBattle(params);
+    // 🔧 2026-05-11 修复：清空跨场污染的 turn-hook 去重缓存
+    resetS7DTurnHookCache();
     set({ state: fresh });
+    // 🔧 2026-05-11 修复：为队首 actor 派发 turn_start，让 turn-start 类技能开局即生效
+    if (fresh.currentActorIdx < fresh.actionQueue.length) {
+      const firstActorId = fresh.actionQueue[fresh.currentActorIdx]?.instanceId;
+      if (firstActorId) {
+        dispatchS7DTurnHook(get, set, firstActorId, 'start');
+      }
+    }
     console.log(
       `[s7dBattleStore] 战场已初始化：${fresh.players.length} 玩家 / ${
         Object.keys(fresh.units).length
@@ -294,12 +423,41 @@ export const useS7DBattleStore = create<S7DBattleStore>((set, get) => ({
   },
 
   advanceActor: () => {
+    // 🔧 2026-05-11 修复：在切换 actor 之前派发上一个 actor 的 on_turn_end，
+    // 切换之后派发新 actor 的 on_turn_start。修复 8+ 个 turn hook 类技能从未触发的问题。
+    const before = get().state;
+    const prevActorId =
+      before && before.currentActorIdx < before.actionQueue.length
+        ? before.actionQueue[before.currentActorIdx]?.instanceId
+        : undefined;
+    if (prevActorId) {
+      dispatchS7DTurnHook(get, set, prevActorId, 'end');
+    }
+
     const ret = mutate(get, set, (s) => advanceActor(s));
+
+    const after = get().state;
+    if (after && after.currentActorIdx < after.actionQueue.length) {
+      const newActorId = after.actionQueue[after.currentActorIdx]?.instanceId;
+      if (newActorId && newActorId !== prevActorId) {
+        dispatchS7DTurnHook(get, set, newActorId, 'start');
+      }
+    }
     return ret ?? 'blocked';
   },
 
   advanceSubRound: () => {
     const ret = mutate(get, set, (s) => advanceSubRound(s));
+    // 🔧 2026-05-11 修复：进入新小轮次/新大回合后，为队首 actor 派发 turn_start
+    if (ret === 'started') {
+      const after = get().state;
+      if (after && after.currentActorIdx < after.actionQueue.length) {
+        const firstActorId = after.actionQueue[after.currentActorIdx]?.instanceId;
+        if (firstActorId) {
+          dispatchS7DTurnHook(get, set, firstActorId, 'start');
+        }
+      }
+    }
     return ret ?? 'blocked';
   },
 
