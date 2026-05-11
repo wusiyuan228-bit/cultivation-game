@@ -429,6 +429,45 @@ export interface SkillRegistration {
       engine: IBattleEngine,
     ) => void;
   };
+  /**
+   * 玩家可控的"棋盘选位"型技能元数据（2026-05-11 方案A · 流程钩子层）
+   *
+   * 用途：风属斗技、灵犀诀传送、断魂位移… 这类需要让玩家在棋盘上点选一个目标格的技能。
+   * 与 interactiveOnTurnStart 的差异：
+   *   - turnStart 是行动开始时的「选目标 + 选属性」型弹窗
+   *   - positionPick 是攻击/技能命中后的「在棋盘上点选格子」型交互
+   *
+   * 当前已声明此元数据的技能：纳兰嫣然·风属斗技（迁移规划中 · Commit 3）
+   *
+   * 设计契约：
+   *   - 仅当玩家方控制施法者且 trigger.when() 返回 true 时才触发
+   *   - 由 store 在攻击流水线相应位置调用 store.submitPendingChoice({kind:'fengshu_pick',...})
+   *     UI 层渲染棋盘高亮；玩家点格子后 store.confirmPositionPick(row,col) 完成 apply
+   */
+  interactivePositionPick?: {
+    /** 弹窗标题 */
+    promptTitle: string;
+    /** 弹窗主文案 */
+    promptBody: string;
+    /** 时机：'after_hit' 命中后；'on_cast' 释放绝技时 */
+    trigger: 'after_hit' | 'on_cast';
+    /**
+     * 计算可落点列表
+     *   - 返回空 → 视为不可发动，跳过弹窗（与 turnStart 一致）
+     */
+    collectCandidates: (
+      self: BattleUnit,
+      target: BattleUnit | undefined,
+      engine: IBattleEngine,
+    ) => Array<{ row: number; col: number }>;
+    /** 玩家选定后执行体（store 调用） */
+    apply: (
+      self: BattleUnit,
+      target: BattleUnit | undefined,
+      pos: { row: number; col: number },
+      engine: IBattleEngine,
+    ) => void;
+  };
   /** 描述（未揭示时显示"效果未知"）*/
   description: string;
 }
