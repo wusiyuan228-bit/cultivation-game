@@ -847,20 +847,9 @@ export const useS7BBattleStore = create<BattleState>((set, get) => ({
     const terrain = map[toRow][toCol].terrain;
     const u = updated[idx];
 
-    // 瘴气伤害格：踏入即生效，各属性-1（下限0/1）
-    if (terrain === 'miasma') {
-      updated[idx] = {
-        ...u,
-        atk: Math.max(1, u.atk - 1),
-        mnd: Math.max(1, u.mnd - 1),
-        hp: Math.max(0, u.hp - 1),
-        dead: u.hp - 1 <= 0,
-      };
-      get().addLog(`☠ ${u.name} 踏入魔气侵蚀区，各属性-1！`, 'damage');
-      if (u.hp - 1 <= 0) {
-        get().addLog(`💀 ${u.name} 因瘴气而倒下！`, 'kill');
-      }
-    }
+    // 瘴气伤害格：路过不立即扣血/降三维。
+    // 仅在 startNewRound 检测"上回合末停留位置=瘴气" → 扣 1 点 hp（详见 startNewRound）。
+    // 与 battleStore.ts（剿匪）保持一致；策划修订 2026-05-11
 
     // 增益地形（修为/心境/气血）不立即生效，需要"停留到下回合行动时"才结算
     // 这里不做处理，会在 startNewRound 时统一结算
@@ -1414,10 +1403,25 @@ export const useS7BBattleStore = create<BattleState>((set, get) => ({
           kind === 'damage_applied' ? 'damage'
           : kind === 'unit_leave' ? 'kill'
           : kind === 'skill_active_cast' || kind === 'skill_passive_trigger' ||
-            kind === 'skill_effect_applied' || kind === 'skill_effect_blocked'
+            kind === 'skill_effect_applied' || kind === 'skill_effect_blocked' ||
+            kind === 'ownership_change'
             ? 'skill'
             : 'system';
         if (opts?.severity !== 'debug') addEngineLog(narrative, type);
+
+        /* ============================================================
+         * 2026-05-11：ownership_change（缘瑶·阴灵蔽日 等夺取类技能）
+         *   事件驱动地翻转 snapshot 中目标的 isEnemy；
+         *   set 阶段统一写回 store。
+         *   payload 形态：{ targetId, from, to }
+         * ============================================================ */
+        if (kind === 'ownership_change') {
+          const tid = (_payload as any)?.targetId;
+          const t = tid ? snapshots[tid] : undefined;
+          if (t) {
+            t.isEnemy = !t.isEnemy;
+          }
+        }
       },
       changeStat: (
         id: string,
@@ -2089,11 +2093,11 @@ export const useS7BBattleStore = create<BattleState>((set, get) => ({
         }
       }
 
-      // 瘴气停留额外扣血
-      if (terrain === 'miasma') {
+      // 瘴气停留扣血：上回合末停留在 miasma → 本回合开始时 hp-1
+      if (terrain === 'miasma' && u.lastTerrain === terrain) {
         const newHp = Math.max(0, newU.hp - 1);
         newU = { ...newU, hp: newHp, dead: newHp <= 0 };
-        get().addLog(`☠ ${u.name} 停留在魔气侵蚀区，额外受到1点环境伤害`, 'damage');
+        get().addLog(`☠ ${u.name} 停留在魔气侵蚀区，气血-1`, 'damage');
         if (newHp <= 0) {
           get().addLog(`💀 ${u.name} 因持续瘴气而倒下！`, 'kill');
         }
@@ -2210,19 +2214,9 @@ export const useS7BBattleStore = create<BattleState>((set, get) => ({
     };
     const terrain = map[toRow][toCol].terrain;
     const u = updated[idx];
-    if (terrain === 'miasma') {
-      updated[idx] = {
-        ...u,
-        atk: Math.max(1, u.atk - 1),
-        mnd: Math.max(1, u.mnd - 1),
-        hp: Math.max(0, u.hp - 1),
-        dead: u.hp - 1 <= 0,
-      };
-      get().addLog(`☠ ${u.name} 踏入魔气侵蚀区，各属性-1！`, 'damage');
-      if (u.hp - 1 <= 0) {
-        get().addLog(`💀 ${u.name} 因瘴气而倒下！`, 'kill');
-      }
-    }
+    // 瘴气伤害格：路过不立即生效；仅在 startNewRound 阶段对"上回合末停留位置=瘴气"扣 1 hp。
+    // 这里保留 terrain/u 解构以便未来扩展，不做即时处理。
+    void terrain; void u;
     set({ units: updated });
     // P5 · Q77：位置变化即时通知光环类技能重算
     fireOnPositionChangeHooks(unitId, updated, (text, type) => get().addLog(text, type ?? 'system'));
