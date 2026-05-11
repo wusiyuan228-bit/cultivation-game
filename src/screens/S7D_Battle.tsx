@@ -377,6 +377,11 @@ export const S7D_Battle: React.FC = () => {
   const isPlayerTurn = currentActor?.ownerId === 'player';
   const isBattleEnded = !!battleState?.winner;
 
+  // 行动者切换时，自动清掉残留的 selectedUnitId，确保新行动棋子默认"未选中"
+  useEffect(() => {
+    setSelectedUnitId(null);
+  }, [currentAction?.instanceId]);
+
   // ==========================================================================
   // 地图交互（拖拽 / 缩放 / 路径预览 / 逐格动画）
   // —— 复用 useBattleMapInteractions，与 S7B/S7C 体验对齐
@@ -406,15 +411,17 @@ export const S7D_Battle: React.FC = () => {
   // moveRange（GridPos[]）—— 玩家方当前行动者的可达格
   const moveRangeList = useMemo<GridPos[]>(() => {
     if (!currentActor || !isPlayerTurn || isBattleEnded) return [];
+    if (selectedUnitId !== currentActor.instanceId) return [];
     return getReachableCells(currentActor.instanceId);
-  }, [currentActor, isPlayerTurn, isBattleEnded, getReachableCells]);
+  }, [currentActor, isPlayerTurn, isBattleEnded, getReachableCells, selectedUnitId]);
 
-  // selectedUnitPos：仅在玩家方行动且有位置时启用路径预览
+  // selectedUnitPos：仅在玩家方行动且"已点选行动棋子"时启用路径预览
   const selectedPosForHook = useMemo<{ row: number; col: number } | null>(() => {
     if (!currentActor || !currentActor.position) return null;
     if (!isPlayerTurn || isBattleEnded) return null;
+    if (selectedUnitId !== currentActor.instanceId) return null;
     return { row: currentActor.position.row, col: currentActor.position.col };
-  }, [currentActor, isPlayerTurn, isBattleEnded]);
+  }, [currentActor, isPlayerTurn, isBattleEnded, selectedUnitId]);
 
   const moveStepForHook = useCallback(
     (to: GridPos) => {
@@ -450,8 +457,14 @@ export const S7D_Battle: React.FC = () => {
   // 派生：当前可达格 / 可攻击目标
   //   规则 v2：水晶不可主动攻击，attackableCrystals 始终为空
   // ==========================================================================
+  // ==========================================================================
+  // 计算 reachableKeys / attackableEnemyIds
+  //   2026-05-11 改：仅当玩家"点选了行动棋子"时才高亮，否则不渲染绿格/可攻击红框/路径
+  // ==========================================================================
   const { reachableKeys, attackableEnemyIds, attackableCrystals } = useMemo(() => {
-    if (!battleState || !currentActor || !isPlayerTurn || isBattleEnded) {
+    const isActorSelected =
+      !!currentActor && selectedUnitId === currentActor.instanceId;
+    if (!battleState || !currentActor || !isPlayerTurn || isBattleEnded || !isActorSelected) {
       return {
         reachableKeys: new Set<string>(),
         attackableEnemyIds: new Set<string>(),
@@ -469,7 +482,7 @@ export const S7D_Battle: React.FC = () => {
       attackableEnemyIds: enemyIds,
       attackableCrystals: [] as Crystal[],
     };
-  }, [battleState, currentActor, isPlayerTurn, isBattleEnded, getReachableCells]);
+  }, [battleState, currentActor, isPlayerTurn, isBattleEnded, getReachableCells, selectedUnitId]);
 
   // ==========================================================================
   // 胜负监听
@@ -1022,7 +1035,10 @@ export const S7D_Battle: React.FC = () => {
   );
 
   // ==========================================================================
-  // 点击棋子（选中用于展示详情；若点的是当前行动者则无副作用）
+  // 点击棋子
+  //   2026-05-11 改：只有"我方当前行动棋子"才能被点选锁定看板；
+  //   其余棋子点击不响应（看板靠 hover 预览）。
+  //   攻击/绝技瞄准等场景的点击照常生效。
   // ==========================================================================
   const handleUnitClick = useCallback(
     (unit: BattleCardInstance) => {
@@ -1037,10 +1053,18 @@ export const S7D_Battle: React.FC = () => {
         performAttackUnit(currentActor.instanceId, unit.instanceId);
         return;
       }
-      // 否则只是选中展示
-      setSelectedUnitId((prev) => (prev === unit.instanceId ? null : unit.instanceId));
+      // 仅允许点选"我方当前行动棋子"以锁定看板；再次点击则取消选中
+      if (
+        isPlayerTurn &&
+        !aiBusy &&
+        currentActor &&
+        unit.instanceId === currentActor.instanceId
+      ) {
+        setSelectedUnitId((prev) => (prev === unit.instanceId ? null : unit.instanceId));
+      }
+      // 其他棋子（敌方 / 我方非行动棋子 / AI 行动期间）一律忽略点击
     },
-    [isPlayerTurn, aiBusy, currentActor, attackableEnemyIds, performAttackUnit, ultimateTargeting, handleAimConfirmUnit],
+    [isPlayerTurn, aiBusy, currentActor, attackableEnemyIds, performAttackUnit, ultimateTargeting, handleAimConfirmUnit, isDraggingNow],
   );
 
   // ==========================================================================

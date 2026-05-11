@@ -2732,19 +2732,21 @@
 .rulePanel {
   width: 720px;
   max-width: 92vw;
-  max-height: 86vh;
+  max-height: 96vh;
   overflow-y: auto;
-  padding: 28px 36px;
+  padding: 22px 36px 26px;
   background: linear-gradient(180deg, rgba(35, 22, 8, 0.98), rgba(15, 8, 4, 0.99));
   border: 2px solid rgba(200, 161, 75, 0.6);
   border-radius: 14px;
   color: #e8d9b5;
   font-family: 'KaiTi', '楷体', serif;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7);
+  /* 防止 wheel 事件冒泡到地图层（hook 在 document 级监听） */
+  overscroll-behavior: contain;
 }
 .ruleH {
-  margin: 0 0 14px 0;
-  font-size: 28px;
+  margin: 0 0 10px 0;
+  font-size: 24px;
   font-weight: 700;
   letter-spacing: 4px;
   text-align: center;
@@ -2752,29 +2754,29 @@
   text-shadow: 0 0 14px rgba(200, 161, 75, 0.5);
 }
 .ruleSec {
-  margin: 14px 0;
-  padding: 10px 14px;
+  margin: 8px 0;
+  padding: 8px 14px;
   background: rgba(50, 35, 15, 0.4);
   border-left: 3px solid rgba(200, 161, 75, 0.7);
   border-radius: 4px;
 }
 .ruleSec h4 {
-  margin: 0 0 6px 0;
-  font-size: 17px;
+  margin: 0 0 4px 0;
+  font-size: 16px;
   color: #ffd98a;
   letter-spacing: 1px;
 }
 .ruleSec p {
   margin: 0;
-  font-size: 14.5px;
-  line-height: 1.7;
+  font-size: 14px;
+  line-height: 1.55;
   color: #d8c899;
   white-space: pre-wrap;
 }
 .ruleClose {
   display: block;
-  margin: 18px auto 0;
-  padding: 8px 32px;
+  margin: 12px auto 0;
+  padding: 7px 30px;
   background: linear-gradient(180deg, rgba(120, 85, 35, 0.95), rgba(70, 50, 20, 1));
   border: 1px solid rgba(220, 180, 100, 0.7);
   border-radius: 6px;

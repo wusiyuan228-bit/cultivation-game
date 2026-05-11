@@ -346,16 +346,34 @@ export function useBattleMapInteractions(
   // 改为监听 document：只要鼠标位置落在 mapArea 矩形内就处理。
   // 这样即便 unitInfoPanel / logPanel 等浮层是 mapArea 的兄弟节点（事件冒泡不经过 mapArea），
   // 滚轮缩放也能正常生效。
+  // 例外：若事件源在某个"自身可滚动"的浮层内（例如战斗规则弹窗、战报列表等），
+  //   优先把滚轮还给它，不参与地图缩放。
   useEffect(() => {
     if (!enabled) return;
     const handler = (e: WheelEvent) => {
       const el = mapAreaRef.current;
       if (!el) return;
+
+      // 1) 让"自身可滚动 + 内容确实溢出"的祖先浮层先吃掉滚轮（弹窗/侧边栏/战报等）
+      let node: HTMLElement | null = e.target as HTMLElement | null;
+      while (node && node !== document.body) {
+        if (node === el) break; // 已进入 mapArea 子树，不再向外查
+        if (node.scrollHeight > node.clientHeight) {
+          const cs = getComputedStyle(node);
+          const oy = cs.overflowY;
+          if (oy === 'auto' || oy === 'scroll' || oy === 'overlay') {
+            return; // 让该容器原生滚动
+          }
+        }
+        node = node.parentElement;
+      }
+
+      // 2) 鼠标矩形命中判定
       const rect = el.getBoundingClientRect();
       const mx = e.clientX - rect.left;
       const my = e.clientY - rect.top;
-      // 鼠标不在 mapArea 视觉区域内 → 让浏览器正常处理（页面滚动等）
       if (mx < 0 || my < 0 || mx > rect.width || my > rect.height) return;
+
       e.preventDefault();
       e.stopPropagation();
       const t = transformRef.current;
