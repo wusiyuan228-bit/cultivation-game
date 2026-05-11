@@ -43,6 +43,11 @@ import {
   isSpawnA,
   isSpawnB,
 } from '@/data/s7dMap';
+import {
+  shouldTryRevive,
+  DEFAULT_REVIVE_PAYLOAD,
+  reviveLogText,
+} from '@/systems/battle/reviveCheck';
 
 // ==========================================================================
 // 战报辅助
@@ -128,7 +133,26 @@ export function damageUnit(
   });
 
   if (u.hp <= 0) {
-    killUnit(state, instanceId, reason, attackerId);
+    // ─────────────────────────────────────────────────────
+    // 2026-05-11 复活机制：天罡元婴·重塑（徐立国）
+    //   死亡瞬间检查：若该单位拥有 sr_xuliguo.ultimate 且未触发过 →
+    //   原地复活（atk=3, mnd=2, hp=3，本场限 1 次）
+    // ─────────────────────────────────────────────────────
+    if (shouldTryRevive(u as any)) {
+      const p = DEFAULT_REVIVE_PAYLOAD;
+      u.hp = p.hp;
+      u.atk = p.atk;
+      u.mnd = p.mnd;
+      u.hpMax = Math.max(u.hpMax, p.hp);
+      u.ultimateUsed = true;
+      appendLog(state, 'skill_cast', reviveLogText(u.name, p, 'auto'), {
+        actorId: instanceId,
+        targetIds: [instanceId],
+        payload: { skillId: 'sr_xuliguo.ultimate', revive: true, ...p },
+      });
+    } else {
+      killUnit(state, instanceId, reason, attackerId);
+    }
   }
   return actual;
 }

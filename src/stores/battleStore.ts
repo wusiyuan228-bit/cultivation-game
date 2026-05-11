@@ -25,6 +25,11 @@ import {
   resolveStatSet,
 } from '@/systems/battle/e2Helpers';
 import { applyDamagePipeline } from '@/systems/battle/damagePipeline';
+import {
+  shouldTryRevive,
+  DEFAULT_REVIVE_PAYLOAD,
+  reviveLogText,
+} from '@/systems/battle/reviveCheck';
 
 /* ============ 技能名 → 注册id 反查 ============ */
 function resolveSkillRegId(name: string | undefined | null): string | undefined {
@@ -738,7 +743,31 @@ export const useBattleStore = create<BattleState>((set, get) => ({
     let killed = false;
     // 击杀判定：考虑重定向情况
     const finalVictim = redirectedUnit ?? newDefender;
-    const finalVictimHp = redirectedNewHp ?? newHp;
+    let finalVictimHp = redirectedNewHp ?? newHp;
+
+    // ─────────────────────────────────────────────────────
+    // 2026-05-11 复活机制：天罡元婴·重塑（徐立国）
+    //   死亡瞬间检查：若该单位拥有 sr_xuliguo.ultimate 且未触发过 →
+    //   原地复活（atk=3, mnd=2, hp=3，总数 8，本场限 1 次）
+    // ─────────────────────────────────────────────────────
+    if (finalVictimHp <= 0 && shouldTryRevive(finalVictim as any)) {
+      const p = DEFAULT_REVIVE_PAYLOAD;
+      const vIdx = updated.findIndex((x) => x.id === finalVictim.id);
+      if (vIdx >= 0) {
+        updated[vIdx] = {
+          ...updated[vIdx],
+          hp: p.hp,
+          atk: p.atk,
+          mnd: p.mnd,
+          maxHp: Math.max(updated[vIdx].maxHp ?? p.hp, p.hp),
+          dead: false,
+          ultimateUsed: true,
+        };
+        finalVictimHp = p.hp;
+        addEngineLog(reviveLogText(finalVictim.name, p, 'auto'), 'skill');
+      }
+    }
+
     if (finalVictimHp <= 0) {
       killed = true;
       if (finalVictim.isEnemy) {
