@@ -1739,11 +1739,6 @@ export const S7D_Battle: React.FC = () => {
         onConfirm={(payload) => confirmReviveAllocate(payload)}
         onCancel={() => cancelReviveAllocate()}
       />
-      <ReviveAllocateModal
-        pending={pendingRevive}
-        onConfirm={(payload) => confirmReviveAllocate(payload)}
-        onCancel={() => cancelReviveAllocate()}
-      />
     </div>
   );
 };

@@ -543,6 +543,8 @@ export function castSkillAndApply(
 // ============================================================================
 
 function findAdjacentEnemies(state: S7DBattleState, casterId: string): string[] {
+  const caster = state.units[casterId];
+  if (!caster || !caster.position) return [];
   const { row, col } = caster.position;
   const result: string[] = [];
   for (const u of Object.values(state.units)) {
@@ -553,4 +555,116 @@ function findAdjacentEnemies(state: S7DBattleState, casterId: string): string[] 
     if (dist === 1) result.push(u.instanceId);
   }
   return result;
+}
+
+// ============================================================================
+// 续命丹真实复活（2026-05-11 D1 · 沐佩玲专用）
+// 选第一名已退场的同阵营非主角卡，hp=3 重新入场
+// ============================================================================
+function revivableViaXumingDan(
+  state: S7DBattleState,
+  caster: BattleCardInstance,
+): void {
+  // 候选：同阵营 + zone='grave' + 非主角
+  const dead = Object.values(state.units).find(
+    (u) =>
+      u.faction === caster.faction &&
+      u.zone === 'grave' &&
+      !u.isHero &&
+      u.instanceId !== caster.instanceId,
+  );
+  if (!dead) {
+    appendLog(
+      state,
+      'skill_cast',
+      `💊 灵药·续命丹未生效——无可复活的友军（已退场的非主角卡）`,
+      { actorId: caster.instanceId },
+    );
+    return;
+  }
+
+  // 选槽位：优先 slot1，再 slot2
+  const owner = state.players.find((p) => p.ownerId === dead.ownerId);
+  if (!owner) return;
+
+  let targetSlot: 1 | 2 | null = null;
+  if (!owner.fieldSlots.slot1) targetSlot = 1;
+  else if (!owner.fieldSlots.slot2) targetSlot = 2;
+
+  if (!targetSlot) {
+    appendLog(
+      state,
+      'skill_cast',
+      `💊 灵药·续命丹未生效——${dead.name} 的归属玩家战斗区已满`,
+      { actorId: caster.instanceId, targetIds: [dead.instanceId] },
+    );
+    return;
+  }
+
+  // 找一个空 position（caster 附近 → 否则任意空格）
+  let landingPos: { row: number; col: number } | null = null;
+  if (caster.position) {
+    const dirs = [
+      [0, 1], [0, -1], [1, 0], [-1, 0],
+      [1, 1], [1, -1], [-1, 1], [-1, -1],
+    ];
+    for (const [dr, dc] of dirs) {
+      const r = caster.position.row + dr;
+      const c = caster.position.col + dc;
+      const occupied = Object.values(state.units).some(
+        (u) => u.zone === 'field' && u.position?.row === r && u.position?.col === c,
+      );
+      if (!occupied && r >= 0 && c >= 0) {
+        landingPos = { row: r, col: c };
+        break;
+      }
+    }
+  }
+  if (!landingPos) {
+    // 全图扫描找空格
+    outer: for (let r = 0; r < 10; r += 1) {
+      for (let c = 0; c < 10; c += 1) {
+        const occupied = Object.values(state.units).some(
+          (u) => u.zone === 'field' && u.position?.row === r && u.position?.col === c,
+        );
+        if (!occupied) {
+          landingPos = { row: r, col: c };
+          break outer;
+        }
+      }
+    }
+  }
+  if (!landingPos) {
+    appendLog(
+      state,
+      'skill_cast',
+      `💊 灵药·续命丹未生效——棋盘已无空位`,
+      { actorId: caster.instanceId, targetIds: [dead.instanceId] },
+    );
+    return;
+  }
+
+  // 真实复活
+  dead.hp = 3;
+  dead.hpMax = Math.max(dead.hpMax, 3);
+  dead.zone = 'field';
+  dead.position = landingPos;
+  dead.fieldSlot = targetSlot;
+  dead.deadAtBigRound = undefined;
+  dead.deadAtSubRound = undefined;
+  dead.hasActedThisTurn = true; // 本轮不能立刻行动
+  dead.attackedThisTurn = false;
+  if (targetSlot === 1) owner.fieldSlots.slot1 = dead.instanceId;
+  else owner.fieldSlots.slot2 = dead.instanceId;
+
+  appendLog(
+    state,
+    'skill_cast',
+    `💊 灵药·续命丹：${dead.name} 以 3 点气血重新入场 (${landingPos.row},${landingPos.col})`,
+    {
+      actorId: caster.instanceId,
+      targetIds: [dead.instanceId],
+      payload: { skillId: 'sr_mupeiling.ultimate', revive: true },
+    },
+  );
 }
