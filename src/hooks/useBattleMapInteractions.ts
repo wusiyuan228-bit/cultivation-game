@@ -342,29 +342,35 @@ export function useBattleMapInteractions(
     [],
   );
 
-  // ---------------- 滚轮缩放（non-passive） ----------------
+  // ---------------- 滚轮缩放（document 级监听，避免被兄弟浮层遮挡） ----------------
+  // 改为监听 document：只要鼠标位置落在 mapArea 矩形内就处理。
+  // 这样即便 unitInfoPanel / logPanel 等浮层是 mapArea 的兄弟节点（事件冒泡不经过 mapArea），
+  // 滚轮缩放也能正常生效。
   useEffect(() => {
     if (!enabled) return;
-    const el = mapAreaRef.current;
-    if (!el) return;
     const handler = (e: WheelEvent) => {
+      const el = mapAreaRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+      // 鼠标不在 mapArea 视觉区域内 → 让浏览器正常处理（页面滚动等）
+      if (mx < 0 || my < 0 || mx > rect.width || my > rect.height) return;
       e.preventDefault();
       e.stopPropagation();
       const t = transformRef.current;
       const delta = e.deltaY > 0 ? -0.1 : 0.1;
       const nextScale = Math.min(maxScale, Math.max(minScale, t.scale + delta));
       if (nextScale === t.scale) return;
-      const rect = el.getBoundingClientRect();
-      const mx = e.clientX - rect.left;
-      const my = e.clientY - rect.top;
+      // 以鼠标位置为锚点缩放
       const ratio = nextScale / t.scale;
       t.x = mx - (mx - t.x) * ratio;
       t.y = my - (my - t.y) * ratio;
       t.scale = nextScale;
       applyTransform();
     };
-    el.addEventListener('wheel', handler, { passive: false });
-    return () => el.removeEventListener('wheel', handler);
+    document.addEventListener('wheel', handler, { passive: false });
+    return () => document.removeEventListener('wheel', handler);
   }, [applyTransform, enabled, maxScale, minScale]);
 
   // ---------------- 路径预览（hoverPath） ----------------

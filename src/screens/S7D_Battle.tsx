@@ -1330,24 +1330,16 @@ export const S7D_Battle: React.FC = () => {
             </div>
           )}
 
-          {/* 单位技能信息面板（左下角；优先展示 selected，hover 仅在非选中时显示）—— S7B 同款
-              展示规则（2026-05-10 调整）：
-              - 我方"行动中棋子"（即 currentActor 且 ownerId='player'）：常驻显示
-              - 我方/敌方非行动棋子：仅在 hover 时显示
-              - 选中（点选）我方棋子：等同行动棋子展示
-              - 敌方未发动过的技能：desc 显示「效果未知」遮蔽
-              - 已揭示的敌方技能或全部我方技能：完整 desc */}
+          {/* 单位技能信息面板（左下角）—— 显示规则（2026-05-11 重构）：
+              - 默认不显示：仅靠"行动棋子"自身的高亮表示，不常驻看板
+              - 玩家"点选"任意棋子（含行动棋子）：看板常驻
+              - 取消点选：看板消失
+              - 任意棋子被 hover：临时显示该棋子信息（hover 优先级最高）
+              - 敌方未发动过的技能：desc 显示「效果未知」遮蔽 */}
           {(() => {
-            // 决定当前持续显示的"行动棋子"：玩家方 + 当前轮到 + 还在场上
-            const isPlayerActorTurn = !!currentActor && currentActor.faction === battleState.playerFaction;
-            const persistentId = isPlayerActorTurn && currentActor ? currentActor.instanceId : null;
-            // 选中（点选）：仅当点选的就是"我方行动棋子"时才视为常驻
-            // 其余被点选的棋子（敌方棋子、我方非行动棋子）一律不常驻，只靠 hover 显示
-            const selectedIsCurrentActor =
-              !!selectedUnitId && !!currentActor && selectedUnitId === currentActor.instanceId
-              && currentActor.faction === battleState.playerFaction;
-            const persistentOrSelectedId = persistentId ?? (selectedIsCurrentActor ? selectedUnitId : null);
-            // 优先 hover，其次 行动/选中棋子
+            // 选中即常驻（不再自动把"行动棋子"作为常驻）
+            const persistentOrSelectedId = selectedUnitId;
+            // 优先 hover，其次 选中棋子
             const previewId = hoveredUnitId ?? persistentOrSelectedId;
             const previewUnit = previewId ? battleState.units[previewId] : null;
             if (!previewUnit) return null;
