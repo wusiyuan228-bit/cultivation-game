@@ -1150,16 +1150,29 @@ export const S7B_Battle: React.FC = () => {
         if (attackerUnit && defenderUnit) {
           setDiceAttacker(attackerUnit);
           setDiceDefender(defenderUnit);
+          const attackerId = fengshuPick.attackerId;
           battle.attack(
-            fengshuPick.attackerId,
+            attackerId,
             fengshuPick.defenderId,
             fengshuPick.skillMod,
             { row: hit.row, col: hit.col },
           );
+          // 🔒 2026-05-11 普攻后立即结束行动轮
           const updatedUnits = useS7BBattleStore.getState().units.map((u) =>
-            u.id === fengshuPick.attackerId ? { ...u, attackedThisTurn: true } : u,
+            u.id === attackerId ? { ...u, attackedThisTurn: true } : u,
           );
           useS7BBattleStore.setState({ units: updatedUnits });
+          if (!useS7BBattleStore.getState().battleOver) {
+            battle.endUnitTurn(attackerId);
+            setPendingSkillMod(0);
+            setTimeout(() => {
+              const us = useS7BBattleStore.getState().units;
+              const aliveAll = us.filter((u) => !u.dead);
+              if (aliveAll.length > 0 && aliveAll.every((u) => u.acted)) {
+                battle.advanceAction();
+              }
+            }, 100);
+          }
           setShowDice(true);
         }
         setFengshuPick(null);
@@ -1274,12 +1287,27 @@ export const S7B_Battle: React.FC = () => {
 
           setDiceAttacker(selectedUnit);
           setDiceDefender(target);
-          battle.attack(selectedUnit.id, target.id, pendingSkillMod);
-          // 标记攻击过（普通攻击后不再能走/再攻击，关闭骰子弹窗即结束回合）
+          const attackerId = selectedUnit.id;
+          battle.attack(attackerId, target.id, pendingSkillMod);
+          // 🔒 2026-05-11 普攻后立即结束行动轮（不再依赖关骰子弹窗）
+          //   先标记 attackedThisTurn=true 以维持 UI 即时反馈，再 endUnitTurn 推进 actor。
+          //   endUnitTurn 已加幂等保护，即便 screen 关骰子时再调一次也是 no-op。
           const updatedUnits = useS7BBattleStore.getState().units.map((u) =>
-            u.id === selectedUnit.id ? { ...u, attackedThisTurn: true } : u,
+            u.id === attackerId ? { ...u, attackedThisTurn: true } : u,
           );
           useS7BBattleStore.setState({ units: updatedUnits });
+          if (!useS7BBattleStore.getState().battleOver) {
+            battle.endUnitTurn(attackerId);
+            setPendingSkillMod(0);
+            // 立即检查回合切换（与 handleCloseDice 内逻辑一致）
+            setTimeout(() => {
+              const us = useS7BBattleStore.getState().units;
+              const aliveAll = us.filter((u) => !u.dead);
+              if (aliveAll.length > 0 && aliveAll.every((u) => u.acted)) {
+                battle.advanceAction();
+              }
+            }, 100);
+          }
           setShowDice(true);
           return;
         }
@@ -1498,23 +1526,11 @@ export const S7B_Battle: React.FC = () => {
   }, [selectedUnit, battle]);
 
   // 关闭骰子弹窗
+  //   2026-05-11 简化：普攻已在攻击点立即 endUnitTurn + advanceAction，
+  //   关骰子只是关 UI，无副作用。
   const handleCloseDice = useCallback(() => {
     setShowDice(false);
-    // 普通攻击后自动结束该角色的回合
-    if (selectedUnit) {
-      battle.endUnitTurn(selectedUnit.id);
-      setPendingSkillMod(0);
-
-      setTimeout(() => {
-        const updatedUnits = useS7BBattleStore.getState().units;
-        const playerAlive = updatedUnits.filter((u) => !u.isEnemy && !u.dead);
-        const allActed = playerAlive.every((u) => u.acted);
-        if (allActed) {
-          battle.advanceAction();
-        }
-      }, 100);
-    }
-  }, [selectedUnit, battle]);
+  }, []);
 
   // 结算确认
   const handleContinue = useCallback(() => {
@@ -2312,16 +2328,29 @@ export const S7B_Battle: React.FC = () => {
                       if (a && d) {
                         setDiceAttacker(a);
                         setDiceDefender(d);
+                        const attackerId = fengshuPick.attackerId;
                         battle.attack(
-                          fengshuPick.attackerId,
+                          attackerId,
                           fengshuPick.defenderId,
                           fengshuPick.skillMod,
                           null,
                         );
+                        // 🔒 2026-05-11 普攻后立即结束行动轮
                         const updatedUnits = useS7BBattleStore.getState().units.map((u) =>
-                          u.id === fengshuPick.attackerId ? { ...u, attackedThisTurn: true } : u,
+                          u.id === attackerId ? { ...u, attackedThisTurn: true } : u,
                         );
                         useS7BBattleStore.setState({ units: updatedUnits });
+                        if (!useS7BBattleStore.getState().battleOver) {
+                          battle.endUnitTurn(attackerId);
+                          setPendingSkillMod(0);
+                          setTimeout(() => {
+                            const us = useS7BBattleStore.getState().units;
+                            const aliveAll = us.filter((u) => !u.dead);
+                            if (aliveAll.length > 0 && aliveAll.every((u) => u.acted)) {
+                              battle.advanceAction();
+                            }
+                          }, 100);
+                        }
                         setShowDice(true);
                       }
                       setFengshuPick(null);

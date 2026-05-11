@@ -895,7 +895,7 @@ export const useBattleStore = create<BattleState>((set, get) => ({
     return skill.precheck(mapUnitToEngine(u), adapter);
   },
 
-  performUltimate: (unitId, targetIds, _pickedPosition) => {
+  performUltimate: (unitId, targetIds, pickedPosition) => {
     const { units } = get();
     const uIdx = units.findIndex((x) => x.id === unitId);
     if (uIdx < 0) return false;
@@ -1119,6 +1119,38 @@ export const useBattleStore = create<BattleState>((set, get) => ({
     get().addLog(`⚡ ${u.name} 释放绝技【${u.ultimate.name}】！`, 'skill');
     for (const l of engineLogs) get().addLog(l.text, l.type);
 
+    // ═══ P2 · C 类位置选绝技：小战祖树盾 —— 在 pickedPosition 位置放置永久障碍 ═══
+    if (regId === 'bsr_xiaozhan.ult' && pickedPosition) {
+      const { row: pr, col: pc } = pickedPosition;
+      const curMap = get().map;
+      const inBoard = curMap[pr]?.[pc] !== undefined;
+      const notObstacle = inBoard && curMap[pr][pc].terrain !== 'obstacle';
+      const unoccupied = !get().units.some(
+        (x) => !x.dead && x.row === pr && x.col === pc,
+      );
+      if (inBoard && notObstacle && unoccupied) {
+        const newMap = curMap.map((row) => row.map((cell) => ({ ...cell })));
+        newMap[pr][pc].terrain = 'obstacle';
+        set({ map: newMap });
+        get().addLog(`🌳 萧族护盾：在 (${pr},${pc}) 布置了永久阻碍物`, 'skill');
+        // 障碍物落地后，立刻刷新当前选中单位的可移动/可攻击范围
+        const sel = get().selectedUnitId;
+        if (sel) {
+          setTimeout(() => {
+            useBattleStore.getState().calcMoveRange(sel);
+            useBattleStore.getState().calcAttackRange(sel);
+          }, 0);
+        }
+      } else {
+        const reason = !inBoard ? '越界' : !notObstacle ? '该位置已是障碍' : '该位置已被角色占据';
+        get().addLog(`🌳 萧族护盾落点不合法（${reason}）`, 'system');
+        console.warn('[xiaozhan_zushudun] 落点失败', { pr, pc, inBoard, notObstacle, unoccupied });
+      }
+    } else if (regId === 'bsr_xiaozhan.ult' && !pickedPosition) {
+      get().addLog(`⚠️ 萧族护盾未指定落点，请先点击棋盘空格子选择位置`, 'system');
+      console.warn('[xiaozhan_zushudun S7] performUltimate 未传 pickedPosition');
+    }
+
     // 输出击杀日志，让玩家看到结果
     if (killedByCast > 0) {
       for (let i = 0; i < units.length; i++) {
@@ -1284,6 +1316,7 @@ export const useBattleStore = create<BattleState>((set, get) => ({
     const idx = units.findIndex((u) => u.id === unitId);
     if (idx === -1) return;
     const u = units[idx];
+    if (u.acted) return; // 🔒 幂等：已结束的回合不重复处理（普攻后 store 自动调 + screen 关骰子也会调）
     const terrain = map[u.row]?.[u.col]?.terrain ?? null;
     const updated = [...units];
     updated[idx] = {

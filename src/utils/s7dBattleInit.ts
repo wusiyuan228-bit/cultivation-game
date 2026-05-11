@@ -485,5 +485,6 @@ export async function initS7DBattle(params: S7DBattleInitParams): Promise<S7DBat
     endReason: null,
     log,
     logSeq: 2,
+    dynamicObstacles: [],
   };
 }

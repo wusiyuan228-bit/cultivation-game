@@ -1821,9 +1821,27 @@ export const useS7BBattleStore = create<BattleState>((set, get) => ({
         newMap[pr][pc].terrain = 'obstacle';
         set({ map: newMap });
         get().addLog(`🌳 萧族护盾：在 (${pr},${pc}) 布置了永久阻碍物`, 'skill');
+        // 障碍物落地后，立刻刷新当前选中单位的可移动/可攻击范围（防止旧 range 路过新障碍）
+        const sel = get().selectedUnitId;
+        if (sel) {
+          setTimeout(() => {
+            useS7BBattleStore.getState().calcMoveRange(sel);
+            useS7BBattleStore.getState().calcAttackRange(sel);
+          }, 0);
+        }
       } else {
-        get().addLog(`🌳 萧族护盾落点不合法（障碍/占据/越界）`, 'system');
+        const reason = !inBoard
+          ? '越界'
+          : !notObstacle
+          ? '该位置已是障碍'
+          : '该位置已被角色占据';
+        get().addLog(`🌳 萧族护盾落点不合法（${reason}）`, 'system');
+        console.warn('[xiaozhan_zushudun] 落点失败', { pr, pc, inBoard, notObstacle, unoccupied });
       }
+    } else if (regId === 'bsr_xiaozhan.ult' && !pickedPosition) {
+      // 防御：若 screen 未传 pickedPosition 即触发了 performUltimate，给玩家明确提示
+      get().addLog(`⚠️ 萧族护盾未指定落点，请先点击棋盘空格子选择位置`, 'system');
+      console.warn('[xiaozhan_zushudun] performUltimate 未传 pickedPosition');
     }
 
     // ═══ 阶段 C · 觉醒扫描（绝技结算后，可能触发击杀/气血变化类觉醒） ═══
@@ -1951,6 +1969,7 @@ export const useS7BBattleStore = create<BattleState>((set, get) => ({
     const idx = units.findIndex((u) => u.id === unitId);
     if (idx === -1) return;
     const u = units[idx];
+    if (u.acted) return; // 🔒 幂等：已结束的回合不重复处理（避免普攻 store + screen 关骰子双调用）
     const terrain = map[u.row]?.[u.col]?.terrain ?? null;
     const updated = [...units];
     updated[idx] = {

@@ -131,7 +131,7 @@ interface S7DBattleStore {
   /** 使用战技（Batch 2B：接入 SkillRegistry 真实执行） */
   useBattleSkill: (casterId: string, targetIds: string[]) => boolean;
   /** 使用绝技（Batch 2B：接入 SkillRegistry 真实执行） */
-  useUltimate: (casterId: string, targetIds: string[]) => boolean;
+  useUltimate: (casterId: string, targetIds: string[], pickedPosition?: { row: number; col: number }) => boolean;
   /** 执行一次完整带 hook 的攻击（Batch 2C） */
   performAttack: (
     attackerId: string,
@@ -610,13 +610,30 @@ export const useS7DBattleStore = create<S7DBattleStore>((set, get) => ({
     return ret ?? false;
   },
 
-  useUltimate: (casterId, targetIds) => {
-    const ret = mutate(get, set, (s) => castSkillAndApply(s, casterId, 'ultimate', targetIds));
+  useUltimate: (casterId, targetIds, pickedPosition) => {
+    const ret = mutate(get, set, (s) => castSkillAndApply(s, casterId, 'ultimate', targetIds, pickedPosition));
     return ret ?? false;
   },
 
   performAttack: (attackerId, defenderId, fengshuOverride) => {
     const ret = mutate(get, set, (s) => attackAndApply(s, attackerId, defenderId, fengshuOverride));
+
+    // 🔒 2026-05-11 普攻 = 该角色行动轮立即结束（与 S7B/S7 保持一致）
+    //   原 screen 端用 postAttackPlayerEndRef + 关骰子才结束的设计，玩家在骰子弹窗未关时
+    //   仍可继续移动/攻击，违反规则；改为 store 层强制推进 actor。
+    //   引擎里 attackAndApply 已标 attackedThisTurn=true，这里再 advanceActor 切换队首。
+    if (ret) {
+      const cur = get().state;
+      if (cur && !cur.winner) {
+        // advanceActor 内部会派发 turn_end / turn_start，与手动结束等价
+        try {
+          get().advanceActor();
+        } catch (e) {
+          console.error('[s7dBattleStore.performAttack] advanceActor threw:', e);
+        }
+      }
+    }
+
     return ret ?? null;
   },
 

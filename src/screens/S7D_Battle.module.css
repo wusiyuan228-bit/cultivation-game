@@ -979,6 +979,23 @@
   animation: reachPulse 1.4s ease-in-out infinite;
 }
 
+/* 动态障碍（萧战祖树盾等位置型绝技放置的永久阻挡格） */
+.dynamicObstacle {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  background: radial-gradient(circle, rgba(80, 50, 20, 0.6) 0%, rgba(40, 25, 10, 0.85) 80%);
+  border: 2px solid rgba(180, 130, 70, 0.9);
+  box-sizing: border-box;
+  border-radius: 4px;
+  pointer-events: none;
+  text-shadow: 0 0 6px rgba(0, 0, 0, 0.8);
+  z-index: 5;
+}
+
 @keyframes reachPulse {
   0%, 100% { opacity: 0.7; }
   50%      { opacity: 1; }
@@ -2726,57 +2743,62 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 999;
+  z-index: 6000; /* 提升至 6000，确保高于绝技/复活/补位等弹窗（4000~5000），永远可见 */
   backdrop-filter: blur(2px);
 }
 .rulePanel {
-  width: 720px;
-  max-width: 92vw;
-  max-height: 96vh;
+  /* 横屏游戏：拉宽，缩短上下边距，让规则一屏可见 */
+  width: min(960px, 94vw);
+  max-width: 94vw;
+  min-height: 60vh;
+  max-height: 88vh;
   overflow-y: auto;
-  padding: 22px 36px 26px;
+  padding: 28px 44px 24px;
   background: linear-gradient(180deg, rgba(35, 22, 8, 0.98), rgba(15, 8, 4, 0.99));
   border: 2px solid rgba(200, 161, 75, 0.6);
   border-radius: 14px;
   color: #e8d9b5;
-  font-family: 'KaiTi', '楷体', serif;
+  font-family: 'KaiTi', '楷体', 'STKaiti', 'SimSun', serif;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7);
   /* 防止 wheel 事件冒泡到地图层（hook 在 document 级监听） */
   overscroll-behavior: contain;
 }
 .ruleH {
-  margin: 0 0 10px 0;
-  font-size: 24px;
+  margin: 0 0 18px 0;
+  font-size: 28px;
   font-weight: 700;
   letter-spacing: 4px;
   text-align: center;
   color: #f0d9a3;
   text-shadow: 0 0 14px rgba(200, 161, 75, 0.5);
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(200, 161, 75, 0.3);
 }
 .ruleSec {
-  margin: 8px 0;
-  padding: 8px 14px;
+  margin: 14px 0;
+  padding: 12px 16px;
   background: rgba(50, 35, 15, 0.4);
   border-left: 3px solid rgba(200, 161, 75, 0.7);
   border-radius: 4px;
 }
 .ruleSec h4 {
-  margin: 0 0 4px 0;
-  font-size: 16px;
+  margin: 0 0 8px 0;
+  font-size: 18px;
   color: #ffd98a;
   letter-spacing: 1px;
+  font-weight: 700;
 }
 .ruleSec p {
   margin: 0;
-  font-size: 14px;
-  line-height: 1.55;
-  color: #d8c899;
+  font-size: 16px;
+  line-height: 1.75;
+  color: #e2d2a4;
   white-space: pre-wrap;
 }
 .ruleClose {
   display: block;
-  margin: 12px auto 0;
-  padding: 7px 30px;
+  margin: 22px auto 0;
+  padding: 10px 36px;
   background: linear-gradient(180deg, rgba(120, 85, 35, 0.95), rgba(70, 50, 20, 1));
   border: 1px solid rgba(220, 180, 100, 0.7);
   border-radius: 6px;

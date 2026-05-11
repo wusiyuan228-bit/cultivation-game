@@ -31,6 +31,7 @@ import type {
 } from '@/types/s7dBattle';
 import { appendLog, killUnit as killS7DUnit } from './s7dBattleActions';
 import { attackAndApply } from './s7dAttackEngine';
+import { isWalkable as isS7DCellWalkable, S7D_MAP_ROWS, S7D_MAP_COLS } from '@/data/s7dMap';
 
 // =============================================================================
 // 映射层：S7D BattleCardInstance ↔ 引擎 EngineUnit
@@ -407,6 +408,7 @@ export function castSkillAndApply(
   casterId: string,
   skillType: 'battle' | 'ultimate',
   targetIds: string[],
+  pickedPosition?: { row: number; col: number },
 ): boolean {
   const caster = state.units[casterId];
   if (!caster) return false;
@@ -454,6 +456,35 @@ export function castSkillAndApply(
   // ==========================================================================
   if (regId === 'sr_mupeiling.ultimate' && skillType === 'ultimate') {
     revivableViaXumingDan(state, caster);
+  }
+
+  // ==========================================================================
+  // 萧战祖树盾专用路由（2026-05-11 实装至 S7D）
+  // 在 pickedPosition 落点放置永久障碍（任何人不可通过）
+  // ==========================================================================
+  if (regId === 'bsr_xiaozhan.ult' && skillType === 'ultimate' && pickedPosition) {
+    const { row: pr, col: pc } = pickedPosition;
+    // 合法性校验
+    const inBoard =
+      pr >= 0 && pr < S7D_MAP_ROWS && pc >= 0 && pc < S7D_MAP_COLS;
+    const cellWalkable = inBoard && isS7DCellWalkable(pr, pc);
+    const occupied = Object.values(state.units).some(
+      (x) => x.zone === 'field' && x.hp > 0 && x.position?.row === pr && x.position?.col === pc,
+    );
+    const dynKey = `${pr},${pc}`;
+    const alreadyObs = (state.dynamicObstacles ?? []).includes(dynKey);
+    if (inBoard && cellWalkable && !occupied && !alreadyObs) {
+      const list = state.dynamicObstacles ?? [];
+      state.dynamicObstacles = [...list, dynKey];
+      appendLog(state, 'skill_cast', `🌳 萧族护盾：在 (${pr},${pc}) 布置了永久阻碍物`, {
+        actorId: casterId,
+        payload: { row: pr, col: pc },
+      });
+    } else {
+      appendLog(state, 'skill_cast', `🌳 萧族护盾落点不合法（越界/河道/被占据/已布置），技能无效化`, {
+        actorId: casterId,
+      });
+    }
   }
 
   // ==========================================================================

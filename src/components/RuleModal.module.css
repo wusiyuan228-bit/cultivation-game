@@ -10,8 +10,11 @@
 
 .scroll {
   position: relative;
-  width: 720px;
-  max-height: 780px;
+  /* 横屏游戏：拉宽 */
+  width: min(960px, 94vw);
+  max-width: 94vw;
+  max-height: 88vh;
+  min-height: 60vh;
   display: flex;
   flex-direction: column;
 }
@@ -78,9 +81,10 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
-  max-height: 520px;
+  flex: 1;
   overflow-y: auto;
   padding-right: 8px;
+  overscroll-behavior: contain;
 }
 
 .section {

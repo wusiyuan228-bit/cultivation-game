@@ -149,6 +149,7 @@ export function getReachableCells(
   if (maxSteps === 0) return [];
 
   const occ = buildOccupancyMap(state);
+  const dynObs = new Set(state.dynamicObstacles ?? []);
   const visited = new Map<string, number>(); // "r,c" → 步数
   const start = u.position;
   const startKey = `${start.row},${start.col}`;
@@ -175,6 +176,8 @@ export function getReachableCells(
       const key = `${nr},${nc}`;
       if (nr < 0 || nr >= S7D_MAP_ROWS || nc < 0 || nc >= S7D_MAP_COLS) continue;
       if (!isWalkable(nr, nc)) continue;
+      // 动态障碍（萧战祖树盾等）一律不可通过
+      if (dynObs.has(key)) continue;
       // 任意存活单位都阻挡通行（含友方/敌方），与 S7A/S7B/S7C 一致
       // 自己所在的起点格因 visited 已记录，不会走回头路
       const occupantId = occ.get(key);

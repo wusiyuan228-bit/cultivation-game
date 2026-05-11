@@ -262,6 +262,13 @@ export const S7D_Battle: React.FC = () => {
   useEffect(() => {
     fengshuPickRef.current = fengshuPick;
   }, [fengshuPick]);
+  /**
+   * 玩家普攻完成标志：
+   *   - 玩家发起普通攻击后置 true；
+   *   - 骰子弹窗关闭时若该标志为 true，则自动结束当前行动轮（普攻=立即结束）。
+   *   - AI 的攻击有自己的回合调度，不走这条路径。
+   */
+  const postAttackPlayerEndRef = useRef(false);
   /** AI 是否正在行动（阻止玩家操作） */
   const [aiBusy, setAiBusy] = useState(false);
   /** 是否显示胜负面板 */
@@ -531,6 +538,11 @@ export const S7D_Battle: React.FC = () => {
       const outcome = performAttackFn(attackerId, defenderId);
       if (!outcome) return;
 
+      // 玩家方普攻 → 标记"骰子关闭后自动结束行动轮"
+      if (isPlayerSide) {
+        postAttackPlayerEndRef.current = true;
+      }
+
       // 骰子弹窗（用引擎返回的真实骰）
       setDiceModal({
         attacker,
@@ -566,6 +578,7 @@ export const S7D_Battle: React.FC = () => {
       const outcome = performAttackFn(pick.attackerId, pick.defenderId, override);
       setFengshuPick(null);
       if (!outcome) return;
+      // 🔒 2026-05-11 风属斗技完成后的攻击同样在 store 层自动结束行动轮。
       setDiceModal({
         attacker,
         defender,
@@ -976,9 +989,16 @@ export const S7D_Battle: React.FC = () => {
             logFn('⚠️ 请选择空格子');
             return;
           }
-          // 施放位置型绝技（Batch 2A：仅写战报）
+          // 排除：河道/越界/已有动态障碍
+          const dynKey = `${row},${col}`;
+          const alreadyObs = (battleState!.dynamicObstacles ?? []).includes(dynKey);
+          if (alreadyObs) {
+            logFn('⚠️ 该格已有障碍物');
+            return;
+          }
+          // 施放位置型绝技 —— 把 row/col 透传给 store/skillEngine
           if (ultimateTargeting.skillType === 'ultimate') {
-            useUltimateFn(ultimateTargeting.casterId, []);
+            useUltimateFn(ultimateTargeting.casterId, [], { row, col });
           } else {
             useBattleSkillFn(ultimateTargeting.casterId, []);
           }
@@ -1239,6 +1259,7 @@ export const S7D_Battle: React.FC = () => {
                     fengshuPick.candidates.some(
                       (p) => p.row === cell.row && p.col === cell.col,
                     );
+                  const isDynObs = (battleState.dynamicObstacles ?? []).includes(key);
                   return (
                     <MapCell
                       key={key}
@@ -1247,6 +1268,7 @@ export const S7D_Battle: React.FC = () => {
                       isReachable={isReach}
                       isAttackableCrystal={isAttackableCrystalCell}
                       isFengShuPick={isFengShu}
+                      isDynamicObstacle={isDynObs}
                       onHoverIn={() => setHoverCell({ row: cell.row, col: cell.col })}
                       onHoverOut={() => setHoverCell(null)}
                       onClick={() => handleCellClick(cell.row, cell.col)}
@@ -1596,7 +1618,18 @@ export const S7D_Battle: React.FC = () => {
             defender={diceModal.defender}
             crystalFaction={diceModal.crystalFaction}
             result={diceModal.result}
-            onClose={() => setDiceModal(null)}
+            onClose={() => {
+              setDiceModal(null);
+              // 玩家普攻后强制结束行动轮（普攻 = 立即终止行动）
+              if (postAttackPlayerEndRef.current) {
+                postAttackPlayerEndRef.current = false;
+                setTimeout(() => {
+                  if (!useS7DBattleStore.getState().state?.winner) {
+                    endCurrentActorTurn();
+                  }
+                }, 0);
+              }
+            }}
           />
         )}
       </AnimatePresence>
@@ -2096,6 +2129,7 @@ interface MapCellProps {
   isReachable: boolean;
   isAttackableCrystal: boolean;
   isFengShuPick?: boolean;
+  isDynamicObstacle?: boolean;
   onHoverIn: () => void;
   onHoverOut: () => void;
   onClick: () => void;
@@ -2122,6 +2156,7 @@ const MapCell: React.FC<MapCellProps> = ({
   isReachable,
   isAttackableCrystal,
   isFengShuPick = false,
+  isDynamicObstacle = false,
   onHoverIn,
   onHoverOut,
   onClick,
@@ -2169,6 +2204,12 @@ const MapCell: React.FC<MapCellProps> = ({
       )}
       {textLabel && !isSpawnACell && !isSpawnBCell && !isCrystalACell && !isCrystalBCell && (
         <span className={styles.cellTextLabel}>{textLabel}</span>
+      )}
+      {/* 动态障碍（萧战祖树盾等）：永久阻挡 */}
+      {isDynamicObstacle && (
+        <div className={styles.dynamicObstacle} title="永久障碍（不可通过）">
+          🌳
+        </div>
       )}
       {showReachable && <div className={styles.reachOverlay} />}
       {isAttackableCrystal && <div className={styles.attackCrystalOverlay}>⚔</div>}

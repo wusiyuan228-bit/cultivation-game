@@ -819,12 +819,25 @@ export const S7_Battle: React.FC = () => {
         if (target && battle.attackRange.some((r) => r.row === row && r.col === col)) {
           setDiceAttacker(selectedUnit);
           setDiceDefender(target);
-          battle.attack(selectedUnit.id, target.id, pendingSkillMod);
-          // 标记攻击过（普通攻击后不再能走/再攻击，关闭骰子弹窗即结束回合）
+          const attackerId = selectedUnit.id;
+          battle.attack(attackerId, target.id, pendingSkillMod);
+          // 🔒 2026-05-11 普攻后立即结束行动轮（与 S7B/S7D 保持一致）
           const updatedUnits = useBattleStore.getState().units.map((u) =>
-            u.id === selectedUnit.id ? { ...u, attackedThisTurn: true } : u,
+            u.id === attackerId ? { ...u, attackedThisTurn: true } : u,
           );
           useBattleStore.setState({ units: updatedUnits });
+          if (!useBattleStore.getState().battleOver) {
+            battle.endUnitTurn(attackerId);
+            setPendingSkillMod(0);
+            // 立即检查回合切换
+            setTimeout(() => {
+              const us = useBattleStore.getState().units;
+              const playerAlive = us.filter((u) => !u.isEnemy && !u.dead);
+              if (playerAlive.length > 0 && playerAlive.every((u) => u.acted)) {
+                battle.advanceAction();
+              }
+            }, 100);
+          }
           setShowDice(true);
           return;
         }
@@ -1027,23 +1040,11 @@ export const S7_Battle: React.FC = () => {
   }, [selectedUnit, battle]);
 
   // 关闭骰子弹窗
+  //   2026-05-11 简化：普攻已在攻击点立即 endUnitTurn + advanceAction，
+  //   关骰子只是关 UI，无副作用。
   const handleCloseDice = useCallback(() => {
     setShowDice(false);
-    // 普通攻击后自动结束该角色的回合
-    if (selectedUnit) {
-      battle.endUnitTurn(selectedUnit.id);
-      setPendingSkillMod(0);
-
-      setTimeout(() => {
-        const updatedUnits = useBattleStore.getState().units;
-        const playerAlive = updatedUnits.filter((u) => !u.isEnemy && !u.dead);
-        const allActed = playerAlive.every((u) => u.acted);
-        if (allActed) {
-          battle.advanceAction();
-        }
-      }, 100);
-    }
-  }, [selectedUnit, battle]);
+  }, []);
 
   // 结算确认
   const handleContinue = useCallback(() => {

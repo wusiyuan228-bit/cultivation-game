@@ -751,12 +751,15 @@
   background: rgba(30,28,22,.96);
   border: 1.5px solid rgba(200,161,75,.55);
   border-radius: 16px;
-  padding: 36px 44px;
-  max-width: 720px;
-  width: 90%;
-  max-height: 82%;
+  padding: 24px 44px 20px;
+  /* 横屏游戏：拉宽 + 占满主区域高度，避免出现内部滚动条 */
+  width: min(1080px, 94vw);
+  max-width: 94vw;
+  min-height: 78vh;
+  max-height: 96vh;
   overflow-y: auto;
   box-shadow: 0 8px 40px rgba(0,0,0,.6), 0 0 0 1px rgba(0,0,0,.3);
+  overscroll-behavior: contain;
 }
 
 .ruleH {
