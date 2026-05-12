@@ -2328,8 +2328,8 @@ const UnitPiece: React.FC<UnitPieceProps> = ({
         {unit.awakened && <span style={{ color: '#ffd966', marginRight: 2 }}>⚡</span>}
         {unit.name}
       </div>
-      {/* 槽位（右上角） */}
-      <div className={styles.unitPieceSlot}>{unit.fieldSlot === 1 ? '一' : '二'}</div>
+      {/* 🔧 2026-05-12：移除右上角"一/二"槽号角标——视觉冗余且与卡名信息重复，
+         玩家通过棋子颜色（己方/敌方）和位置即可识别，槽号信息保留在 hover/选中详情面板中 */}
       {/* 属性条（修/境，叠在血条上方） */}
       <div className={styles.unitPieceStats}>
         <span className={`${styles.unitPieceStat} ${styles.unitPieceStatAtk}`} title="修为（骰数）">
