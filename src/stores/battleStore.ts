@@ -30,6 +30,10 @@ import {
   DEFAULT_REVIVE_PAYLOAD,
   reviveLogText,
 } from '@/systems/battle/reviveCheck';
+import {
+  dispatchTurnEndHooks,
+  type TurnStartDispatchCtx,
+} from '@/systems/battle/turnStartDispatcher';
 
 /* ============ 技能名 → 注册id 反查 ============ */
 function resolveSkillRegId(name: string | undefined | null): string | undefined {
@@ -172,6 +176,81 @@ function mapUnitToEngine(u: BattleUnit): EngineUnit {
   };
 }
 
+/**
+ * 🔧 2026-05-12 修复：S7 剿匪场景的 turn-end hook 派发
+ *
+ * 问题根因：battleStore（S7 剿匪/S5a 试炼共用）在 endUnitTurn 时从未派发
+ *           on_turn_end 钩子，导致以下 turn-end 类技能在剿匪场景全部失效：
+ *             · 薰儿·古族血脉·共鸣（行动结束相邻友军回血）
+ *             · 凤霓·残云、奥斯卡·香肠、藤化原·搜身扫描
+ *             · 雪乃·古族驱散、塔莎·封印、唐雅·岚音、火雨皓·冰玉
+ *             · 莫彩环·蓄力、牧沛玲·妙手、刘媚·清羽、药尘·冷火
+ *             · 古元·古族天火阵 aura、留眉·清羽 等
+ *
+ * 修复：
+ *   1) 提供 buildS7TurnHookCtx 让 dispatcher 能写回 store
+ *   2) endUnitTurn 末尾调用 dispatchTurnEndHooks(unitId, ctx)
+ *   3) 用 _s7TurnEndFiredThisRound 防止同回合重复触发（与 S7B 一致）
+ *   4) startNewRound 时清空集合
+ */
+let _s7TurnEndFiredThisRound = new Set<string>();
+
+function buildS7TurnHookCtx(
+  get: () => BattleState,
+  set: (partial: Partial<BattleState>) => void,
+): TurnStartDispatchCtx {
+  return {
+    snapshotAllUnits: () =>
+      get().units.filter((u) => !u.dead).map(mapUnitToEngine),
+    applyStatChange: (uid, stat, delta, opts) => {
+      const cur = get().units;
+      const i = cur.findIndex((x) => x.id === uid);
+      if (i < 0) return 0;
+      const tu = cur[i];
+      const floor = opts.floor ?? 1;
+      if (stat === 'hp') {
+        const oldHp = tu.hp;
+        let newHp = oldHp + delta;
+        if (!opts.breakCap) newHp = Math.min(newHp, tu.maxHp);
+        newHp = Math.max(0, newHp);
+        if (delta < 0 && opts.floor !== undefined) {
+          newHp = Math.max(newHp, oldHp + Math.min(0, opts.floor - oldHp));
+        }
+        const next = [...cur];
+        next[i] = { ...tu, hp: newHp, dead: newHp <= 0 ? true : tu.dead };
+        set({ units: next });
+        return newHp - oldHp;
+      }
+      if (stat === 'atk') {
+        const oldVal = tu.atk;
+        let newVal = Math.max(floor, oldVal + delta);
+        if (!opts.breakCap) newVal = Math.min(newVal, 15);
+        const next = [...cur];
+        next[i] = { ...tu, atk: newVal };
+        set({ units: next });
+        return newVal - oldVal;
+      }
+      if (stat === 'mnd') {
+        const oldVal = tu.mnd;
+        let newVal = Math.max(floor, oldVal + delta);
+        if (!opts.breakCap) newVal = Math.min(newVal, 5);
+        const next = [...cur];
+        next[i] = { ...tu, mnd: newVal };
+        set({ units: next });
+        return newVal - oldVal;
+      }
+      return 0;
+    },
+    addLog: (text, type) => get().addLog(text, type ?? 'skill'),
+    getRound: () => get().round,
+    isPlayerControlled: (uid) => {
+      const u = get().units.find((x) => x.id === uid);
+      return !!u && !u.isEnemy && !u.dead;
+    },
+    // S7 剿匪暂不支持 turn-start 选择弹窗，留空即可（dispatcher 退化为旧 hook 自动逻辑）
+  };
+}
+
 /* ============ 默认地图 4×10 ============ */
 function createDefaultMap(): MapCell[][] {
   const map: MapCell[][] = [];
@@ -297,6 +376,8 @@ export const useBattleStore = create<BattleState>((set, get) => ({
 
   initBattle: (heroUnit, partnerUnit) => {
     resetGlobalModStore();
+    // 🔧 2026-05-12：清空跨场污染的 turn-end fired 标记
+    _s7TurnEndFiredThisRound = new Set<string>();
     const map = createDefaultMap();
 
     const buildRegistrySkills = (u: {
@@ -1327,6 +1408,18 @@ export const useBattleStore = create<BattleState>((set, get) => ({
       attackedThisTurn: false,
     };
     set({ units: updated, selectedUnitId: null, phase: 'select_unit', moveRange: [], attackRange: [], skillUsedThisTurn: false });
+
+    // 🔧 2026-05-12 修复：S7 剿匪场景接入 on_turn_end hook 派发
+    // 关键：薰儿·古族血脉·共鸣 + 11 个 turn-end 类技能在剿匪场景从此生效
+    if (!_s7TurnEndFiredThisRound.has(unitId)) {
+      _s7TurnEndFiredThisRound.add(unitId);
+      const ctx = buildS7TurnHookCtx(get, set);
+      try {
+        dispatchTurnEndHooks(unitId, ctx);
+      } catch (e) {
+        console.error('[battleStore] dispatchTurnEndHooks threw:', e);
+      }
+    }
   },
 
   advanceAction: () => {
@@ -1350,6 +1443,9 @@ export const useBattleStore = create<BattleState>((set, get) => ({
       get().addLog(`⏰ 第${maxRound}回合结束！战斗结束`, 'system');
       return;
     }
+
+    // 🔧 2026-05-12：清空上回合的 turn-end fired 集合，新回合允许重新触发
+    _s7TurnEndFiredThisRound = new Set<string>();
 
     get().addLog(`── 第 ${newRound} 回合开始 ──`, 'system');
 
