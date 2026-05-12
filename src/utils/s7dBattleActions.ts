@@ -172,8 +172,14 @@ export function killUnit(
   killerId?: string,
 ): void {
   const u = state.units[instanceId];
-  if (!u) return;
-  if (u.zone === 'grave') return; // 重复调用
+  if (!u) {
+    console.warn('[s7d-killUnit] 单位不存在', instanceId);
+    return;
+  }
+  if (u.zone === 'grave') {
+    console.log('[s7d-killUnit] 已在 grave，跳过', instanceId, u.name);
+    return; // 重复调用
+  }
 
   const oldZone = u.zone;
   const oldSlot = u.fieldSlot;
@@ -183,6 +189,8 @@ export function killUnit(
   u.fieldSlot = undefined;
   u.deadAtBigRound = state.bigRound;
   u.deadAtSubRound = state.subRound;
+
+  console.log('[s7d-killUnit] 击杀', u.name, 'owner=', u.ownerId, 'oldSlot=', oldSlot, 'reason=', reason);
 
   appendLog(state, 'death', `${u.name} 阵亡（${reason}）`, {
     actorId: killerId,
@@ -203,6 +211,7 @@ export function killUnit(
       });
       if (!hasAlive) {
         player.alive = false;
+        console.log('[s7d-killUnit]', player.heroName, '全队阵亡');
       } else {
         // 发起补位请求：从手牌选 1 张补 oldSlot
         const handIds = getHandUnits(state, u.ownerId).map((h) => h.instanceId);
@@ -216,15 +225,22 @@ export function killUnit(
           state.reinforceQueue.push(task);
           // 推进 phase 到补位态，阻塞其他流程
           state.phase = 'reinforce';
+          console.log('[s7d-killUnit] 发起补位', player.heroName, 'slot=', oldSlot, 'candidates=', handIds.length);
           appendLog(
             state,
             'reinforce_request',
             `${player.heroName} 需从手牌补位（卡${oldSlot}空出）`,
             { targetIds: [u.ownerId], payload: { slot: oldSlot } },
           );
+        } else {
+          console.log('[s7d-killUnit]', player.heroName, '手牌已空，无可补位');
         }
       }
+    } else {
+      console.warn('[s7d-killUnit] 找不到 player', u.ownerId);
     }
+  } else {
+    console.log('[s7d-killUnit] 死前不在 field 或无 slot，跳过补位发起', oldZone, oldSlot);
   }
 
   // 从行动队列中移除（若本回合还未轮到）

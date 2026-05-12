@@ -234,8 +234,87 @@ function mutate<T>(
     return undefined;
   }
   const result = mutator(current);
+  // 🔧 2026-05-12 兜底：扫描所有"hp<=0 仍在 field"或"zone=grave 但 fieldSlot/position 残留"的单位
+  // 这些是某些路径漏掉 killUnit 调用导致的"半死"状态。统一回收，确保补位流程稳定触发。
+  reconcileDeadUnits(current);
   set({ state: bump(current) });
   return result;
+}
+
+/**
+ * 🔧 2026-05-12 · 死亡兜底回收器
+ *
+ * 背景：S7D 战场中存在多条修改 hp/zone 的路径（攻击引擎/技能引擎/turn-hook 玩家选择/复活/直接置 hp=0 等），
+ *      若某条路径只把 hp 降到 0 或只把 zone 设为 grave，但忘了走 `killUnit` 完整流程，
+ *      则会出现"槽位未释放、reinforceQueue 未发起、补位弹窗永远不出现"的 bug。
+ *
+ * 行为：每次 mutate 后扫描，发现两类异常单位：
+ *   类型 A: hp <= 0 但仍在 field → 强制 killUnit
+ *   类型 B: zone === 'grave' 但 fieldSlot/position 残留 → 仅清理槽位 & 发起补位（不重复 log）
+ */
+function reconcileDeadUnits(state: S7DBattleState): void {
+  const orphanA: string[] = [];
+  const orphanB: string[] = [];
+  for (const u of Object.values(state.units)) {
+    if (u.hp <= 0 && u.zone === 'field') {
+      orphanA.push(u.instanceId);
+    } else if (
+      u.zone === 'grave' &&
+      (u.fieldSlot !== undefined || u.position !== undefined)
+    ) {
+      orphanB.push(u.instanceId);
+    }
+  }
+  for (const id of orphanA) {
+    try {
+      killUnit(state, id, '死亡兜底回收');
+    } catch (e) {
+      console.error('[s7dBattleStore] reconcileDeadUnits A 失败', id, e);
+    }
+  }
+  for (const id of orphanB) {
+    const u = state.units[id];
+    if (!u) continue;
+    const oldSlot = u.fieldSlot;
+    u.fieldSlot = undefined;
+    u.position = undefined;
+    if (oldSlot) {
+      const player = state.players.find((p) => p.ownerId === u.ownerId);
+      if (player) {
+        if (oldSlot === 1 && player.fieldSlots.slot1 === id) player.fieldSlots.slot1 = undefined;
+        else if (oldSlot === 2 && player.fieldSlots.slot2 === id) player.fieldSlots.slot2 = undefined;
+        // 发起补位请求（若手牌还有可补的卡）
+        const handIds = Object.values(state.units)
+          .filter(
+            (x) =>
+              x.ownerId === u.ownerId &&
+              x.zone === 'hand' &&
+              x.hp > 0,
+          )
+          .map((x) => x.instanceId);
+        if (
+          handIds.length > 0 &&
+          !state.reinforceQueue.some(
+            (t) => t.ownerId === u.ownerId && t.slot === oldSlot,
+          )
+        ) {
+          state.reinforceQueue.push({
+            ownerId: u.ownerId,
+            slot: oldSlot,
+            candidateInstanceIds: handIds,
+            reason: `${u.name} 阵亡`,
+          });
+          state.phase = 'reinforce';
+        }
+      }
+    }
+    // 同步 actionQueue
+    for (const item of state.actionQueue) {
+      if (item.instanceId === id && !item.acted) {
+        item.skipped = true;
+      }
+    }
+  }
 }
 
 // ==========================================================================
@@ -940,9 +1019,9 @@ export const useS7DBattleStore = create<S7DBattleStore>((set, get) => ({
           u.hp = newHp;
           actualDelta = newHp - oldHp;
           if (newHp <= 0) {
-            u.zone = 'grave';
-            u.deadAtBigRound = s.bigRound;
-            u.deadAtSubRound = s.subRound;
+            // 🔧 2026-05-12：玩家 turn-start 选择致死时，必须走完整 killUnit 流程
+            // 否则 fieldSlot 不释放、reinforceQueue 不发起，玩家阵亡后看不到补位弹窗
+            killUnit(s, uid, '玩家选择技能反伤致死');
           }
         } else if (st === 'atk') {
           const oldVal = u.atk;

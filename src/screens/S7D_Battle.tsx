@@ -816,6 +816,11 @@ export const S7D_Battle: React.FC = () => {
     if (reinforceModal) return; // 已有弹窗中，等玩家处理
     const playerTask = battleState.reinforceQueue.find((t) => t.ownerId === 'player');
     if (playerTask) {
+      console.log('[S7D_Battle] 发现玩家补位任务，弹窗显示', {
+        slot: playerTask.slot,
+        candidates: playerTask.candidateInstanceIds,
+        reason: playerTask.reason,
+      });
       setReinforceModal({
         ownerId: playerTask.ownerId,
         slot: playerTask.slot,
@@ -831,15 +836,24 @@ export const S7D_Battle: React.FC = () => {
     if (!battleState) return;
     const aiTasks = battleState.reinforceQueue.filter((t) => t.ownerId !== 'player');
     if (aiTasks.length === 0) return;
+    console.log('[S7D_Battle] 处理 AI 补位任务', aiTasks.length, '个');
     for (const task of aiTasks) {
-      if (task.candidateInstanceIds.length === 0) continue;
+      if (task.candidateInstanceIds.length === 0) {
+        console.warn('[S7D_Battle] AI 补位任务无候选卡', task);
+        continue;
+      }
       const pickId = task.candidateInstanceIds[0];
       const spawns = getAvailableSpawns(task.ownerId);
-      if (spawns.length === 0) continue;
+      if (spawns.length === 0) {
+        console.warn('[S7D_Battle] AI 出生点全占用，跳过补位', task);
+        continue;
+      }
       const to = spawns[0];
       const ret = deployFromHand(task.ownerId, pickId, task.slot, to);
       if (!ret.ok) {
-        console.warn('[S7D_Battle] AI 自动补位失败:', ret.reason);
+        console.warn('[S7D_Battle] AI 自动补位失败:', ret.reason, task);
+      } else {
+        console.log('[S7D_Battle] AI 补位成功', task.ownerId, 'slot', task.slot);
       }
     }
   }, [battleState?.reinforceQueue, deployFromHand, getAvailableSpawns]);
