@@ -32,6 +32,9 @@ import type {
 import { appendLog, killUnit as killS7DUnit } from './s7dBattleActions';
 import { attackAndApply } from './s7dAttackEngine';
 import { isWalkable as isS7DCellWalkable, S7D_MAP_ROWS, S7D_MAP_COLS } from '@/data/s7dMap';
+// 🔧 2026-05-12：让主动技能 activeCast 挂出的 modifier 真正落到全局 store
+// （修复古元绝技、远古斗帝血脉、凝荣荣群体 buff 等完全哑火的 bug）
+import { globalModStore } from '@/systems/battle/e2Helpers';
 
 // =============================================================================
 // 映射层：S7D BattleCardInstance ↔ 引擎 EngineUnit
@@ -236,13 +239,18 @@ export function executeSkillViaEngine(
       return newVal - oldVal;
     },
     attachModifier: (mod) => {
+      // 🔧 2026-05-12：真正挂到全局 modifier store，让 stat_delta（古元绝技、
+      //    凝荣荣群体 buff）和 stat_set / disable_move 等下游消费者读得到。
+      globalModStore.attach(mod);
       addLog(
         'skill_cast',
         `「${mod.sourceSkillId}」挂载修饰器到 ${snapshots[mod.targetUnitId]?.name ?? '?'}`,
       );
     },
-    queryModifiers: () => [],
-    detachModifier: () => {},
+    queryModifiers: (uid, kind) => globalModStore.query(uid, kind) as any,
+    detachModifier: (mid) => {
+      globalModStore.detach(mid);
+    },
     fireHook: () => {},
     fireTurnHook: () => {},
     getRound: () => state.bigRound,

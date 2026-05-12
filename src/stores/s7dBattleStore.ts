@@ -73,6 +73,8 @@ import {
 // 🔒 2026-05-11 P5：S7D 接入全局 modifier store 以消费 disable_move
 import { globalModStore } from '@/systems/battle/e2Helpers';
 import type { Modifier } from '@/systems/battle/types';
+// 🔧 2026-05-12：S7D 对齐 S7B 的 onPositionChange 派发
+import { SkillRegistry } from '@/systems/battle/skillRegistry';
 
 // ==========================================================================
 // Store 接口
@@ -234,6 +236,78 @@ function mutate<T>(
   const result = mutator(current);
   set({ state: bump(current) });
   return result;
+}
+
+// ==========================================================================
+// 🔧 2026-05-12 · S7D 位置变化光环重算（对齐 S7B fireOnPositionChangeHooks）
+// ==========================================================================
+/**
+ * 当任一单位移动后调用，让所有带 onPositionChange 钩子的技能实时重算。
+ *
+ * 典型用例：
+ *   - 古元·古族天火阵（aura +1 atk，相邻友军），任一单位进入/离开相邻范围需立即同步
+ *   - 凝荣荣·七宝加持（同构 aura）
+ *
+ * 设计要点：
+ *   - 构造 minimal engine adapter，仅支持 modifier 查询/挂/销 + unit 只读
+ *   - 遍历所有场上单位的 registrySkills，找到声明了 onPositionChange 的技能逐个派发
+ *   - 战报通过 store.log() 追加，避免穿过 mutate 管线
+ */
+function fireS7DPositionChangeHooks(
+  state: S7DBattleState,
+  movedUnitId: string,
+  playerFaction: BattleFaction,
+  appendLogFn: (text: string) => void,
+): void {
+  const fieldUnits = Object.values(state.units).filter(
+    (u) => u.zone === 'field' && u.hp > 0,
+  );
+  if (fieldUnits.length === 0) return;
+
+  // 所有单位的只读快照（BattleUnit 引擎结构）
+  const snapshots = new Map<string, ReturnType<typeof mapInstanceToEngineUnit>>();
+  for (const u of fieldUnits) {
+    snapshots.set(u.instanceId, mapInstanceToEngineUnit(u, playerFaction));
+  }
+
+  const engine: any = {
+    getUnit: (id: string) => snapshots.get(id),
+    getAllUnits: () => Array.from(snapshots.values()),
+    getAlliesOf: (s: any) => {
+      return Array.from(snapshots.values()).filter(
+        (x) => x.owner === s.owner && x.id !== s.id && x.isAlive,
+      );
+    },
+    getEnemiesOf: (s: any) => {
+      return Array.from(snapshots.values()).filter(
+        (x) => x.owner !== s.owner && x.isAlive,
+      );
+    },
+    emit: (kind: string, _p: any, narrative: string, opts?: { severity?: string }) => {
+      if (opts?.severity === 'debug') return;
+      appendLogFn(narrative);
+    },
+    attachModifier: (mod: Modifier) => globalModStore.attach(mod),
+    detachModifier: (mid: string) => globalModStore.detach(mid),
+    queryModifiers: (uid: string, k: any) => globalModStore.query(uid, k) as any,
+    getRound: () => state.bigRound,
+    changeStat: () => 0,
+  };
+
+  for (const u of fieldUnits) {
+    const skills = u.registrySkills ?? [];
+    for (const sid of skills) {
+      const reg = SkillRegistry.get(sid);
+      if (!reg || !reg.onPositionChange) continue;
+      const selfEng = snapshots.get(u.instanceId);
+      if (!selfEng) continue;
+      try {
+        reg.onPositionChange(selfEng, movedUnitId, engine);
+      } catch (e) {
+        console.warn(`[S7D onPositionChange] skill ${sid} threw`, e);
+      }
+    }
+  }
 }
 
 // ==========================================================================
@@ -527,7 +601,22 @@ export const useS7DBattleStore = create<S7DBattleStore>((set, get) => ({
     const fresh = await initS7DBattle(params);
     // 🔧 2026-05-11 修复：清空跨场污染的 turn-hook 去重缓存
     resetS7DTurnHookCache();
+    // 🔧 2026-05-12：清空全局 modifier store，避免上一场 aura 残留
+    globalModStore.clear();
     set({ state: fresh, pendingTurnStartChoice: null, pendingRevive: null });
+    // 🔧 2026-05-12：开局扫描一次 aura（古元·古族天火阵等）——
+    //    以虚构 movedUnitId='__init__' 触发所有 onPositionChange 钩子
+    fireS7DPositionChangeHooks(fresh, '__init__', fresh.playerFaction, (txt) => {
+      fresh.log.push({
+        seq: (fresh.logSeq ?? 0) + 1,
+        bigRound: fresh.bigRound,
+        subRound: fresh.subRound,
+        kind: 'text',
+        text: txt,
+        ts: Date.now(),
+      } as any);
+      (fresh as any).logSeq = (fresh.logSeq ?? 0) + 1;
+    });
     // 🔧 2026-05-11 修复：为队首 actor 派发 turn_start，让 turn-start 类技能开局即生效
     if (fresh.currentActorIdx < fresh.actionQueue.length) {
       const firstActorId = fresh.actionQueue[fresh.currentActorIdx]?.instanceId;
@@ -613,6 +702,24 @@ export const useS7DBattleStore = create<S7DBattleStore>((set, get) => ({
 
   moveUnit: (instanceId, to, steps) => {
     const ret = mutate(get, set, (s) => moveUnit(s, instanceId, to, steps));
+    // 🔧 2026-05-12：触发位置变化 hook（古元天火阵等 aura 实时重算）
+    if (ret) {
+      const s = get().state;
+      if (s) {
+        fireS7DPositionChangeHooks(s, instanceId, s.playerFaction, (txt) => {
+          s.log.push({
+            seq: (s.logSeq ?? 0) + 1,
+            bigRound: s.bigRound,
+            subRound: s.subRound,
+            kind: 'text',
+            text: txt,
+            ts: Date.now(),
+          } as any);
+          (s as any).logSeq = (s.logSeq ?? 0) + 1;
+        });
+        set({ state: bump(s) });
+      }
+    }
     return ret ?? false;
   },
 
@@ -640,6 +747,15 @@ export const useS7DBattleStore = create<S7DBattleStore>((set, get) => ({
       u.hasMovedThisTurn = true;
       return true;
     });
+    // 🔧 2026-05-12：单步移动也要重算 aura —— 保证逐格动画每步都会刷新
+    if (ret) {
+      const s = get().state;
+      if (s) {
+        fireS7DPositionChangeHooks(s, instanceId, s.playerFaction, () => {
+          /* 单步模式不写战报，避免刷屏 */
+        });
+      }
+    }
     return ret ?? false;
   },
 

@@ -107,6 +107,60 @@ export function resolveStatSet(
 }
 
 /* ============================================================== */
+/*  stat_delta 累加（古元天火阵 / 凝荣荣七宝加持 / 古元远古斗帝等）  */
+/* ============================================================== */
+/**
+ * 2026-05-12 · 全局 bug 修复（古元 aura/绝技未生效）
+ *
+ * 背景：
+ *   - 古元·古族天火阵 (aura, +1 atk, breakCap) 在 on_turn_start/on_pos_change
+ *     时把 modifier 挂到相邻友军身上，但各场景（S7/S7B/S7D）的 diceAttack
+ *     计算都直接读 `unit.atk`，从未消费 stat_delta modifier
+ *   - 古元·远古斗帝血脉 (temporal +1 round_remain) 同样未被读取
+ *   - 凝荣荣·七宝加持、小忆仙·权倾、冰风·万里冰封 等同构 aura 全部哑火
+ *
+ * 本函数统一累加某单位身上所有生效的 stat_delta modifier：
+ *   - 只匹配指定 stat（'atk' | 'mnd' | 'hp'）
+ *   - 不处理 floor / 上限（由 caller 消费 effective 值时决定）
+ *   - 如果任一 modifier payload 标注 breakCap=true，则返回 breakCap=true
+ *
+ * @returns { delta, breakCap } delta 可为负
+ */
+export function resolveStatDelta(
+  unitId: string,
+  stat: 'atk' | 'mnd' | 'hp',
+): { delta: number; breakCap: boolean } {
+  const mods = globalModStore.query(unitId, 'stat_delta');
+  let delta = 0;
+  let breakCap = false;
+  for (const m of mods) {
+    const p = m.payload as { stat?: string; delta?: number; breakCap?: boolean };
+    if (p?.stat !== stat || typeof p.delta !== 'number') continue;
+    delta += p.delta;
+    if (p.breakCap) breakCap = true;
+  }
+  return { delta, breakCap };
+}
+
+/**
+ * 便捷快捷方式：返回某单位某 stat 的 effective 值
+ *   = baseValue + Σ stat_delta
+ *   （不含 stat_set；stat_set 请用 resolveStatSet 单独查）
+ *
+ * 若希望同时应用 stat_set（优先），推荐按如下顺序：
+ *   const set = resolveStatSet(id, 'atk'); if (set !== null) return set;
+ *   else return effectiveStat(id, base, 'atk');
+ */
+export function effectiveStat(
+  unitId: string,
+  baseValue: number,
+  stat: 'atk' | 'mnd' | 'hp',
+): number {
+  const { delta } = resolveStatDelta(unitId, stat);
+  return baseValue + delta;
+}
+
+/* ============================================================== */
 /*  攻击入口的 force_attack modifier 查询（红蝶蛊惑）              */
 /* ============================================================== */
 /**

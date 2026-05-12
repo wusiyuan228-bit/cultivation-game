@@ -37,6 +37,8 @@ import type {
 import { appendLog, killUnit as killS7DUnit } from './s7dBattleActions';
 import { isCounter } from '@/stores/battleStore';
 import { S7D_MAP_ROWS, S7D_MAP_COLS, isWalkable } from '@/data/s7dMap';
+// 🔧 2026-05-12：让 aura/群体 buff 的 stat_delta 在 S7D 决战骰数计算中生效
+import { resolveStatDelta } from '@/systems/battle/e2Helpers';
 
 // ============================================================================
 // 工具: 映射 S7D 卡 → 引擎 EngineUnit (局部 mutable 快照)
@@ -147,6 +149,14 @@ export function executeAttackWithHooks(
 
   let diceAttack = Math.max(1, snapshots[attackerId].atk.current);
   let diceDefend = Math.max(0, snapshots[defenderId].atk.current);
+
+  // 🔧 2026-05-12：叠加 stat_delta aura / 群体 buff（古元天火阵+1、
+  //    凝荣荣七宝加持+1、古元远古斗帝血脉+1等）。snapshots[].atk.current
+  //    对齐的是 store 中 u.atk（原值，不含 aura），所以这里单独累加。
+  const atkDeltaA = resolveStatDelta(attackerId, 'atk').delta;
+  const atkDeltaD = resolveStatDelta(defenderId, 'atk').delta;
+  if (atkDeltaA !== 0) diceAttack = Math.max(1, diceAttack + atkDeltaA);
+  if (atkDeltaD !== 0) diceDefend = Math.max(0, diceDefend + atkDeltaD);
 
   const calcLog: Array<{ source: string; delta: number; note: string }> = [];
   const hookFiredSet = new Set<string>();

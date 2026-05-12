@@ -23,6 +23,7 @@ import {
   globalModStore,
   resetGlobalModStore,
   resolveStatSet,
+  resolveStatDelta,
 } from '@/systems/battle/e2Helpers';
 import { applyDamagePipeline } from '@/systems/battle/damagePipeline';
 import {
@@ -147,14 +148,20 @@ function mapUnitToEngine(u: BattleUnit): EngineUnit {
   // 依赖"已损失气血"语义的技能（小舞儿八段摔·断魂、玄古天地等）会永远算出 0 伤害。
   // 同时 hp.base 也以 maxHp 为基线（最大上限），current 才是当前血量。
   const hpBox: StatBox = { base: u.maxHp, current: u.hp, initial: u.maxHp };
+  // ⚠ 2026-05-12：让 atk.current / mnd.current 包含 stat_delta aura（古元天火阵 +1 等）
+  //    过去直接 mkBox(u.atk) 导致 aura 完全哑火；现累加 globalModStore 中的 delta。
+  const atkDelta = resolveStatDelta(u.id, 'atk').delta;
+  const mndDelta = resolveStatDelta(u.id, 'mnd').delta;
+  const atkBox: StatBox = { base: u.atk, current: Math.max(1, u.atk + atkDelta), initial: u.atk };
+  const mndBox: StatBox = { base: u.mnd, current: Math.max(1, u.mnd + mndDelta), initial: u.mnd };
   return {
     id: u.id,
     name: u.name,
     type: u.type,
     owner: u.isEnemy ? 'P2' : 'P1',
     hp: hpBox,
-    atk: mkBox(u.atk),
-    mnd: mkBox(u.mnd),
+    atk: atkBox,
+    mnd: mndBox,
     hpCap: u.maxHp,
     row: u.row,
     col: u.col,
@@ -612,8 +619,13 @@ export const useBattleStore = create<BattleState>((set, get) => ({
     const attacker = units[aIdx];
     const defender = units[dIdx];
 
-    let diceAttack = attacker.atk;
-    let diceDefend = defender.atk;
+    // 2026-05-12：骰数必须包含 stat_delta aura（古元天火阵/凝荣荣七宝加持/
+    // 古元远古斗帝血脉、冰风万里 等 stat_delta modifier），之前直接读 u.atk
+    // 导致所有 aura/群体 buff 技能哑火。
+    const atkDeltaA = resolveStatDelta(attacker.id, 'atk').delta;
+    const atkDeltaD = resolveStatDelta(defender.id, 'atk').delta;
+    let diceAttack = Math.max(1, attacker.atk + atkDeltaA);
+    let diceDefend = Math.max(0, defender.atk + atkDeltaD);
 
     const attackerSet = resolveStatSet(attacker.id, 'atk');
     if (attackerSet !== null) diceAttack = attackerSet;
@@ -1371,9 +1383,13 @@ export const useBattleStore = create<BattleState>((set, get) => ({
         if (opts?.severity !== 'debug') addEngineLog(narrative, type);
       },
       changeStat: () => 0,
-      attachModifier: () => {},
-      queryModifiers: () => [],
-      detachModifier: () => {},
+      // 🔧 2026-05-12：让主动战技 activeCast 挂的 modifier 落到全局 store
+      attachModifier: (mod: any) => {
+        globalModStore.attach(mod as EngineModifier);
+        addEngineLog(`「${mod.sourceSkillId ?? '?'}」挂载修饰器`, 'system');
+      },
+      queryModifiers: (uid: string, k: any) => globalModStore.query(uid, k) as any,
+      detachModifier: (mid: string) => globalModStore.detach(mid),
       fireHook: () => {},
       fireTurnHook: () => {},
       getRound: () => get().round,

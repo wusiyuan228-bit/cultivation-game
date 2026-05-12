@@ -27,6 +27,7 @@ import {
   globalModStore,
   resetGlobalModStore,
   resolveStatSet,
+  resolveStatDelta,
 } from '@/systems/battle/e2Helpers';
 import { applyDamagePipeline } from '@/systems/battle/damagePipeline';
 import {
@@ -256,14 +257,20 @@ function mapUnitToEngine(u: BattleUnit): EngineUnit {
   // ⚠ 关键修复（2026-05-10）：hp.initial 必须 = maxHp（开场满血），否则
   // 依赖"已损失气血"语义的技能（小舞儿八段摔·断魂、玄古天地等）会永远算出 0 伤害。
   const hpBox: StatBox = { base: u.maxHp, current: u.hp, initial: u.maxHp };
+  // ⚠ 2026-05-12：让 atk.current / mnd.current 包含 stat_delta aura（古元天火阵 +1 等）
+  //    过去直接 mkBox(u.atk) 导致 aura/群体 buff 完全哑火。
+  const atkDelta = resolveStatDelta(u.id, 'atk').delta;
+  const mndDelta = resolveStatDelta(u.id, 'mnd').delta;
+  const atkBox: StatBox = { base: u.atk, current: Math.max(1, u.atk + atkDelta), initial: u.atk };
+  const mndBox: StatBox = { base: u.mnd, current: Math.max(1, u.mnd + mndDelta), initial: u.mnd };
   return {
     id: u.id,
     name: u.name,
     type: u.type,
     owner: u.isEnemy ? 'P2' : 'P1',
     hp: hpBox,
-    atk: mkBox(u.atk),
-    mnd: mkBox(u.mnd),
+    atk: atkBox,
+    mnd: mndBox,
     hpCap: u.maxHp,
     row: u.row,
     col: u.col,
@@ -954,8 +961,12 @@ export const useS7BBattleStore = create<BattleState>((set, get) => ({
     /* ============================================================== */
 
     // —— 本次攻击的可变数值（ctx 的可写副本） ——
-    let diceAttack = attacker.atk;
-    let diceDefend = defender.atk;
+    // 2026-05-12：骰数必须包含 stat_delta aura/buff（古元天火阵+1、凝荣荣七宝加持、
+    // 古元远古斗帝血脉 等）。之前直接读 attacker.atk 导致所有 aura/群体 buff 哑火。
+    const atkDeltaA = resolveStatDelta(attacker.id, 'atk').delta;
+    const atkDeltaD = resolveStatDelta(defender.id, 'atk').delta;
+    let diceAttack = Math.max(1, attacker.atk + atkDeltaA);
+    let diceDefend = Math.max(0, defender.atk + atkDeltaD);
 
     // E2：应用 stat_set modifier（镜像肠/化形镜像）——覆盖 diceAttack
     const attackerSet = resolveStatSet(attacker.id, 'atk');
@@ -1911,9 +1922,14 @@ export const useS7BBattleStore = create<BattleState>((set, get) => ({
         if (opts?.severity !== 'debug') addEngineLog(narrative, type);
       },
       changeStat: () => 0,
-      attachModifier: () => {},
-      queryModifiers: () => [],
-      detachModifier: () => {},
+      // 🔧 2026-05-12：让主动战技 activeCast 挂出的 modifier 真正生效
+      //   （古元天火阵等战技走 hook 链；但若有主动战技释放群体 buff，原 noop 会哑火）
+      attachModifier: (mod: any) => {
+        globalModStore.attach(mod as EngineModifier);
+        addEngineLog(`「${mod.sourceSkillId ?? '?'}」挂载修饰器`, 'system');
+      },
+      queryModifiers: (uid: string, k: any) => globalModStore.query(uid, k) as any,
+      detachModifier: (mid: string) => globalModStore.detach(mid),
       fireHook: () => {},
       fireTurnHook: () => {},
       getRound: () => get().round,
