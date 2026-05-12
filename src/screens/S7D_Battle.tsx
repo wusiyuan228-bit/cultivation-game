@@ -76,7 +76,18 @@ import { useBattleMapInteractions } from '@/hooks/useBattleMapInteractions';
 // 常量
 // ==========================================================================
 
-const CELL_SIZE = 70;
+/**
+ * 🔧 2026-05-12（清晰度大改造）：
+ *   原 CELL_SIZE = 70，导致 18×12 棋盘上每格头像只有 70×70 渲染像素，
+ *   远小于 S7B/S7C 的 190px → 鼠标滚轮放大后头像/地图明显糊。
+ *
+ *   提到 96px：地图从 1296×862 → 1768×1178，头像分辨率提升 37%，
+ *   配合 mapBgLayer 的 high-quality 插值，放大缩放后的清晰度向 S7B 看齐。
+ *
+ *   交互/布局不受影响——所有派生尺寸（map-width/height、棋子定位、SVG 路径）
+ *   均从 CELL_SIZE 派生；拖拽/缩放/路径预览自动适配新尺寸。
+ */
+const CELL_SIZE = 96;
 const AI_OWNER_PREFIX = 'ai_';
 /** AI 每个动作之间的动画间隔（ms） */
 const AI_STEP_DELAY = 600;

@@ -1,7 +1,7 @@
 /*
  * S7D_Battle · 坠魔谷决战地图样式
  * 复用 S7_Battle.module.css 的底图/瓦片/棋子风格，针对 S7D 做以下适配：
- *   - 18×12 地图，单元格 70px（较 S7B 的 190px 压缩，以容纳 12 单位）
+ *   - 18×12 地图，单元格 96px（2026-05-12 由 70 调整，提升头像/地图清晰度，缩放后接近 S7B 观感）
  *   - 地图底图复用 /images/map/s7_battle_map.jpg
  *   - 功能瓦片复用 tile_spring/atk_boost/mnd_boost/miasma.png
  *   - 水晶 / 出生点 暂用文字占位（待美术素材）
@@ -290,18 +290,18 @@
   position: absolute;
   left: 0;
   top: 0;
-  padding: 14px;
+.mapWrap {
+  position: relative;
   /* 宽高由 CSS 变量驱动 */
   width: calc(var(--map-width, 1296px) + 28px);
   height: calc(var(--map-height, 862px) + 28px);
-  /* 🔧 2026-05-11 修复：放大后地图模糊
-     原因：transform: scale 在 GPU 合成层上是位图拉伸（已栅格化的图层放大）
-     方案：transform-origin + will-change + 让浏览器在缩放时使用高质量插值 */
+  /* 🔧 2026-05-12 修复（清晰度）：
+     之前给 mapWrap 加 crisp-edges 是错误——它针对像素艺术做最近邻插值，
+     用在 JPG/PNG 真实图片上反而让放大后呈"马赛克像素感"。
+     改为 auto，让浏览器在 scale > 1 时使用双线性/双三次插值，效果远好于 crisp-edges。 */
   transform-origin: 0 0;
   will-change: transform;
-  /* 高质量渲染（Chrome 会在 scale > 1 时按高分辨率重栅格化） */
-  image-rendering: -webkit-optimize-contrast;
-  image-rendering: crisp-edges;
+  image-rendering: auto;
   /* 强制独立合成层但保持质量 */
   backface-visibility: hidden;
 }
@@ -317,8 +317,10 @@
   background-position: center;
   background-repeat: no-repeat;
   transform: translateZ(0);
-  /* 子图层显式声明高质量插值，缓解放大后模糊 */
-  image-rendering: -webkit-optimize-contrast;
+  /* 🔧 2026-05-12 修复（清晰度）：
+     底图本身就是 JPG，用 high-quality 让浏览器做高质量重采样；
+     绝不能再用 crisp-edges/pixelated（最近邻 → 马赛克）。 */
+  image-rendering: auto;
   image-rendering: high-quality;
   will-change: transform;
   pointer-events: none;
@@ -2232,6 +2234,15 @@
   border-radius: 6px;
   pointer-events: none;
   z-index: 1;
+  /* 🔧 2026-05-12（清晰度）：
+     S7D 单格 70px，远小于 S7B 的 190px，头像被预压缩。
+     放大缩放时让浏览器使用高质量插值，避免马赛克/模糊。
+     配合 mapWrap/mapBgLayer 的 image-rendering: auto 一起生效。 */
+  image-rendering: auto;
+  image-rendering: high-quality;
+  /* 推到独立合成层后浏览器才会按 scale 后的尺寸做高分辨率重栅格化 */
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 /* 棋子内：名字条（左上角） */
