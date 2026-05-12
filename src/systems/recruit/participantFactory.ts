@@ -126,27 +126,46 @@ export interface SectMatchRecord {
  *   - 输给玩家2v2 → -10
  *   - 输给玩家3v3 → -10（叠加）
  * - 其他 AI：维持自身 s7aKillMock 数值，不调整
+ *
+ * 【2026-05-12 修复】
+ *   1) 防御 sectRecord.opp1Id/opp2Id 误与 playerHeroId 重合（S7B 抽对手时已防，
+ *      此处再加 belt-and-suspenders 守卫，避免玩家被当成"AI 对手"加 +10）
+ *   2) 玩家的 baseKill*0.1 浮点 tiebreak 改用整数 keyspace（×100 后再加 baseKill*1）
+ *      以根除 0.6000000000000001 这种 IEEE 754 浮点误差
+ *   3) AI 的 baseKill 提前 clamp 到 [0, 6]，避免 mock/存档异常导致荒谬大分
  */
 function computeSectRankScore(
   isPlayer: boolean,
   heroId: HeroId,
   baseKill: number,
   sectRecord: SectMatchRecord | null,
+  playerHeroId?: HeroId,
 ): number {
-  if (!sectRecord) return baseKill;
+  // baseKill 兜底：剿匪击杀数据合法范围 [0,6]，对未经历剿匪 (-1) 保持透传
+  const safeBase = baseKill < 0 ? -1 : Math.max(0, Math.min(6, Math.floor(baseKill)));
+  if (!sectRecord) return safeBase;
+
+  // 防御性：若 sectRecord 中的对手 ID 错误地等于玩家自己（不应发生，但加守卫）
+  // 视为该场对手未知，跳过 ±10 调整
+  const safeOpp1 = sectRecord.opp1Id === playerHeroId ? null : sectRecord.opp1Id;
+  const safeOpp2 = sectRecord.opp2Id === playerHeroId ? null : sectRecord.opp2Id;
+
   if (isPlayer) {
+    // 玩家：胜场分作为主排序键 (×100 keyspace)，剿匪击杀作为整数 tiebreak (1~6)
+    // 例：胜2场剿匪6 → 200+6 = 206；胜1场剿匪3 → 100+3 = 103；全败剿匪6 → 0+6 = 6
+    // 不再用 baseKill*0.1 浮点（避免 0.6000000000000001 误差，同时让显示更直观）
     let s = 0;
-    if (sectRecord.match1Win) s += 50;
-    if (sectRecord.match2Win) s += 50;
-    return s + baseKill * 0.1; // 0.1*baseKill 作为细微 tiebreak，不影响主排序
+    if (sectRecord.match1Win) s += 100;
+    if (sectRecord.match2Win) s += 100;
+    return s + Math.max(0, safeBase);
   }
-  // 该 AI 是否被玩家击败过？被击败一次扣10分，叠加（基础分仍参与）
-  let s = baseKill;
-  if (sectRecord.opp1Id === heroId && sectRecord.match1Win) s -= 10;
-  if (sectRecord.opp2Id === heroId && sectRecord.match2Win) s -= 10;
-  // 反过来：如果 AI 击败了玩家（玩家失利），AI 加分
-  if (sectRecord.opp1Id === heroId && !sectRecord.match1Win) s += 10;
-  if (sectRecord.opp2Id === heroId && !sectRecord.match2Win) s += 10;
+
+  // AI：基础分 = mock 剿匪击杀，输给玩家 -10，击败玩家 +10（叠加）
+  let s = safeBase;
+  if (safeOpp1 === heroId && sectRecord.match1Win) s -= 10;
+  if (safeOpp2 === heroId && sectRecord.match2Win) s -= 10;
+  if (safeOpp1 === heroId && !sectRecord.match1Win) s += 10;
+  if (safeOpp2 === heroId && !sectRecord.match2Win) s += 10;
   return s;
 }
 
@@ -211,7 +230,7 @@ export function createParticipants(
     isPlayer: true,
     baseMnd: playerCard.mnd,
     baseAtk: playerCard.atk,
-    s7aKill: computeSectRankScore(true, playerHeroId, playerBanditKillCount, sectRecord),
+    s7aKill: computeSectRankScore(true, playerHeroId, playerBanditKillCount, sectRecord, playerHeroId),
     gems: playerEarnedGems,
     skipUsed: 0,
     skipLimit: 3,
@@ -259,7 +278,7 @@ export function createParticipants(
 
     // ---- 剿匪击杀（用于抽卡顺序排序） ----
     const baseKill = playerBanditKillCount >= 0 ? (hero.s7aKillMock ?? 5) : -1;
-    const aiKill = computeSectRankScore(false, heroId, baseKill, sectRecord);
+    const aiKill = computeSectRankScore(false, heroId, baseKill, sectRecord, playerHeroId);
 
     participants.push({
       id: heroId,

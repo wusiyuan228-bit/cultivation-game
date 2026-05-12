@@ -217,6 +217,24 @@ export const S6_Recruit: React.FC = () => {
               opp1Id: (sessionStorage.getItem('cardwar:sectOpp1Id') as any) ?? null,
               opp2Id: (sessionStorage.getItem('cardwar:sectOpp2Id') as any) ?? null,
             };
+            // 🔧 2026-05-12 诊断日志：sectRecord 异常排查
+            // 已知历史问题：opp1Id/opp2Id 可能因存档错乱与 playerHeroId 重合，
+            // 导致玩家被当成 AI 对手加 +10 → 出现"剿匪16"这种荒谬数字。
+            console.log('[S6c] sectRecord loaded:', {
+              ...sectRecord,
+              playerHeroId,
+              lastBanditKillCount,
+            });
+            if (
+              sectRecord.opp1Id === playerHeroId ||
+              sectRecord.opp2Id === playerHeroId
+            ) {
+              console.warn(
+                `[S6c] sectRecord 异常：对手 id 与玩家自身重合（` +
+                  `opp1=${sectRecord.opp1Id}, opp2=${sectRecord.opp2Id}, player=${playerHeroId}）。` +
+                  `已在 computeSectRankScore 中加守卫忽略。`,
+              );
+            }
           } catch { /* ignore */ }
         }
         const list = createParticipants(
@@ -955,19 +973,29 @@ export const S6_Recruit: React.FC = () => {
             </div>
             <div className={styles.startDivider} />
             <div className={styles.startTitle}>
-              {poolRound === 3 ? '本轮按"宗门大比战绩"排序（玩家胜场+50/场，败者按剿匪表现兜底）' :
+              {poolRound === 3 ? '本轮按"宗门大比战绩"排序（玩家胜场+100/场，败者按剿匪击杀兜底）' :
                poolRound === 2 ? '本轮按"宗门剿匪击杀数"排序（同数按心境值）' :
                '本轮根据"心境值高低"顺序依次抽卡'}
             </div>
             <div className={styles.startOrderRow}>
               {drawOrder.map((id, i) => {
                 const p = participants.find((x) => x.id === id);
+                if (!p) return null;
+                // 🔧 2026-05-12 修复：S6c 下 s7aKill 是"宗门大比综合得分"（含 ±10 调整），
+                // S6b 下才是真实剿匪击杀数。UI 标签按 poolRound 区分，避免误导。
+                const showScore = poolRound >= 2 && p.s7aKill >= 0;
+                const isS6c = poolRound === 3;
+                const labelText = isS6c ? '得分' : '剿匪';
+                // 整数化展示：避免 IEEE 754 浮点误差（如 0.6000000000000001）
+                const valueText = isS6c
+                  ? Math.round(p.s7aKill).toString()
+                  : Math.round(p.s7aKill).toString();
                 return (
                   <div key={id} className={styles.startOrderChip}>
                     <span className={styles.startOrderNum}>{i + 1}</span>
-                    <span className={styles.startOrderName}>{p?.name}</span>
-                    {poolRound >= 2 && p && p.s7aKill >= 0 && (
-                      <span className={styles.startOrderKill}>剿匪{p.s7aKill}</span>
+                    <span className={styles.startOrderName}>{p.name}</span>
+                    {showScore && (
+                      <span className={styles.startOrderKill}>{labelText}{valueText}</span>
                     )}
                   </div>
                 );
