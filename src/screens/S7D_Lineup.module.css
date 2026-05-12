@@ -18,6 +18,16 @@
   font-family: 'Noto Serif SC', serif;
 }
 
+/* 🔧 2026-05-12：嵌入弹窗模式（reinforce 补位）—— 不再 absolute 全屏，
+ * 而是适配父容器（reinforceBody），避免铺到弹窗外面看不见。 */
+.screenEmbedded {
+  position: relative;
+  inset: auto;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+}
+
 .empty {
   position: absolute;
   inset: 0;

@@ -337,10 +337,10 @@ export const S7D_Lineup: React.FC<LineupProps> = (props) => {
   }
 
   return (
-    <div className={styles.screen}>
-      <BackButton onClick={returnToMenu} />
-      <MusicToggle />
-      <CommonHud chapter={5} />
+    <div className={`${styles.screen} ${isReinforce ? styles.screenEmbedded : ''}`}>
+      {!isReinforce && <BackButton onClick={returnToMenu} />}
+      {!isReinforce && <MusicToggle />}
+      {!isReinforce && <CommonHud chapter={5} />}
 
       {/* 顶部标题 */}
       <motion.div

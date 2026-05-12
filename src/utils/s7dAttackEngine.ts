@@ -628,6 +628,31 @@ export function checkAndTriggerAwakening(state: S7DBattleState): void {
     u.awakened = true;
     u.form = 'awakened';
     u.ultimateUsed = false; // 觉醒绝技重置
+    // 控制类 debuff 清除（觉醒突破仪式感，与 S7B 对齐）
+    u.immobilized = false;
+    u.stunned = false;
+
+    // 🔧 2026-05-12 修复：UI 读取的是 unit.battleSkill / unit.ultimate / battleSkillId / ultimateId 字段
+    // 之前只更新 registrySkills，导致薰儿等觉醒后 UI 看板技能名/描述纹丝不动。
+    // 这里查询 SkillRegistry，把觉醒后的 battle/ultimate 元信息（name + desc）写到 unit 上。
+    const bSkillId = a.skills[0];
+    const ultSkillId = a.skills[1];
+    const bReg = bSkillId ? SkillRegistry.get(bSkillId) : undefined;
+    const ultReg = ultSkillId ? SkillRegistry.get(ultSkillId) : undefined;
+    if (bReg) {
+      u.battleSkill = { name: bReg.name, desc: bReg.description };
+      u.battleSkillId = bReg.name;
+    } else {
+      u.battleSkill = null;
+      u.battleSkillId = undefined;
+    }
+    if (ultReg) {
+      u.ultimate = { name: ultReg.name, desc: ultReg.description };
+      u.ultimateId = ultReg.name;
+    } else {
+      u.ultimate = null;
+      u.ultimateId = undefined;
+    }
 
     // 若 awaken 时已阵亡(如小舞献祭), 拉回战场
     // 暂按"保留在 grave"处理, 以便后续规则明朗后再调整

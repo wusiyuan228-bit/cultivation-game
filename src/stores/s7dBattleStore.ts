@@ -365,10 +365,9 @@ function dispatchS7DTurnHook(
         u.hp = newHp;
         actualDelta = newHp - oldHp;
         if (newHp <= 0) {
-          u.zone = 'grave';
-          u.deadAtBigRound = s.bigRound;
-          u.deadAtSubRound = s.subRound;
-          // 从场上移除位置占用：S7D 的实际"清场"由 killUnit 承担，这里只标 zone
+          // 🔧 2026-05-12：turn-end/turn-start hook 致死时，必须走完整 killUnit 流程
+          // 否则 reinforceQueue 不会发起，玩家阵亡后看不到补位弹窗
+          killUnit(s, uid, 'turn_hook_damage');
         }
       } else if (stat === 'atk') {
         const oldVal = u.atk;
