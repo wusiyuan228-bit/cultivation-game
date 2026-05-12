@@ -31,6 +31,7 @@ import {
   reviveLogText,
 } from '@/systems/battle/reviveCheck';
 import {
+  dispatchTurnStartHooks,
   dispatchTurnEndHooks,
   type TurnStartDispatchCtx,
 } from '@/systems/battle/turnStartDispatcher';
@@ -192,8 +193,18 @@ function mapUnitToEngine(u: BattleUnit): EngineUnit {
  *   2) endUnitTurn 末尾调用 dispatchTurnEndHooks(unitId, ctx)
  *   3) 用 _s7TurnEndFiredThisRound 防止同回合重复触发（与 S7B 一致）
  *   4) startNewRound 时清空集合
+ *
+ * 【2026-05-12 增补】on_turn_start hook 派发：
+ *   触发时机：玩家在 selectUnit 选中棋子瞬间（剿匪场景没有"轮到棋子"概念）
+ *   _s7TurnStartFiredThisRound 保证同一棋子同一回合只触发一次（避免 selectUnit/cancelSelect 反复点击重复结算）
+ *   受益技能（剿匪场景从此生效）：
+ *     · 凝荣荣·七宝琉璃·加持（玩家可选 buff 友军）
+ *     · 奥斯卡·香肠（行动开始为友军回血）
+ *     · 谷鹤·聚元炉、晓阳觉醒·焚天、雅妃·补给、黎沐婉·清羽
+ *     · 留眉·清思、田云子·命格、云雀子·窃元、亚菲·补给等共 12 个 turn-start 类
  */
 let _s7TurnEndFiredThisRound = new Set<string>();
+let _s7TurnStartFiredThisRound = new Set<string>();
 
 function buildS7TurnHookCtx(
   get: () => BattleState,
@@ -378,6 +389,7 @@ export const useBattleStore = create<BattleState>((set, get) => ({
     resetGlobalModStore();
     // 🔧 2026-05-12：清空跨场污染的 turn-end fired 标记
     _s7TurnEndFiredThisRound = new Set<string>();
+    _s7TurnStartFiredThisRound = new Set<string>();
     const map = createDefaultMap();
 
     const buildRegistrySkills = (u: {
@@ -490,6 +502,20 @@ export const useBattleStore = create<BattleState>((set, get) => ({
     const unit = units.find((u) => u.id === unitId);
     if (!unit || unit.dead || unit.acted || unit.isEnemy) return;
     set({ selectedUnitId: unitId, phase: 'skill_or_move' });
+
+    // 🔧 2026-05-12：派发 on_turn_start hook（剿匪场景）
+    // 关键：凝荣荣七宝/奥斯卡香肠等 12 个 turn-start 类技能从此生效
+    // 幂等：同一棋子同一回合只触发一次（避免反复 select/cancel 重复结算）
+    if (!_s7TurnStartFiredThisRound.has(unitId)) {
+      _s7TurnStartFiredThisRound.add(unitId);
+      const ctx = buildS7TurnHookCtx(get, set);
+      try {
+        dispatchTurnStartHooks(unitId, ctx);
+      } catch (e) {
+        console.error('[battleStore] dispatchTurnStartHooks threw:', e);
+      }
+    }
+
     get().calcMoveRange(unitId);
     get().calcAttackRange(unitId);
   },
@@ -1446,6 +1472,7 @@ export const useBattleStore = create<BattleState>((set, get) => ({
 
     // 🔧 2026-05-12：清空上回合的 turn-end fired 集合，新回合允许重新触发
     _s7TurnEndFiredThisRound = new Set<string>();
+    _s7TurnStartFiredThisRound = new Set<string>();
 
     get().addLog(`── 第 ${newRound} 回合开始 ──`, 'system');
 
