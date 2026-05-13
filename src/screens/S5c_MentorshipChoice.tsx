@@ -78,11 +78,15 @@ export const S5c_MentorshipChoice: React.FC = () => {
     //   - 设定 chapter=2 + storySubChapter='b' + segmentIndex=0，使 S4 阅读 ch2b
     //   - S4 阅读完 ch2b 后会自行清空 storySubChapter 并 navigate('/s6')
     //   - 章节进度的 markPhaseDone 推迟到 S6 结束时再调用
+    //
+    // ⚠️ 路由路径修正（2026-05-13）：S4_StoryReading 注册的 path 是 '/story' 而非 '/s4'，
+    // 之前误写成 navigate('/s4') 会被 path="*" 通配符兜底重定向到 '/' → S1_Loading → '/menu'，
+    // 表现为"读完拜师后会自动弹回主菜单"
     setChapter(2);
     setStorySubChapter('b');
     setSegmentIndex(0);
     SaveSystem.save(1);
-    navigate('/s4');
+    navigate('/story');
   }, [navigate, setChapter, setStorySubChapter, setSegmentIndex]);
 
   /** 角色属性（含拜师后的加成 + 境界提升加成） */
