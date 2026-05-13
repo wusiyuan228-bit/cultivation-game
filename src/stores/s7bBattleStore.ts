@@ -996,6 +996,24 @@ export const useS7BBattleStore = create<BattleState>((set, get) => ({
     /*  让 SkillRegistry 的 hook 可以直接修改双方数值                  */
     /* ============================================================== */
 
+    // ═══ 攻击入口·this_attack 残留兜底清理（2026-05-13 加固） ═══
+    // 防御性扫描：上一次 attack 末尾若因任何 return 路径绕过 cleanupAfterAttack
+    // 而残留 this_attack modifier，本次入口先把它们全部驱散，避免"千刃雪绝技 +4
+    // 永久残留导致每次普攻多 4 骰"的级联 bug。
+    {
+      const stale: string[] = [];
+      globalModStore.forEach((m) => {
+        if (m.duration.type === 'this_attack') stale.push(m.id);
+      });
+      if (stale.length > 0) {
+        for (const id of stale) globalModStore.detach(id);
+        console.warn(
+          `[s7bBattleStore.attack] 入口清理了 ${stale.length} 个残留 this_attack modifier:`,
+          stale,
+        );
+      }
+    }
+
     // —— 本次攻击的可变数值（ctx 的可写副本） ——
     // 2026-05-12：骰数必须包含 stat_delta aura/buff（古元天火阵+1、凝荣荣七宝加持、
     // 古元远古斗帝血脉 等）。之前直接读 attacker.atk 导致所有 aura/群体 buff 哑火。

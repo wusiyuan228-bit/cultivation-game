@@ -628,6 +628,23 @@ export const useBattleStore = create<BattleState>((set, get) => ({
     const attacker = units[aIdx];
     const defender = units[dIdx];
 
+    // ═══ 攻击入口·this_attack 残留兜底清理（2026-05-13 加固） ═══
+    // 防御性扫描：上一次 attack 末尾若因任何 return 路径绕过 cleanupAfterAttack
+    // 而残留 this_attack modifier，本次入口先把它们全部驱散。
+    {
+      const stale: string[] = [];
+      globalModStore.forEach((m) => {
+        if (m.duration.type === 'this_attack') stale.push(m.id);
+      });
+      if (stale.length > 0) {
+        for (const id of stale) globalModStore.detach(id);
+        console.warn(
+          `[battleStore.attackReal] 入口清理了 ${stale.length} 个残留 this_attack modifier:`,
+          stale,
+        );
+      }
+    }
+
     // 2026-05-12：骰数必须包含 stat_delta aura（古元天火阵/凝荣荣七宝加持/
     // 古元远古斗帝血脉、冰风万里 等 stat_delta modifier），之前直接读 u.atk
     // 导致所有 aura/群体 buff 技能哑火。

@@ -38,7 +38,7 @@ import { appendLog, killUnit as killS7DUnit } from './s7dBattleActions';
 import { isCounter } from '@/stores/battleStore';
 import { S7D_MAP_ROWS, S7D_MAP_COLS, isWalkable } from '@/data/s7dMap';
 // 🔧 2026-05-12：让 aura/群体 buff 的 stat_delta 在 S7D 决战骰数计算中生效
-import { resolveStatDelta } from '@/systems/battle/e2Helpers';
+import { resolveStatDelta, globalModStore } from '@/systems/battle/e2Helpers';
 
 // ============================================================================
 // 工具: 映射 S7D 卡 → 引擎 EngineUnit (局部 mutable 快照)
@@ -146,6 +146,23 @@ export function executeAttackWithHooks(
   const addLog = (text: string, kind: S7DLogKind = 'skill_cast') => {
     logs.push({ kind, text });
   };
+
+  // ═══ 攻击入口·this_attack 残留兜底清理（2026-05-13 加固） ═══
+  // 防御性扫描：上一次 attack 末尾若因任何 return 路径绕过 cleanupAfterAttack
+  // 而残留 this_attack modifier（如千刃雪天使圣剑 atk+4），本次入口先驱散。
+  {
+    const stale: string[] = [];
+    globalModStore.forEach((m) => {
+      if (m.duration.type === 'this_attack') stale.push(m.id);
+    });
+    if (stale.length > 0) {
+      for (const id of stale) globalModStore.detach(id);
+      console.warn(
+        `[s7dAttackEngine.attackAndApply] 入口清理了 ${stale.length} 个残留 this_attack modifier:`,
+        stale,
+      );
+    }
+  }
 
   let diceAttack = Math.max(1, snapshots[attackerId].atk.current);
   let diceDefend = Math.max(0, snapshots[defenderId].atk.current);
