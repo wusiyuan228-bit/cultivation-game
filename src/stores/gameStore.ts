@@ -71,6 +71,14 @@ interface GameState {
   heroId: HeroId | null;
   heroName: string;
   chapter: number;
+  /**
+   * 第二章子段标识（2026-05-13 拆分新增）
+   *   - ''  : 普通章节（chapter≠2 时恒为 ''）
+   *   - 'a' : 第二章前篇·山门初见（S5a 测试前阅读）
+   *   - 'b' : 第二章后篇·入门余波（拜师后、S6筹备前阅读）
+   * 仅在 chapter === 2 时有意义；其他章节恒为 ''。
+   */
+  storySubChapter: '' | 'a' | 'b';
   segmentIndex: number;
   spiritStones: number;
   ownedCardIds: string[];
@@ -170,6 +178,8 @@ interface GameState {
 
   setHero: (id: HeroId, name: string) => void;
   setChapter: (ch: number) => void;
+  /** 设置第二章子段标识（'a' / 'b' / ''）。仅在 chapter===2 时有意义。 */
+  setStorySubChapter: (sub: '' | 'a' | 'b') => void;
   setSegmentIndex: (i: number) => void;
   addSpiritStones: (n: number) => void;
   addCard: (cardId: string) => void;
@@ -268,6 +278,7 @@ const initial = {
   heroId: null as HeroId | null,
   heroName: '',
   chapter: 1,
+  storySubChapter: '' as '' | 'a' | 'b',
   segmentIndex: 0,
   spiritStones: 0,
   ownedCardIds: [] as string[],
@@ -329,7 +340,8 @@ const EMPTY_BONUS: CardBonus = { hp: 0, atk: 0, mnd: 0, realmUps: 0 };
 export const useGameStore = create<GameState>((set, get) => ({
   ...initial,
   setHero: (id, name) => set({ heroId: id, heroName: name }),
-  setChapter: (ch) => set({ chapter: ch, segmentIndex: 0, recruitDone: false }),
+  setChapter: (ch) => set({ chapter: ch, segmentIndex: 0, recruitDone: false, storySubChapter: '' }),
+  setStorySubChapter: (sub) => set({ storySubChapter: sub, segmentIndex: 0 }),
   setSegmentIndex: (i) => set({ segmentIndex: i }),
   addSpiritStones: (n) => set((s) => ({ spiritStones: Math.max(0, s.spiritStones + n) })),
   addCard: (cardId) => set((s) => ({
@@ -512,6 +524,10 @@ export const useGameStore = create<GameState>((set, get) => ({
       heroId: s.heroId,
       heroName: s.heroName,
       chapter: s.chapter,
+      storySubChapter: (() => {
+        const v = (s as any).storySubChapter;
+        return (v === 'a' || v === 'b') ? v : '';
+      })(),
       segmentIndex: s.segmentIndex,
       spiritStones: s.spiritStones,
       ownedCardIds: s.ownedCardIds,
@@ -582,6 +598,7 @@ export const SaveSystem = {
       heroId: s.heroId,
       heroName: s.heroName,
       chapter: s.chapter,
+      storySubChapter: s.storySubChapter,
       segmentIndex: s.segmentIndex,
       spiritStones: s.spiritStones,
       ownedCardIds: s.ownedCardIds,

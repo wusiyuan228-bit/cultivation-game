@@ -142,6 +142,13 @@ export interface SaveSlot {
   heroId: HeroId;
   heroName: string;
   chapter: number;
+  /**
+   * 第二章子段标识（2026-05-13 新增，可选）。
+   *   - 'a' 山门初见（测试前）
+   *   - 'b' 入门余波（拜师后）
+   *   - 不存在或 '' 视为无（兼容老存档）
+   */
+  storySubChapter?: '' | 'a' | 'b';
   segmentIndex: number;
   spiritStones: number;
   ownedCardIds: string[];

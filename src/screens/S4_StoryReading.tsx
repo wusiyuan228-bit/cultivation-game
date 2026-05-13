@@ -43,16 +43,24 @@ const CHAPTER_DISPLAY: Record<number, string> = {
   6: '命运终章',
 };
 
+/** 第二章拆分后的子章节标题（2026-05-13） */
+const CHAPTER2_SUB_DISPLAY: Record<'a' | 'b', string> = {
+  a: '山门初见',
+  b: '入门余波',
+};
+
 export const S4_StoryReading: React.FC = () => {
   const navigate = useNavigate();
   const returnToMenu = useReturnToMenu();
   const heroId = useGameStore((s) => s.heroId);
   const heroName = useGameStore((s) => s.heroName);
   const chapter = useGameStore((s) => s.chapter);
+  const storySubChapter = useGameStore((s) => s.storySubChapter);
   const segmentIndex = useGameStore((s) => s.segmentIndex);
   const spiritStones = useGameStore((s) => s.spiritStones);
   const ownedCardIds = useGameStore((s) => s.ownedCardIds);
   const setChapter = useGameStore((s) => s.setChapter);
+  const setStorySubChapter = useGameStore((s) => s.setStorySubChapter);
   const setSegmentIndex = useGameStore((s) => s.setSegmentIndex);
   const markStoryDone = useGameStore((s) => s.markStoryDone);
   const canEnterChapter = useGameStore((s) => s.canEnterChapter);
@@ -70,7 +78,7 @@ export const S4_StoryReading: React.FC = () => {
   const [detailCardId, setDetailCardId] = useState<string | null>(null);
   const [cardFlipped, setCardFlipped] = useState(false);
   const [chapterEndMsg, setChapterEndMsg] = useState<string | null>(null);
-  const { story, error, loading } = useStory(heroId, chapter);
+  const { story, error, loading } = useStory(heroId, chapter, storySubChapter);
   /** S7D 决战最终结果：ch6 会根据此字段决定渲染哪一段 endings */
   const s7dFinalResult = useGameStore((s) => s.s7dFinalResult);
 
@@ -132,9 +140,16 @@ export const S4_StoryReading: React.FC = () => {
 
   /** 章节标题：优先用 endings.title（ch6 三态），其次JSON中的 chapter_title，回退用本地映射 */
   const chapterTitle = useMemo(() => {
+    // 第二章拆分版：用子章节标题（"山门初见" / "入门余波"），主标题保持"第二章"
+    if (chapter === 2 && (storySubChapter === 'a' || storySubChapter === 'b')) {
+      const sub = activeChapterTitleSub
+        ?? CHAPTER2_SUB_DISPLAY[storySubChapter]
+        ?? CHAPTER_DISPLAY[2];
+      return `第二章·${sub}`;
+    }
     const sub = activeChapterTitleSub ?? CHAPTER_DISPLAY[chapter] ?? '';
     return `第${chapter === 1 ? '一' : chapter === 2 ? '二' : chapter === 3 ? '三' : chapter === 4 ? '四' : chapter === 5 ? '五' : '六'}章·${sub}`;
-  }, [activeChapterTitleSub, chapter]);
+  }, [activeChapterTitleSub, chapter, storySubChapter]);
 
   const goNext = useCallback(() => {
     if (!story || !activeSegments) return;
@@ -154,8 +169,19 @@ export const S4_StoryReading: React.FC = () => {
         return;
       }
 
-      // ★ 第二章剧情读完 → 进入入门测试（S5a 战斗考核）
+      // ★ 第二章拆分版（2026-05-13）：
+      //   - ch2a（山门初见，测试前阅读）读完 → 进入入门测试 S5a
+      //   - ch2b（入门余波，拜师后阅读）读完 → 进入筹备界面 S6
+      //   - 旧 ch2（兼容老存档，subChapter=''）读完 → 仍走 S5a
       if (chapter === 2) {
+        if (storySubChapter === 'b') {
+          // 后篇阅读完 → 清空子章节标识，进入筹备
+          setStorySubChapter('');
+          SaveSystem.save(1);
+          navigate('/s6');
+          return;
+        }
+        // 前篇阅读完（或无子章节标识的旧版） → 进入入门测试
         navigate('/s5a');
         return;
       }
@@ -182,6 +208,10 @@ export const S4_StoryReading: React.FC = () => {
       const nextCh = chapter + 1;
       if (canEnterChapter(nextCh)) {
         setChapter(nextCh);
+        // 第一章读完进入第二章 → 自动定位到前篇（ch2a · 山门初见）
+        if (nextCh === 2) {
+          setStorySubChapter('a');
+        }
         setSegmentIndex(0);
         setPageKey((k) => k + 1);
         setChapterEndMsg(null);
@@ -193,7 +223,7 @@ export const S4_StoryReading: React.FC = () => {
         );
       }
     }
-  }, [story, activeSegments, segmentIndex, setSegmentIndex, chapter, setChapter, navigate, markStoryDone, canEnterChapter]);
+  }, [story, activeSegments, segmentIndex, setSegmentIndex, chapter, storySubChapter, setChapter, setStorySubChapter, navigate, markStoryDone, canEnterChapter]);
 
   const goPrev = useCallback(() => {
     if (segmentIndex > 0) {
@@ -221,6 +251,15 @@ export const S4_StoryReading: React.FC = () => {
   useEffect(() => {
     if (!heroId) navigate('/select');
   }, [heroId, navigate]);
+
+  // 2026-05-13：第二章拆分兼容守卫
+  // 老存档或外部入口（如 storyDone 后 setChapter(2)）若 storySubChapter 为空，自动定位到前篇 'a'。
+  // 拜师后已主动设置 'b'，不会被这里覆盖。
+  useEffect(() => {
+    if (chapter === 2 && storySubChapter === '') {
+      setStorySubChapter('a');
+    }
+  }, [chapter, storySubChapter, setStorySubChapter]);
 
   if (!heroId) return null;
 

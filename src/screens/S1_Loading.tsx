@@ -48,7 +48,7 @@ export const S1_Loading: React.FC = () => {
       updateTotal();
     });
 
-    // 阶段2：预加载6角色 × ch1+ch2 = 12个JSON
+    // 阶段2：预加载6角色 × {ch1, ch2a, ch2b} = 18个JSON
     preloadEarlyChapters((p) => {
       storyProgress = p;
       updateTotal();

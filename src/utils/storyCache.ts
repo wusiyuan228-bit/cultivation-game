@@ -1,12 +1,20 @@
 /**
  * 剧情JSON缓存管理器
- * - S1阶段预加载ch1-2（所有6角色，12个文件）
+ * - S1阶段预加载ch1-2（所有6角色 × {1, 2a, 2b} = 18个文件）
  * - 选角后预加载ch3-6（所选角色，4个文件）
  * - fetch后缓存在内存中，后续读取零网络请求
  * - 带3次重试机制应对Vite中文路径不稳定
+ *
+ * 2026-05-13：第二章拆分为 ch2a / ch2b
+ *   - ch2a：山门初见（S5a 测试前阅读）
+ *   - ch2b：入门余波（拜师后、S6筹备前阅读）
+ *   - 旧 ch2 文件保留作为兼容/备份
  */
 import type { StoryData, HeroId } from '@/types/game';
 import { asset } from '@/utils/assetPath';
+
+/** 章节键：number 表示主章节（兼容旧逻辑），string 用于子章节如 '2a' / '2b' */
+export type ChapterKey = number | string;
 
 /** 所有角色ID */
 const ALL_HEROES: HeroId[] = [
@@ -27,11 +35,11 @@ const HERO_NAME: Record<HeroId, string> = {
 const cache = new Map<string, StoryData>();
 const loading = new Map<string, Promise<StoryData | null>>();
 
-function cacheKey(heroId: HeroId, chapter: number): string {
+function cacheKey(heroId: HeroId, chapter: ChapterKey): string {
   return `${heroId}_ch${chapter}`;
 }
 
-function buildUrl(heroId: HeroId, chapter: number): string {
+function buildUrl(heroId: HeroId, chapter: ChapterKey): string {
   const name = HERO_NAME[heroId] ?? heroId;
   return encodeURI(asset(`config/story/story_ch${chapter}_${name}.json`));
 }
@@ -51,7 +59,7 @@ async function fetchWithRetry(url: string, retries = 3): Promise<Response> {
 }
 
 /** 加载单章剧情（带缓存+重试） */
-export function fetchStory(heroId: HeroId, chapter: number): Promise<StoryData | null> {
+export function fetchStory(heroId: HeroId, chapter: ChapterKey): Promise<StoryData | null> {
   const key = cacheKey(heroId, chapter);
   if (cache.has(key)) return Promise.resolve(cache.get(key)!);
   if (loading.has(key)) return loading.get(key)!;
@@ -74,25 +82,30 @@ export function fetchStory(heroId: HeroId, chapter: number): Promise<StoryData |
 }
 
 /** 同步获取已缓存的剧情 */
-export function getCachedStory(heroId: HeroId, chapter: number): StoryData | null {
+export function getCachedStory(heroId: HeroId, chapter: ChapterKey): StoryData | null {
   return cache.get(cacheKey(heroId, chapter)) ?? null;
 }
 
 /** 检查某章是否已缓存 */
-export function isStoryCached(heroId: HeroId, chapter: number): boolean {
+export function isStoryCached(heroId: HeroId, chapter: ChapterKey): boolean {
   return cache.has(cacheKey(heroId, chapter));
 }
 
 /**
- * 预加载ch1-2（所有6角色 × 2章 = 12个文件）
+ * 预加载ch1 + ch2a + ch2b（所有6角色 × 3章 = 18个文件）
  * 在S1 Loading阶段调用，确保进入S4时剧情已就绪
+ *
+ * 2026-05-13：原 ch2 拆分为 ch2a/ch2b 后，预加载策略调整为加载这两个新文件。
+ * 旧 ch2 文件保留在磁盘上但不再预加载（可作为兼容老存档的兜底）。
+ *
  * @param onProgress 进度回调(0~1)
  */
 export function preloadEarlyChapters(onProgress?: (p: number) => void): Promise<void> {
-  const tasks: Array<{ heroId: HeroId; ch: number }> = [];
+  const tasks: Array<{ heroId: HeroId; ch: ChapterKey }> = [];
   for (const heroId of ALL_HEROES) {
     tasks.push({ heroId, ch: 1 });
-    tasks.push({ heroId, ch: 2 });
+    tasks.push({ heroId, ch: '2a' });
+    tasks.push({ heroId, ch: '2b' });
   }
   const total = tasks.length;
   let done = 0;

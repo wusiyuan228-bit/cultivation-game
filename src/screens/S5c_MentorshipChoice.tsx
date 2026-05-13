@@ -34,6 +34,10 @@ export const S5c_MentorshipChoice: React.FC = () => {
   const cardBonuses = useGameStore((s) => s.cardBonuses);
   const addSpiritStones = useGameStore((s) => s.addSpiritStones);
   const setMentorship = useGameStore((s) => s.setMentorship);
+  // 2026-05-13：拜师确认后插入"第二章后篇·入门余波"剧情阅读
+  const setChapter = useGameStore((s) => s.setChapter);
+  const setStorySubChapter = useGameStore((s) => s.setStorySubChapter);
+  const setSegmentIndex = useGameStore((s) => s.setSegmentIndex);
 
   const hero = heroId ? getHeroById(heroId) : null;
 
@@ -70,11 +74,16 @@ export const S5c_MentorshipChoice: React.FC = () => {
   }, [selected, confirmed, setMentorship, addSpiritStones]);
 
   const handleAdvance = useCallback(() => {
-    // 拜师完成 → 进入筹备阶段（S6）
-    // 注：章节进度的 markPhaseDone 推迟到 S6 结束时再调用
+    // 2026-05-13 流程调整：拜师完成 →（先读"第二章后篇·入门余波"）→ 筹备阶段（S6）
+    //   - 设定 chapter=2 + storySubChapter='b' + segmentIndex=0，使 S4 阅读 ch2b
+    //   - S4 阅读完 ch2b 后会自行清空 storySubChapter 并 navigate('/s6')
+    //   - 章节进度的 markPhaseDone 推迟到 S6 结束时再调用
+    setChapter(2);
+    setStorySubChapter('b');
+    setSegmentIndex(0);
     SaveSystem.save(1);
-    navigate('/s6');
-  }, [navigate]);
+    navigate('/s4');
+  }, [navigate, setChapter, setStorySubChapter, setSegmentIndex]);
 
   /** 角色属性（含拜师后的加成 + 境界提升加成） */
   const mainBonus = heroId ? (cardBonuses[heroId] ?? { hp: 0, atk: 0, mnd: 0, realmUps: 0 }) : { hp: 0, atk: 0, mnd: 0, realmUps: 0 };
