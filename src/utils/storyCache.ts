@@ -44,18 +44,33 @@ function buildUrl(heroId: HeroId, chapter: ChapterKey): string {
   return encodeURI(asset(`config/story/story_ch${chapter}_${name}.json`));
 }
 
-/** 带重试的fetch */
-async function fetchWithRetry(url: string, retries = 3): Promise<Response> {
+/** 带重试的fetch
+ * 2026-05-13 加固：3 次 → 5 次重试，指数退避（200ms, 400ms, 800ms, 1600ms, 3200ms ≈ 6s）。
+ * 弱网/移动端 GitHub Pages CDN 偶发 404/超时时多兜两次。
+ * 任一次返回 ok 立即返回；非 ok 也走重试路径。
+ */
+async function fetchWithRetry(url: string, retries = 5): Promise<Response> {
+  let lastErr: unknown = null;
   for (let i = 0; i < retries; i++) {
     try {
-      const r = await fetch(url);
+      const r = await fetch(url, { cache: 'no-cache' });
       if (r.ok) return r;
-      if (i < retries - 1) await new Promise((r) => setTimeout(r, 200 * (i + 1)));
-    } catch {
-      if (i < retries - 1) await new Promise((r) => setTimeout(r, 200 * (i + 1)));
+      lastErr = new Error(`HTTP ${r.status} ${r.statusText}`);
+    } catch (e) {
+      lastErr = e;
+    }
+    if (i < retries - 1) {
+      await new Promise((res) => setTimeout(res, 200 * Math.pow(2, i)));
     }
   }
-  throw new Error(`Failed after ${retries} retries: ${url}`);
+  throw lastErr ?? new Error(`Failed after ${retries} retries: ${url}`);
+}
+
+/** 清除某文件的缓存（用于失败后的重试） */
+export function clearStoryCache(heroId: HeroId, chapter: ChapterKey): void {
+  const key = cacheKey(heroId, chapter);
+  cache.delete(key);
+  loading.delete(key);
 }
 
 /** 加载单章剧情（带缓存+重试） */

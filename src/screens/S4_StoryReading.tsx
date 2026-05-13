@@ -78,7 +78,7 @@ export const S4_StoryReading: React.FC = () => {
   const [detailCardId, setDetailCardId] = useState<string | null>(null);
   const [cardFlipped, setCardFlipped] = useState(false);
   const [chapterEndMsg, setChapterEndMsg] = useState<string | null>(null);
-  const { story, error, loading } = useStory(heroId, chapter, storySubChapter);
+  const { story, error, loading, reload } = useStory(heroId, chapter, storySubChapter);
   /** S7D 决战最终结果：ch6 会根据此字段决定渲染哪一段 endings */
   const s7dFinalResult = useGameStore((s) => s.s7dFinalResult);
 
@@ -283,6 +283,28 @@ export const S4_StoryReading: React.FC = () => {
             <div className={styles.statusMsg}>
               <div className={styles.errorText}>加载失败</div>
               <div className={styles.errorDetail}>{error}</div>
+              <button
+                onClick={reload}
+                style={{
+                  marginTop: 24,
+                  padding: '10px 28px',
+                  background: 'linear-gradient(180deg, #d4b170 0%, #a8895a 100%)',
+                  border: '1px solid #6e5a3a',
+                  borderRadius: 6,
+                  color: '#2d1f10',
+                  fontFamily: 'inherit',
+                  fontSize: 16,
+                  fontWeight: 700,
+                  letterSpacing: 2,
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
+                }}
+              >
+                重新加载
+              </button>
+              <div style={{ marginTop: 14, fontSize: 12, color: '#8a7148' }}>
+                若多次重试仍失败，请检查网络连接，或退出重新进入。
+              </div>
             </div>
           ) : chapterEndMsg ? (
             <div className={styles.chapterEndBox}>

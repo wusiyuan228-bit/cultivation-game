@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import type { Hero, StoryData, HeroId } from '@/types/game';
 import { HEROES_DATA } from '@/data/heroesData';
-import { fetchStory, getCachedStory, type ChapterKey } from '@/utils/storyCache';
+import { fetchStory, getCachedStory, clearStoryCache, type ChapterKey } from '@/utils/storyCache';
 
 /** React Hook：加载6主角（内联数据，无网络请求） */
 export function useHeroes() {
@@ -46,6 +46,15 @@ export function useStory(
   });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  // 2026-05-13：reload 计数器 —— 调用 reload() 后递增，触发 useEffect 重新执行
+  const [reloadTick, setReloadTick] = useState(0);
+
+  /** 手动重试：清缓存 + 重新 fetch */
+  const reload = useCallback(() => {
+    if (!heroId) return;
+    clearStoryCache(heroId, key);
+    setReloadTick((t) => t + 1);
+  }, [heroId, key]);
 
   useEffect(() => {
     if (!heroId) {
@@ -82,7 +91,7 @@ export function useStory(
     });
 
     return () => { canceled = true; };
-  }, [heroId, key]);
+  }, [heroId, key, reloadTick]);
 
-  return { story, error, loading };
+  return { story, error, loading, reload };
 }
