@@ -49,6 +49,7 @@ import {
   dispatchTurnStartHooks,
   dispatchTurnEndHooks,
   applyTurnStartChoice,
+  applyTurnEndChoice,
   type TurnStartDispatchCtx,
 } from '@/systems/battle/turnStartDispatcher';
 import {
@@ -177,6 +178,28 @@ interface S7DBattleStore {
   ) => void;
   /** 玩家点否 → 仅清空，不结算 */
   cancelTurnStartChoice: () => void;
+
+  // ─────────────────────────────────────────────────────────────
+  // 玩家可控的 turn-end 选择（2026-05-13 · 大香肠等）
+  // ─────────────────────────────────────────────────────────────
+  /**
+   * 当前 actor 携带 interactiveOnTurnEnd 元数据 + 玩家控制 + 有可选项时填入。
+   * UI 监听非空状态并弹窗。
+   */
+  pendingTurnEndChoice: {
+    actorId: string;
+    skillId: string;
+    promptTitle: string;
+    promptBody: string;
+    choices: Array<{ targetId: string; stats?: Array<'atk' | 'mnd' | 'hp'> }>;
+  } | null;
+  /** 玩家点确认 → 跑 turn-end apply 并清空 */
+  confirmTurnEndChoice: (
+    targetId: string,
+    stat: 'atk' | 'mnd' | 'hp' | undefined,
+  ) => void;
+  /** 玩家点否 → 仅清空，不结算 */
+  cancelTurnEndChoice: () => void;
 
   // ─────────────────────────────────────────────────────────────
   // 玩家可控的复活分配弹窗（2026-05-11 ReviveAllocateModal）
@@ -515,6 +538,24 @@ function dispatchS7DTurnHook(
         set({ state: bump(s) });
       }
     },
+    requestTurnEndChoice: (req) => {
+      // 与 turn-start 对称：同 actor 多个 interactive 技能仅暂存第一个
+      if (get().pendingTurnEndChoice) return;
+      set({ pendingTurnEndChoice: req });
+      const s = get().state;
+      if (s) {
+        s.log.push({
+          seq: (s.logSeq ?? 0) + 1,
+          bigRound: s.bigRound,
+          subRound: s.subRound,
+          kind: 'text',
+          text: `📜 「${req.promptTitle}」可发动 —— 等待玩家选择`,
+          ts: Date.now(),
+        } as any);
+        (s as any).logSeq = (s.logSeq ?? 0) + 1;
+        set({ state: bump(s) });
+      }
+    },
   };
 
   // ─────────────────────────────────────────────────────────────────────
@@ -676,6 +717,7 @@ function resetS7DTurnHookCache(): void {
 export const useS7DBattleStore = create<S7DBattleStore>((set, get) => ({
   state: null,
   pendingTurnStartChoice: null,
+  pendingTurnEndChoice: null,
   pendingRevive: null,
 
   // ------ 生命周期 ------
@@ -686,7 +728,7 @@ export const useS7DBattleStore = create<S7DBattleStore>((set, get) => ({
     resetS7DTurnHookCache();
     // 🔧 2026-05-12：清空全局 modifier store，避免上一场 aura 残留
     globalModStore.clear();
-    set({ state: fresh, pendingTurnStartChoice: null, pendingRevive: null });
+    set({ state: fresh, pendingTurnStartChoice: null, pendingTurnEndChoice: null, pendingRevive: null });
     // 🔧 2026-05-12：开局扫描一次 aura（古元·古族天火阵等）——
     //    以虚构 movedUnitId='__init__' 触发所有 onPositionChange 钩子
     fireS7DPositionChangeHooks(fresh, '__init__', fresh.playerFaction, (txt) => {
@@ -718,7 +760,7 @@ export const useS7DBattleStore = create<S7DBattleStore>((set, get) => ({
   },
 
   clearBattle: () => {
-    set({ state: null, pendingTurnStartChoice: null, pendingRevive: null });
+    set({ state: null, pendingTurnStartChoice: null, pendingTurnEndChoice: null, pendingRevive: null });
   },
 
   // ------ 查询 ------
@@ -1112,6 +1154,105 @@ export const useS7DBattleStore = create<S7DBattleStore>((set, get) => ({
       set({ state: bump(state) });
     }
     set({ pendingTurnStartChoice: null });
+  },
+
+  // ─────────────────────────────────────────────────────────────
+  // 玩家可控的 turn-end 选择确认 / 拒绝（2026-05-13 · 大香肠等）
+  // 与 turn-start 完全对称，复用同一套 ctx，仅改派 applyTurnEndChoice
+  // ─────────────────────────────────────────────────────────────
+  confirmTurnEndChoice: (targetId, stat) => {
+    const pending = get().pendingTurnEndChoice;
+    if (!pending) return;
+    const state = get().state;
+    if (!state) {
+      set({ pendingTurnEndChoice: null });
+      return;
+    }
+    const playerFaction = state.playerFaction;
+    const ctx: TurnStartDispatchCtx = {
+      snapshotAllUnits: () => {
+        const s = get().state;
+        if (!s) return [];
+        return Object.values(s.units)
+          .filter((u) => u.zone === 'field' && u.hp > 0)
+          .map((u) => mapInstanceToEngineUnit(u, playerFaction));
+      },
+      applyStatChange: (uid, st, delta, opts) => {
+        const s = get().state;
+        if (!s) return 0;
+        const u = s.units[uid];
+        if (!u) return 0;
+        const floor = opts.floor ?? 1;
+        let actualDelta = 0;
+        if (st === 'hp') {
+          const oldHp = u.hp;
+          let newHp = oldHp + delta;
+          if (!opts.breakCap) newHp = Math.min(newHp, u.hpMax);
+          newHp = Math.max(0, newHp);
+          if (delta < 0 && opts.floor !== undefined) {
+            newHp = Math.max(newHp, oldHp + Math.min(0, opts.floor - oldHp));
+          }
+          u.hp = newHp;
+          actualDelta = newHp - oldHp;
+          if (newHp <= 0) {
+            killUnit(s, uid, '玩家选择技能反伤致死');
+          }
+        } else if (st === 'atk') {
+          const oldVal = u.atk;
+          let newVal = Math.max(floor, oldVal + delta);
+          if (!opts.breakCap) newVal = Math.min(newVal, 99);
+          u.atk = newVal;
+          actualDelta = newVal - oldVal;
+        } else if (st === 'mnd') {
+          const oldVal = u.mnd;
+          let newVal = Math.max(floor, oldVal + delta);
+          if (!opts.breakCap) newVal = Math.min(newVal, 99);
+          u.mnd = newVal;
+          actualDelta = newVal - oldVal;
+        }
+        set({ state: bump(s) });
+        return actualDelta;
+      },
+      addLog: (text) => {
+        const s = get().state;
+        if (!s) return;
+        s.log.push({
+          seq: (s.logSeq ?? 0) + 1,
+          bigRound: s.bigRound,
+          subRound: s.subRound,
+          kind: 'text',
+          text,
+          ts: Date.now(),
+        } as any);
+        (s as any).logSeq = (s.logSeq ?? 0) + 1;
+        set({ state: bump(s) });
+      },
+      getRound: () => get().state?.bigRound ?? 1,
+    };
+    try {
+      applyTurnEndChoice(pending.actorId, pending.skillId, targetId, stat, ctx);
+    } catch (e) {
+      console.error('[s7dBattleStore] applyTurnEndChoice threw:', e);
+    }
+    set({ pendingTurnEndChoice: null });
+  },
+  cancelTurnEndChoice: () => {
+    const pending = get().pendingTurnEndChoice;
+    if (!pending) return;
+    const state = get().state;
+    if (state) {
+      state.log.push({
+        seq: (state.logSeq ?? 0) + 1,
+        bigRound: state.bigRound,
+        subRound: state.subRound,
+        kind: 'text',
+        text: `📜 玩家放弃发动「${pending.promptTitle}」`,
+        ts: Date.now(),
+      } as any);
+      (state as any).logSeq = (state.logSeq ?? 0) + 1;
+      set({ state: bump(state) });
+    }
+    set({ pendingTurnEndChoice: null });
   },
 
   // ===== 复活分配确认 / 取消（2026-05-11 ReviveAllocateModal）=====

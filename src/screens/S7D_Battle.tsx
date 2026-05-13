@@ -237,6 +237,10 @@ export const S7D_Battle: React.FC = () => {
   const pendingTurnStartChoice = useS7DBattleStore((s) => s.pendingTurnStartChoice);
   const confirmTurnStartChoice = useS7DBattleStore((s) => s.confirmTurnStartChoice);
   const cancelTurnStartChoice = useS7DBattleStore((s) => s.cancelTurnStartChoice);
+  // 玩家可控 turn-end 弹窗（2026-05-13 大香肠等）
+  const pendingTurnEndChoice = useS7DBattleStore((s) => s.pendingTurnEndChoice);
+  const confirmTurnEndChoice = useS7DBattleStore((s) => s.confirmTurnEndChoice);
+  const cancelTurnEndChoice = useS7DBattleStore((s) => s.cancelTurnEndChoice);
   // 玩家可控复活分配弹窗（2026-05-11 徐立国 · 天罡元婴·重塑）
   const pendingRevive = useS7DBattleStore((s) => s.pendingRevive);
   const confirmReviveAllocate = useS7DBattleStore((s) => s.confirmReviveAllocate);
@@ -1934,6 +1938,32 @@ export const S7D_Battle: React.FC = () => {
           confirmTurnStartChoice(targetId, stat)
         }
         onCancel={() => cancelTurnStartChoice()}
+      />
+
+      {/* ─── 玩家可控的 turn-end 技能弹窗（大香肠 等，2026-05-13）─── */}
+      <TurnStartChoiceModal
+        pending={pendingTurnEndChoice}
+        resolveUnit={(id) => {
+          const u = battleState?.units[id];
+          if (!u) return null;
+          const playerFaction = battleState?.playerFaction;
+          const isEnemy = playerFaction
+            ? u.faction !== playerFaction
+            : false;
+          return {
+            id: u.instanceId,
+            name: u.name,
+            hp: u.hp,
+            hpMax: u.hpMax,
+            atk: u.atk,
+            mnd: u.mnd,
+            isEnemy,
+          };
+        }}
+        onConfirm={(targetId, stat) =>
+          confirmTurnEndChoice(targetId, stat)
+        }
+        onCancel={() => cancelTurnEndChoice()}
       />
 
       {/* ─── 玩家可控的复活分配弹窗（徐立国 · 天罡元婴·重塑）─── */}
