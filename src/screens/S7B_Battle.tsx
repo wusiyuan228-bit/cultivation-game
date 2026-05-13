@@ -29,6 +29,7 @@ import {
   hasAdjacentEnemyOf,
   hasAnyLivingEnemyOf,
 } from '@/systems/battle/skillCastability';
+import { effectiveStat, resolveStatSet } from '@/systems/battle/e2Helpers';
 import { TurnStartChoiceModal } from '@/components/battle/TurnStartChoiceModal';
 import { ReviveAllocateModal } from '@/components/battle/ReviveAllocateModal';
 import styles from './S7_Battle.module.css';
@@ -457,6 +458,25 @@ function ResultPanel({
 }
 
 /* ======== 主组件 ======== */
+
+/**
+ * UI 显示辅助：返回应用了 modifier 之后的 effective atk
+ *   优先级：stat_set > base + Σ stat_delta
+ *   覆盖：镜像肠·复制（stat_set）、千刃雪天使圣剑（stat_delta this_attack）、
+ *         古元天火阵 / 凝荣荣七宝加持 / 远古斗帝血脉 等 aura/群体 buff
+ *   2026-05-13：UI 显示一直读 unit.atk 原值，导致镜像肠/七宝加持等 modifier
+ *   只在掷骰时生效但棋子上的"修X"数字纹丝不动 → UI/数据脱节。
+ */
+function uiAtk(u: { id: string; atk: number }): number {
+  const set = resolveStatSet(u.id, 'atk');
+  if (set !== null) return set;
+  return effectiveStat(u.id, u.atk, 'atk');
+}
+function uiMnd(u: { id: string; mnd: number }): number {
+  const set = resolveStatSet(u.id, 'mnd');
+  if (set !== null) return set;
+  return effectiveStat(u.id, u.mnd, 'mnd');
+}
 
 export const S7B_Battle: React.FC = () => {
   const navigate = useNavigate();
@@ -1905,8 +1925,8 @@ export const S7B_Battle: React.FC = () => {
                   <div className={styles.attackIndicator}>⚔</div>
                 )}
                 <div className={styles.unitStatsOverlay}>
-                  <span className={`${styles.unitStat} ${styles.unitStatAtk}`}>修{unit.atk}</span>
-                  <span className={`${styles.unitStat} ${styles.unitStatMnd}`}>境{unit.mnd}</span>
+                  <span className={`${styles.unitStat} ${styles.unitStatAtk}`}>修{uiAtk(unit)}</span>
+                  <span className={`${styles.unitStat} ${styles.unitStatMnd}`}>境{uiMnd(unit)}</span>
                   <span className={`${styles.unitStat} ${styles.unitStatHp}`}>生{unit.hp}</span>
                 </div>
                 <div className={styles.unitHpBar}>
@@ -1959,8 +1979,8 @@ export const S7B_Battle: React.FC = () => {
 <div className={styles.unitType}>{TYPE_CHAR[unit.type] || unit.type}</div>
               {/* 常驻显示属性条 */}
               <div className={styles.unitStatsOverlay}>
-                <span className={`${styles.unitStat} ${styles.unitStatAtk}`}>修{unit.atk}</span>
-                <span className={`${styles.unitStat} ${styles.unitStatMnd}`}>境{unit.mnd}</span>
+                <span className={`${styles.unitStat} ${styles.unitStatAtk}`}>修{uiAtk(unit)}</span>
+                <span className={`${styles.unitStat} ${styles.unitStatMnd}`}>境{uiMnd(unit)}</span>
                 <span className={`${styles.unitStat} ${styles.unitStatHp}`}>生{unit.hp}</span>
               </div>
               <div className={styles.unitHpBar}>
@@ -2080,8 +2100,8 @@ export const S7B_Battle: React.FC = () => {
             <div className={styles.unitInfoType}>{displayUnit.type}</div>
             <div className={styles.unitInfoStats}>
               <span>气血 {displayUnit.hp}/{displayUnit.maxHp}</span>
-              <span>修为 {displayUnit.atk}</span>
-              <span>心境 {displayUnit.mnd}</span>
+              <span>修为 {uiAtk(displayUnit)}</span>
+              <span>心境 {uiMnd(displayUnit)}</span>
             </div>
             {/* 🚶 常驻步数条 — 只有 selectedUnit 显示，hover预览时不显示 */}
             {isSelected && !isEnemy && (
@@ -2532,6 +2552,28 @@ export const S7B_Battle: React.FC = () => {
           battle.confirmTurnStartChoice(targetId, stat)
         }
         onCancel={() => battle.cancelTurnStartChoice()}
+      />
+
+      {/* ─── 玩家可控的 turn-end 技能弹窗（大香肠 等，2026-05-13）─── */}
+      <TurnStartChoiceModal
+        pending={battle.pendingTurnEndChoice}
+        resolveUnit={(id) => {
+          const u = battle.units.find((x) => x.id === id);
+          if (!u) return null;
+          return {
+            id: u.id,
+            name: u.name,
+            hp: u.hp,
+            hpMax: u.maxHp,
+            atk: u.atk,
+            mnd: u.mnd,
+            isEnemy: u.isEnemy,
+          };
+        }}
+        onConfirm={(targetId, stat) =>
+          battle.confirmTurnEndChoice(targetId, stat)
+        }
+        onCancel={() => battle.cancelTurnEndChoice()}
       />
 
       {/* ─── 玩家可控的复活分配弹窗（徐立国 · 天罡元婴·重塑）─── */}

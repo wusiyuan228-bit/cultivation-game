@@ -40,6 +40,7 @@ import {
   dispatchTurnStartHooks,
   dispatchTurnEndHooks,
   applyTurnStartChoice,
+  applyTurnEndChoice,
   type TurnStartDispatchCtx,
 } from '@/systems/battle/turnStartDispatcher';
 
@@ -472,6 +473,23 @@ interface BattleState {
   cancelTurnStartChoice: () => void;
 
   /**
+   * turn-end 版弹窗（2026-05-13 · 大香肠等）
+   * 与 pendingTurnStartChoice 对称，触发时机是 endUnitTurn 中派发 turn-end hook 时
+   */
+  pendingTurnEndChoice: {
+    actorId: string;
+    skillId: string;
+    promptTitle: string;
+    promptBody: string;
+    choices: Array<{ targetId: string; stats?: Array<'atk' | 'mnd' | 'hp'> }>;
+  } | null;
+  confirmTurnEndChoice: (
+    targetId: string,
+    stat: 'atk' | 'mnd' | 'hp' | undefined,
+  ) => void;
+  cancelTurnEndChoice: () => void;
+
+  /**
    * 玩家可控的复活属性分配待决策状态（2026-05-11）
    *
    * 当玩家方角色因徐立国"天罡元婴·重塑"等绝技复活时，
@@ -588,6 +606,7 @@ const initialState = {
   actionIndex: 0,
   currentSide: 'player' as 'player' | 'enemy',
   pendingTurnStartChoice: null as BattleState['pendingTurnStartChoice'],
+  pendingTurnEndChoice: null as BattleState['pendingTurnEndChoice'],
   pendingRevive: null as BattleState['pendingRevive'],
 };
 
@@ -668,6 +687,14 @@ function buildS7BTurnHookCtx(
       // （后续 dispatcher 已 continue 跳过，不会重复 set）
       if (get().pendingTurnStartChoice) return;
       set({ pendingTurnStartChoice: req });
+      get().addLog(
+        `📜 「${req.promptTitle}」可发动 —— 等待玩家选择`,
+        'system',
+      );
+    },
+    requestTurnEndChoice: (req) => {
+      if (get().pendingTurnEndChoice) return;
+      set({ pendingTurnEndChoice: req });
       get().addLog(
         `📜 「${req.promptTitle}」可发动 —— 等待玩家选择`,
         'system',
@@ -781,6 +808,7 @@ export const useS7BBattleStore = create<BattleState>((set, get) => ({
       actionIndex: 0,
       currentSide: 'player',
       pendingTurnStartChoice: null,
+      pendingTurnEndChoice: null,
       pendingRevive: null,
     });
 
@@ -2065,6 +2093,30 @@ export const useS7BBattleStore = create<BattleState>((set, get) => ({
       'system',
     );
     set({ pendingTurnStartChoice: null });
+  },
+
+  // ─────────────────────────────────────────────────────────────
+  // turn-end 版（2026-05-13 · 大香肠等）
+  // ─────────────────────────────────────────────────────────────
+  confirmTurnEndChoice: (targetId, stat) => {
+    const pending = get().pendingTurnEndChoice;
+    if (!pending) return;
+    const ctx = buildS7BTurnHookCtx(get, set);
+    try {
+      applyTurnEndChoice(pending.actorId, pending.skillId, targetId, stat, ctx);
+    } catch (e) {
+      console.error('[s7bBattleStore] applyTurnEndChoice threw:', e);
+    }
+    set({ pendingTurnEndChoice: null });
+  },
+  cancelTurnEndChoice: () => {
+    const pending = get().pendingTurnEndChoice;
+    if (!pending) return;
+    get().addLog(
+      `📜 玩家放弃发动「${pending.promptTitle}」`,
+      'system',
+    );
+    set({ pendingTurnEndChoice: null });
   },
 
   // ─────────────────────────────────────────────────────────────

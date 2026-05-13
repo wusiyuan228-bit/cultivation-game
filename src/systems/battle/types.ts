@@ -431,6 +431,33 @@ export interface SkillRegistration {
     ) => void;
   };
   /**
+   * 玩家可控的 on_turn_end hook 元数据（2026-05-13 · 大香肠等"回合结束选人"型技能）
+   *
+   * 对称于 interactiveOnTurnStart，但触发时机是 actor 行动轮结束。
+   * 典型技能：傲思卡·大香肠（行动轮结束时，可指定 1 名友军气血+2）
+   */
+  interactiveOnTurnEnd?: {
+    /** 弹窗标题 */
+    promptTitle: string;
+    /** 弹窗主文案 */
+    promptBody: string;
+    /** 收集可选项（空数组 → 跳过弹窗，AI 走 hook 自动逻辑） */
+    collectChoices: (
+      self: BattleUnit,
+      engine: IBattleEngine,
+    ) => Array<{
+      targetId: string;
+      stats?: Array<'atk' | 'mnd' | 'hp'>;
+    }>;
+    /** 玩家确认后的执行体 */
+    apply: (
+      self: BattleUnit,
+      target: BattleUnit,
+      stat: 'atk' | 'mnd' | 'hp' | undefined,
+      engine: IBattleEngine,
+    ) => void;
+  };
+  /**
    * 玩家可控的"棋盘选位"型技能元数据（2026-05-11 方案A · 流程钩子层）
    *
    * 用途：风属斗技、灵犀诀传送、断魂位移… 这类需要让玩家在棋盘上点选一个目标格的技能。

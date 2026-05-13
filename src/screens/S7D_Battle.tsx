@@ -70,6 +70,22 @@ import styles from './S7D_Battle.module.css';
 import { TurnStartChoiceModal } from '@/components/battle/TurnStartChoiceModal';
 import { ReviveAllocateModal } from '@/components/battle/ReviveAllocateModal';
 import { useBattleMapInteractions } from '@/hooks/useBattleMapInteractions';
+import { effectiveStat, resolveStatSet } from '@/systems/battle/e2Helpers';
+
+/* ── UI 显示辅助：应用 modifier 之后的 effective atk/mnd ──
+ * 优先级：stat_set > base + Σ stat_delta
+ * 覆盖：镜像肠·复制（stat_set）、千刃雪天使圣剑（stat_delta）、
+ *       古元天火阵 / 凝荣荣七宝加持 / 远古斗帝血脉 等 aura/群体 buff */
+function uiAtk(u: { instanceId: string; atk: number }): number {
+  const set = resolveStatSet(u.instanceId, 'atk');
+  if (set !== null) return set;
+  return effectiveStat(u.instanceId, u.atk, 'atk');
+}
+function uiMnd(u: { instanceId: string; mnd: number }): number {
+  const set = resolveStatSet(u.instanceId, 'mnd');
+  if (set !== null) return set;
+  return effectiveStat(u.instanceId, u.mnd, 'mnd');
+}
 
 
 // ==========================================================================
@@ -1463,8 +1479,8 @@ export const S7D_Battle: React.FC = () => {
                 </div>
                 <div className={styles.unitInfoStats}>
                   <span>气血 {previewUnit.hp}/{previewUnit.hpMax}</span>
-                  <span>修为 {previewUnit.atk}</span>
-                  <span>心境 {previewUnit.mnd}</span>
+                  <span>修为 {uiAtk(previewUnit)}</span>
+                  <span>心境 {uiMnd(previewUnit)}</span>
                 </div>
 
                 {/* 行动棋子常驻：剩余步数条 */}
@@ -2347,10 +2363,10 @@ const UnitPiece: React.FC<UnitPieceProps> = ({
       {/* 属性条（修/境，叠在血条上方） */}
       <div className={styles.unitPieceStats}>
         <span className={`${styles.unitPieceStat} ${styles.unitPieceStatAtk}`} title="修为（骰数）">
-          修{unit.atk}
+          修{uiAtk(unit)}
         </span>
         <span className={`${styles.unitPieceStat} ${styles.unitPieceStatMnd}`} title="心境（步数）">
-          境{unit.mnd}
+          境{uiMnd(unit)}
         </span>
       </div>
       {/* 血条 */}
@@ -2418,8 +2434,8 @@ const UnitDetail: React.FC<{ unit: BattleCardInstance }> = ({ unit }) => {
         <span>
           ❤ {unit.hp}/{unit.hpMax}
         </span>
-        <span>⚔ {unit.atk}</span>
-        <span>💠 {unit.mnd}</span>
+        <span>⚔ {uiAtk(unit)}</span>
+        <span>💠 {uiMnd(unit)}</span>
       </div>
       {unit.battleSkillId && (
         <div className={styles.unitDetailSkill}>
@@ -2964,8 +2980,8 @@ const ZonePeekModal: React.FC<ZonePeekModalProps> = ({ zone, units, onClose }) =
                     </div>
                     <div className={styles.zonePeekStats}>
                       <span>气血 <b>{u.hp}/{u.hpMax}</b></span>
-                      <span>修为 <b>{u.atk}</b></span>
-                      <span>心境 <b>{u.mnd}</b></span>
+                      <span>修为 <b>{uiAtk(u)}</b></span>
+                      <span>心境 <b>{uiMnd(u)}</b></span>
                     </div>
                   </div>
                 </div>

@@ -87,6 +87,16 @@ export interface TurnStartDispatchCtx {
     choices: Array<{ targetId: string; stats?: Array<'atk' | 'mnd' | 'hp'> }>;
   }) => void;
   /**
+   * turn-end 版弹窗回调（与 requestTurnStartChoice 对称，2026-05-13）
+   */
+  requestTurnEndChoice?: (req: {
+    actorId: string;
+    skillId: string;
+    promptTitle: string;
+    promptBody: string;
+    choices: Array<{ targetId: string; stats?: Array<'atk' | 'mnd' | 'hp'> }>;
+  }) => void;
+  /**
    * 【方案 A · 流程钩子层】统一回调：dispatcher 通知 store 写入 pendingChoice。
    *
    * 优先级：若 store 同时实现了 submitPendingChoice 和 requestTurnStartChoice，
@@ -308,6 +318,53 @@ export function dispatchTurnEndHooks(
   for (const sid of skillIds) {
     const reg = SkillRegistry.get(sid);
     if (!reg) continue;
+
+    // ───────── 玩家可控弹窗分流（2026-05-13 · 大香肠等） ─────────
+    if (reg.interactiveOnTurnEnd) {
+      const isPlayer = ctx.isPlayerControlled?.(actorId) ?? false;
+      const hasUnifiedSink = !!ctx.submitPendingChoice;
+      const hasLegacySink = !!ctx.requestTurnEndChoice;
+      if (isPlayer && (hasUnifiedSink || hasLegacySink)) {
+        let choices: Array<{ targetId: string; stats?: Array<'atk' | 'mnd' | 'hp'> }> = [];
+        try {
+          choices = reg.interactiveOnTurnEnd.collectChoices(
+            actor,
+            adapter as IBattleEngine,
+          );
+        } catch (e) {
+          console.error(
+            `[turn-end-dispatch] collectChoices of ${sid} threw:`,
+            e,
+          );
+          choices = [];
+        }
+        if (choices.length > 0) {
+          if (hasUnifiedSink) {
+            ctx.submitPendingChoice!({
+              kind: 'turn_end_skill',
+              actorId,
+              skillId: sid,
+              promptTitle: reg.interactiveOnTurnEnd.promptTitle,
+              promptBody: reg.interactiveOnTurnEnd.promptBody,
+              choices,
+            } as any);
+          } else {
+            ctx.requestTurnEndChoice!({
+              actorId,
+              skillId: sid,
+              promptTitle: reg.interactiveOnTurnEnd.promptTitle,
+              promptBody: reg.interactiveOnTurnEnd.promptBody,
+              choices,
+            });
+          }
+          continue;
+        }
+        // 玩家方可控但无可选项 → 跳过（不走自动版本）
+        continue;
+      }
+      // AI 控制 → fallthrough 走原 hook（自动逻辑）
+    }
+
     const handler = reg.hooks.on_turn_end;
     if (!handler) continue;
     try {
@@ -326,6 +383,74 @@ export function dispatchTurnEndHooks(
         e,
       );
     }
+  }
+}
+
+/**
+ * 玩家在弹窗中确认了 turn_end 选择后，store 调用此 helper 跑 interactiveOnTurnEnd.apply
+ * 与 applyTurnStartChoice 对称
+ */
+export function applyTurnEndChoice(
+  actorId: string,
+  skillId: string,
+  targetId: string,
+  stat: 'atk' | 'mnd' | 'hp' | undefined,
+  ctx: TurnStartDispatchCtx,
+): void {
+  const reg = SkillRegistry.get(skillId);
+  if (!reg || !reg.interactiveOnTurnEnd) {
+    console.warn(`[applyTurnEndChoice] skill ${skillId} has no interactiveOnTurnEnd`);
+    return;
+  }
+  const all = ctx.snapshotAllUnits();
+  const self = all.find((u) => u.id === actorId);
+  const target = all.find((u) => u.id === targetId);
+  if (!self || !target) return;
+  const adapter: Partial<IBattleEngine> = {
+    getUnit: (id: string) => ctx.snapshotAllUnits().find((x) => x.id === id),
+    getAllUnits: () => ctx.snapshotAllUnits(),
+    getAlliesOf: (u: EngineUnit) =>
+      ctx.snapshotAllUnits().filter(
+        (x) => x.owner === u.owner && x.id !== u.id && x.isAlive,
+      ),
+    getEnemiesOf: (u: EngineUnit) =>
+      ctx.snapshotAllUnits().filter((x) => x.owner !== u.owner && x.isAlive),
+    emit: (kind, _p, narrative, opts) => {
+      if (opts?.severity === 'debug') return;
+      const type: 'system' | 'skill' | 'damage' | 'kill' | 'action' =
+        kind === 'damage_applied' ? 'damage'
+        : kind === 'unit_leave' ? 'kill'
+        : kind === 'skill_passive_trigger' ||
+          kind === 'skill_effect_applied' ||
+          kind === 'skill_effect_blocked' ||
+          kind === 'skill_active_cast' ||
+          kind === 'modifier_applied' ||
+          kind === 'modifier_expired'
+          ? 'skill'
+          : 'system';
+      ctx.addLog(narrative, type);
+    },
+    changeStat: (unitId, stat2, delta, opts) =>
+      ctx.applyStatChange(unitId, stat2, delta, opts),
+    attachModifier: (mod: Modifier) => globalModStore.attach(mod),
+    queryModifiers: (unitId: string, kind: ModifierKind) =>
+      globalModStore.query(unitId, kind) as Modifier[],
+    detachModifier: (modId: string) => globalModStore.detach(modId),
+    fireHook: () => {},
+    fireTurnHook: () => {},
+    getRound: () => ctx.getRound(),
+    nextSeq: () => {
+      if (ctx.nextSeq) return ctx.nextSeq();
+      _seqFallback += 1;
+      return _seqFallback;
+    },
+    getCurrentActorId: () => actorId,
+    triggerAwakening: () => {},
+  };
+  try {
+    reg.interactiveOnTurnEnd.apply(self, target, stat, adapter as IBattleEngine);
+  } catch (e) {
+    console.error(`[applyTurnEndChoice] apply of ${skillId} threw:`, e);
   }
 }
 
