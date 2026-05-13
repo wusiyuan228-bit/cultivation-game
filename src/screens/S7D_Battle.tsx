@@ -1338,8 +1338,8 @@ export const S7D_Battle: React.FC = () => {
             {currentActor && selectedPosForHook && hoverPath && hoverPath.length > 0 && (
               <svg
                 className={styles.pathSvg}
-                width={S7D_MAP_COLS * (CELL_SIZE + 2)}
-                height={S7D_MAP_ROWS * (CELL_SIZE + 2)}
+                width={S7D_MAP_COLS * CELL_SIZE + (S7D_MAP_COLS - 1) * 2}
+                height={S7D_MAP_ROWS * CELL_SIZE + (S7D_MAP_ROWS - 1) * 2}
                 style={{
                   position: 'absolute',
                   left: 14,
@@ -1350,11 +1350,12 @@ export const S7D_Battle: React.FC = () => {
                 }}
               >
                 {(() => {
-                  // 每格实际占 CELL_SIZE+2（含 gap）；格子左上角偏 2，中心再 + CELL_SIZE/2
+                  // 每格实际占 CELL_SIZE+gap=CELL_SIZE+2，但最后一格右侧无 gap。
+                  // 格子 (r,c) 中心 = c * (CELL_SIZE+2) + CELL_SIZE/2
                   const stride = CELL_SIZE + 2;
                   const toXY = (r: number, c: number): [number, number] => [
-                    c * stride + 2 + CELL_SIZE / 2,
-                    r * stride + 2 + CELL_SIZE / 2,
+                    c * stride + CELL_SIZE / 2,
+                    r * stride + CELL_SIZE / 2,
                   ];
                   const pts: Array<[number, number]> = [];
                   pts.push(toXY(selectedPosForHook.row, selectedPosForHook.col));
@@ -2328,8 +2329,13 @@ const UnitPiece: React.FC<UnitPieceProps> = ({
 }) => {
   if (!unit.position) return null;
   const { row, col } = unit.position;
-  const left = col * (cellSize + 2) + 2;
-  const top = row * (cellSize + 2) + 2;
+  // 棋子尺寸 size = cellSize - 4，比格子小 4px。
+  // 为了在格子中居中：left = col * stride + (cellSize - size)/2 = col * stride + 2。
+  // mapGrid 第一格左上角在 mapGrid 内部 (0,0)；unitLayer 与 mapGrid 同样 left:14/top:14，
+  // 所以这里 col*stride+2 即可正确对齐到格子中心位置。
+  const stride = cellSize + 2;
+  const left = col * stride + 2;
+  const top = row * stride + 2;
   const size = cellSize - 4;
 
   const classes = [
