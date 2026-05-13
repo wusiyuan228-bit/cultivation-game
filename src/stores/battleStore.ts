@@ -25,6 +25,7 @@ import {
   resolveStatSet,
   resolveStatDelta,
 } from '@/systems/battle/e2Helpers';
+import { cleanupAfterAttack, cleanupOnTurnStart, cleanupOnTurnEnd } from '@/systems/battle/modifierSystem';
 import { applyDamagePipeline } from '@/systems/battle/damagePipeline';
 import {
   shouldTryRevive,
@@ -521,6 +522,14 @@ export const useBattleStore = create<BattleState>((set, get) => ({
       } catch (e) {
         console.error('[battleStore] dispatchTurnStartHooks threw:', e);
       }
+      // 🔧 2026-05-13：触发 turn-start cleanup（next_turn → this_turn）
+      const cleanupEngine = {
+        emit: (kind: string, _payload: any, narrative: string, opts?: { severity?: string }) => {
+          if (opts?.severity !== 'debug') get().addLog(narrative, 'system');
+          void kind;
+        },
+      } as any;
+      cleanupOnTurnStart(globalModStore, unitId, cleanupEngine);
     }
 
     get().calcMoveRange(unitId);
@@ -962,6 +971,20 @@ export const useBattleStore = create<BattleState>((set, get) => ({
     // ★ Q4 修复：每次攻击后立即检测胜利条件——只要敌方全灭立刻结算，
     //   不再等所有玩家手动 endUnitTurn 才走 advanceAction → checkBattleEnd。
     get().checkBattleEnd();
+
+    // 🔧 2026-05-13 修复：清理 this_attack 类 modifier（千刃雪天使圣剑等）
+    //   引擎契约 §2.3 规定 this_attack modifier 必须在每次攻击末尾驱散，
+    //   过去 store 层从未调用 cleanupAfterAttack，导致 atk +N 永久残留、
+    //   骰子越攻越多（图示：4修为防方扔出9骰，9修为攻方扔出13骰）。
+    {
+      const cleanupEngine = {
+        emit: (kind: string, _payload: any, narrative: string, opts?: { severity?: string }) => {
+          if (opts?.severity !== 'debug') get().addLog(narrative, 'system');
+          void kind;
+        },
+      } as any;
+      cleanupAfterAttack(globalModStore, cleanupEngine);
+    }
 
     return result;
   },
@@ -1461,6 +1484,14 @@ export const useBattleStore = create<BattleState>((set, get) => ({
       } catch (e) {
         console.error('[battleStore] dispatchTurnEndHooks threw:', e);
       }
+      // 🔧 2026-05-13：清理 this_turn 类 modifier（属本单位的）
+      const cleanupEngine = {
+        emit: (kind: string, _payload: any, narrative: string, opts?: { severity?: string }) => {
+          if (opts?.severity !== 'debug') get().addLog(narrative, 'system');
+          void kind;
+        },
+      } as any;
+      cleanupOnTurnEnd(globalModStore, unitId, cleanupEngine);
     }
   },
 

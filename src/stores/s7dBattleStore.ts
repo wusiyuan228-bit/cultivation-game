@@ -72,6 +72,11 @@ import {
 } from '@/utils/s7dBattleQueries';
 // 🔒 2026-05-11 P5：S7D 接入全局 modifier store 以消费 disable_move
 import { globalModStore } from '@/systems/battle/e2Helpers';
+import {
+  cleanupAfterAttack,
+  cleanupOnTurnStart,
+  cleanupOnTurnEnd,
+} from '@/systems/battle/modifierSystem';
 import type { Modifier } from '@/systems/battle/types';
 // 🔧 2026-05-12：S7D 对齐 S7B 的 onPositionChange 派发
 import { SkillRegistry } from '@/systems/battle/skillRegistry';
@@ -700,6 +705,9 @@ export const useS7DBattleStore = create<S7DBattleStore>((set, get) => ({
       const firstActorId = fresh.actionQueue[fresh.currentActorIdx]?.instanceId;
       if (firstActorId) {
         dispatchS7DTurnHook(get, set, firstActorId, 'start');
+        // 🔧 2026-05-13：触发 turn-start cleanup（next_turn → this_turn）
+        const silentCleanupEngine = { emit: () => {} } as any;
+        cleanupOnTurnStart(globalModStore, firstActorId, silentCleanupEngine);
       }
     }
     console.log(
@@ -895,8 +903,14 @@ export const useS7DBattleStore = create<S7DBattleStore>((set, get) => ({
       before && before.currentActorIdx < before.actionQueue.length
         ? before.actionQueue[before.currentActorIdx]?.instanceId
         : undefined;
+    // 🔧 2026-05-13：cleanup 用的静默 emit
+    const silentCleanupEngine = {
+      emit: () => { /* silent */ },
+    } as any;
     if (prevActorId) {
       dispatchS7DTurnHook(get, set, prevActorId, 'end');
+      // 清理上一个 actor 的 this_turn modifier
+      cleanupOnTurnEnd(globalModStore, prevActorId, silentCleanupEngine);
     }
 
     const ret = mutate(get, set, (s) => advanceActor(s));
@@ -906,6 +920,8 @@ export const useS7DBattleStore = create<S7DBattleStore>((set, get) => ({
       const newActorId = after.actionQueue[after.currentActorIdx]?.instanceId;
       if (newActorId && newActorId !== prevActorId) {
         dispatchS7DTurnHook(get, set, newActorId, 'start');
+        // 触发 turn-start cleanup（next_turn → this_turn）
+        cleanupOnTurnStart(globalModStore, newActorId, silentCleanupEngine);
       }
     }
     return ret ?? 'blocked';
@@ -920,6 +936,9 @@ export const useS7DBattleStore = create<S7DBattleStore>((set, get) => ({
         const firstActorId = after.actionQueue[after.currentActorIdx]?.instanceId;
         if (firstActorId) {
           dispatchS7DTurnHook(get, set, firstActorId, 'start');
+          // 🔧 2026-05-13：触发 turn-start cleanup（next_turn → this_turn）
+          const silentCleanupEngine = { emit: () => {} } as any;
+          cleanupOnTurnStart(globalModStore, firstActorId, silentCleanupEngine);
         }
       }
     }
@@ -951,6 +970,20 @@ export const useS7DBattleStore = create<S7DBattleStore>((set, get) => ({
 
   performAttack: (attackerId, defenderId, fengshuOverride) => {
     const ret = mutate(get, set, (s) => attackAndApply(s, attackerId, defenderId, fengshuOverride));
+
+    // 🔧 2026-05-13 修复：清理 this_attack 类 modifier（千刃雪天使圣剑等）
+    //   引擎契约 §2.3 规定 this_attack modifier 必须在每次攻击末尾驱散，
+    //   过去 S7D 从未调用 cleanupAfterAttack，导致 atk +N 永久残留、
+    //   骰子越攻越多。
+    if (ret) {
+      const cleanupEngine = {
+        emit: (_kind: string, _payload: any, _narrative: string, _opts?: { severity?: string }) => {
+          // S7D 战报系统不暴露给 store 顶层 mutate 之外的 setter，cleanup 信息属系统层
+          // 静默处理即可；如需调试可改为 console.debug。
+        },
+      } as any;
+      cleanupAfterAttack(globalModStore, cleanupEngine);
+    }
 
     // 🔒 2026-05-11 普攻 = 该角色行动轮立即结束（与 S7B/S7 保持一致）
     //   原 screen 端用 postAttackPlayerEndRef + 关骰子才结束的设计，玩家在骰子弹窗未关时

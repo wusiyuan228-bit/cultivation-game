@@ -35,7 +35,7 @@ import {
   DEFAULT_REVIVE_PAYLOAD,
   reviveLogText,
 } from '@/systems/battle/reviveCheck';
-import { cleanupOnRoundEnd } from '@/systems/battle/modifierSystem';
+import { cleanupOnRoundEnd, cleanupAfterAttack, cleanupOnTurnStart, cleanupOnTurnEnd } from '@/systems/battle/modifierSystem';
 import {
   dispatchTurnStartHooks,
   dispatchTurnEndHooks,
@@ -798,6 +798,14 @@ export const useS7BBattleStore = create<BattleState>((set, get) => ({
           } catch (e) {
             console.error('[s7bBattleStore] initial dispatchTurnStartHooks threw:', e);
           }
+          // 🔧 2026-05-13：触发 turn-start cleanup（next_turn → this_turn）
+          const cleanupEngine = {
+            emit: (kind: string, _payload: any, narrative: string, opts?: { severity?: string }) => {
+              if (opts?.severity !== 'debug') get().addLog(narrative, 'system');
+              void kind;
+            },
+          } as any;
+          cleanupOnTurnStart(globalModStore, firstActorId, cleanupEngine);
         }
       }
     }
@@ -1367,6 +1375,20 @@ export const useS7BBattleStore = create<BattleState>((set, get) => ({
     // ═══ 阶段 D · 立即结算检查（2026-05-10）═══
     // 击杀最后一个敌方/玩家全灭时立刻结束战斗，无需等所有单位都按"结束回合"
     get().checkBattleEnd();
+
+    // ═══ 阶段 E · 清理 this_attack modifier（2026-05-13 修复）═══
+    // 关键修复：千刃雪·天使圣剑 等 this_attack 类 modifier 之前从未被清理，
+    // 导致每次绝技/普攻后 atk +N 永久残留，骰子越攻越多（图示：4修为防方却扔出9骰）。
+    // 通过 cleanupAfterAttack 在每次普攻末尾驱散，这是引擎契约 §2.3 规定动作。
+    {
+      const cleanupEngine = {
+        emit: (kind: string, _payload: any, narrative: string, opts?: { severity?: string }) => {
+          if (opts?.severity !== 'debug') get().addLog(narrative, 'system');
+          void kind;
+        },
+      } as any;
+      cleanupAfterAttack(globalModStore, cleanupEngine);
+    }
 
     return result;
   },
@@ -2009,6 +2031,15 @@ export const useS7BBattleStore = create<BattleState>((set, get) => ({
       } catch (e) {
         console.error('[s7bBattleStore] dispatchTurnEndHooks threw:', e);
       }
+      // 🔧 2026-05-13 修复：清理 this_turn 类 modifier（属本单位的）
+      //   覆盖所有"本行动轮内有效"的临时 buff/debuff，避免跨轮残留。
+      const cleanupEngine = {
+        emit: (kind: string, _payload: any, narrative: string, opts?: { severity?: string }) => {
+          if (opts?.severity !== 'debug') get().addLog(narrative, 'system');
+          void kind;
+        },
+      } as any;
+      cleanupOnTurnEnd(globalModStore, unitId, cleanupEngine);
     }
   },
 
@@ -2157,6 +2188,15 @@ export const useS7BBattleStore = create<BattleState>((set, get) => ({
           } catch (e) {
             console.error('[s7bBattleStore] dispatchTurnStartHooks threw:', e);
           }
+          // 🔧 2026-05-13 修复：消费 next_turn → this_turn（蓝银囚笼/精神风暴等）
+          //   并触发引擎契约规定的 turn-start cleanup（让 disable_move 等生效一轮）
+          const cleanupEngine = {
+            emit: (kind: string, _payload: any, narrative: string, opts?: { severity?: string }) => {
+              if (opts?.severity !== 'debug') get().addLog(narrative, 'system');
+              void kind;
+            },
+          } as any;
+          cleanupOnTurnStart(globalModStore, nextActor.id, cleanupEngine);
         }
         // 若为AI方，UI 层会监听 currentSide 变化并触发 runAiTurn()
       }
@@ -2289,6 +2329,14 @@ export const useS7BBattleStore = create<BattleState>((set, get) => ({
           } catch (e) {
             console.error('[s7bBattleStore] new-round dispatchTurnStartHooks threw:', e);
           }
+          // 🔧 2026-05-13：触发 turn-start cleanup（next_turn → this_turn）
+          const cleanupEngine = {
+            emit: (kind: string, _payload: any, narrative: string, opts?: { severity?: string }) => {
+              if (opts?.severity !== 'debug') get().addLog(narrative, 'system');
+              void kind;
+            },
+          } as any;
+          cleanupOnTurnStart(globalModStore, firstActorId, cleanupEngine);
         }
       }
     }
