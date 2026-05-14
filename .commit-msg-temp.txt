@@ -1,0 +1,30 @@
+fix(story): 萧焱主角第四章加载失败（裸控制字符）+ 清理旧 ch2 文件
+
+真凶：
+story_ch4_萧焱.json 段落2 text 字段内嵌入了裸 CR/LF（位置1013，
+"……谢谢。" 之后两个空行），违反 RFC 8259。PowerShell 的 ConvertFrom-Json
+容忍此非法字符，但浏览器 / Node 严格模式 JSON.parse 直接抛 SyntaxError。
+所以本地校验和 PowerShell HEAD 测试都通过，只有萧焱主角进入第四章时
+浏览器加载失败。
+
+修复内容：
+1) public/config/story/story_ch4_萧焱.json：用状态机扫描字符串字面量
+   内的裸 CR/LF/TAB，全部转义为 \n / \r / \t（保留段落语义）
+2) src/utils/storyCache.ts 增强脏数据防御层：BOM 剥离 + 字符串内裸
+   控制字符自动转义重试（双重兜底）。下次再遇到类似问题不再阻塞玩家
+   流程，只在 console 打 warn
+3) scripts/fix-story-json.cjs：一次性修复 / 校验脚本，可在以后批量
+   替换剧情文件后跑 node scripts/fix-story-json.cjs 自动扫描修复
+4) 删除 6 个废弃的 story_ch2_*.json（仅保留 ch2a / ch2b）
+5) 更新 storyCache.ts 顶部 docstring 与 preloadEarlyChapters 注释
+
+验证：
+- 全 43 个剧情 JSON 重新扫描：0 BOM, 0 invalid, 0 bad
+- tsc --noEmit: 0 error
+- vite build: 成功
+
+教训：
+- 校验剧情 JSON 必须用 Node.js / 浏览器，禁止仅用 PowerShell
+  ConvertFrom-Json（PowerShell 容忍 BOM + 裸控制字符，会误判为 OK）
+- 替换剧情文件后，运行 node scripts/fix-story-json.cjs 一键校验修复
+- 编辑器手敲段落分隔时切勿在字符串字面量内按回车，应使用 \n 转义

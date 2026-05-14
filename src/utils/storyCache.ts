@@ -3,12 +3,14 @@
  * - S1阶段预加载ch1-2（所有6角色 × {1, 2a, 2b} = 18个文件）
  * - 选角后预加载ch3-6（所选角色，4个文件）
  * - fetch后缓存在内存中，后续读取零网络请求
- * - 带3次重试机制应对Vite中文路径不稳定
+ * - 带5次重试 + 指数退避，应对弱网/CDN 抖动
  *
  * 2026-05-13：第二章拆分为 ch2a / ch2b
  *   - ch2a：山门初见（S5a 测试前阅读）
  *   - ch2b：入门余波（拜师后、S6筹备前阅读）
- *   - 旧 ch2 文件保留作为兼容/备份
+ *
+ * 2026-05-14：清理已废弃的 ch2 单文件（仅保留 ch2a/ch2b），
+ *   并新增脏数据防御层（BOM 剥离 + 字符串内裸控制字符自动转义）。
  */
 import type { StoryData, HeroId } from '@/types/game';
 import { asset } from '@/utils/assetPath';
@@ -73,6 +75,43 @@ export function clearStoryCache(heroId: HeroId, chapter: ChapterKey): void {
   loading.delete(key);
 }
 
+/**
+ * 状态机：转义 JSON 字符串字面量内的裸控制字符（\r \n \t）。
+ * RFC 8259 不允许字符串内出现裸 0x00-0x1F；PowerShell 的 ConvertFrom-Json 容忍但浏览器拒绝。
+ * 仅对 " ... " 之内的字符做转义，结构层换行不动。
+ * 注意：" 前面有 \ 视为转义；\\ 后面跟的引号不视为字符串边界。
+ */
+function sanitizeRawControlChars(txt: string): string {
+  let out = '';
+  let inString = false;
+  let escaped = false;
+  for (let i = 0; i < txt.length; i++) {
+    const c = txt[i];
+    if (escaped) {
+      out += c;
+      escaped = false;
+      continue;
+    }
+    if (inString && c === '\\') {
+      out += c;
+      escaped = true;
+      continue;
+    }
+    if (c === '"') {
+      inString = !inString;
+      out += c;
+      continue;
+    }
+    if (inString) {
+      if (c === '\n') { out += '\\n'; continue; }
+      if (c === '\r') { out += '\\r'; continue; }
+      if (c === '\t') { out += '\\t'; continue; }
+    }
+    out += c;
+  }
+  return out;
+}
+
 /** 加载单章剧情（带缓存+重试） */
 export function fetchStory(heroId: HeroId, chapter: ChapterKey): Promise<StoryData | null> {
   const key = cacheKey(heroId, chapter);
@@ -82,12 +121,25 @@ export function fetchStory(heroId: HeroId, chapter: ChapterKey): Promise<StoryDa
   const p = fetchWithRetry(buildUrl(heroId, chapter))
     .then((r) => r.text())
     .then((txt) => {
-      // 2026-05-14：BOM 防御层
-      // 部分编辑器（Win 记事本/Excel/某些VS Code 配置）保存 UTF-8 时会写入 BOM (EF BB BF)，
-      // JSON.parse 在 BOM 开头会抛 SyntaxError。这里统一剥掉首字符的 U+FEFF。
-      // 案例：story_ch2b_寒立 / story_ch4_小舞儿 / story_ch5_寒立 曾因此加载失败。
+      // 2026-05-14：脏数据防御层（双重）
+      // (1) BOM：部分编辑器（Win 记事本/Excel）保存 UTF-8 时会写入 BOM (EF BB BF)，
+      //     JSON.parse 不接受 → SyntaxError。这里剥掉首字符的 U+FEFF。
+      //     案例：story_ch2b_寒立 / story_ch4_小舞儿 / story_ch5_寒立 曾因此加载失败。
+      // (2) 字符串内裸控制字符：编辑器手工换行/缩进可能在 "..." 字符串内嵌入裸 CR/LF/TAB，
+      //     违反 RFC 8259。PowerShell 的 ConvertFrom-Json 容忍，浏览器/Node 严格模式拒绝。
+      //     兜底：先正常 parse，失败时启动状态机扫描转义裸控制字符再重试一次。
+      //     案例：story_ch4_萧焱 段落2内嵌裸 \r\n\r\n 导致萧焱主角第四章加载失败。
       const cleaned = txt.charCodeAt(0) === 0xfeff ? txt.slice(1) : txt;
-      return JSON.parse(cleaned) as StoryData;
+      try {
+        return JSON.parse(cleaned) as StoryData;
+      } catch (e) {
+        const sanitized = sanitizeRawControlChars(cleaned);
+        if (sanitized !== cleaned) {
+          console.warn(`[storyCache] ${heroId} ch${chapter} JSON 含裸控制字符，已自动转义重试`);
+          return JSON.parse(sanitized) as StoryData;
+        }
+        throw e;
+      }
     })
     .then((data: StoryData) => {
       cache.set(key, data);
@@ -118,8 +170,8 @@ export function isStoryCached(heroId: HeroId, chapter: ChapterKey): boolean {
  * 预加载ch1 + ch2a + ch2b（所有6角色 × 3章 = 18个文件）
  * 在S1 Loading阶段调用，确保进入S4时剧情已就绪
  *
- * 2026-05-13：原 ch2 拆分为 ch2a/ch2b 后，预加载策略调整为加载这两个新文件。
- * 旧 ch2 文件保留在磁盘上但不再预加载（可作为兼容老存档的兜底）。
+ * 2026-05-13：原 ch2 拆分为 ch2a/ch2b。
+ * 2026-05-14：旧 ch2 文件已删除，仅保留 ch2a / ch2b。
  *
  * @param onProgress 进度回调(0~1)
  */
