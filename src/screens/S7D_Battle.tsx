@@ -231,8 +231,9 @@ export const S7D_Battle: React.FC = () => {
   const logFn = useS7DBattleStore((s) => s.log);
   const useBattleSkillFn = useS7DBattleStore((s) => s.useBattleSkill);
   const useUltimateFn = useS7DBattleStore((s) => s.useUltimate);
-  const deployFromHand = useS7DBattleStore((s) => s.deployFromHand);
-  const getAvailableSpawns = useS7DBattleStore((s) => s.getAvailableSpawns);
+const deployFromHand = useS7DBattleStore((s) => s.deployFromHand);
+const getAvailableSpawns = useS7DBattleStore((s) => s.getAvailableSpawns);
+const dropReinforceTask = useS7DBattleStore((s) => s.dropReinforceTask);
   // 玩家可控 turn-start 弹窗（2026-05-11 玩家选择弹窗）
   const pendingTurnStartChoice = useS7DBattleStore((s) => s.pendingTurnStartChoice);
   const confirmTurnStartChoice = useS7DBattleStore((s) => s.confirmTurnStartChoice);
@@ -914,25 +915,7 @@ export const S7D_Battle: React.FC = () => {
           '[S7D_Battle] AI 补位任务无候选卡（手牌已空），强制清理 task 解除死锁',
           task,
         );
-        // 强制清队（避免 phase 卡在 reinforce）
-        useS7DBattleStore.setState((prev) => {
-          if (!prev.state) return prev;
-          const newQueue = prev.state.reinforceQueue.filter(
-            (t) => !(t.ownerId === task.ownerId && t.slot === task.slot),
-          );
-          const newPhase: typeof prev.state.phase =
-            newQueue.length === 0 && prev.state.phase === 'reinforce'
-              ? 'sub_round_action'
-              : prev.state.phase;
-          return {
-            ...prev,
-            state: {
-              ...prev.state,
-              reinforceQueue: newQueue,
-              phase: newPhase,
-            },
-          };
-        });
+        dropReinforceTask(task.ownerId, task.slot);
         continue;
       }
 
@@ -942,31 +925,7 @@ export const S7D_Battle: React.FC = () => {
           '[S7D_Battle] AI 出生点全部被占（敌方推进到家门口），强制清理 task 解除死锁',
           { ownerId: task.ownerId, slot: task.slot, reason: task.reason },
         );
-        // 同上：强制清队避免死锁
-        useS7DBattleStore.setState((prev) => {
-          if (!prev.state) return prev;
-          const newQueue = prev.state.reinforceQueue.filter(
-            (t) => !(t.ownerId === task.ownerId && t.slot === task.slot),
-          );
-          const newPhase: typeof prev.state.phase =
-            newQueue.length === 0 && prev.state.phase === 'reinforce'
-              ? 'sub_round_action'
-              : prev.state.phase;
-          return {
-            ...prev,
-            state: {
-              ...prev.state,
-              reinforceQueue: newQueue,
-              phase: newPhase,
-            },
-          };
-        });
-        // 写一条战报告知玩家
-        try {
-          logFn(`⚠️ ${task.ownerId} 出生点被堵无法补位（${task.reason}），跳过本次补位`);
-        } catch {
-          /* ignore */
-        }
+        dropReinforceTask(task.ownerId, task.slot);
         continue;
       }
 
@@ -1002,27 +961,10 @@ export const S7D_Battle: React.FC = () => {
           '[S7D_Battle] AI 补位所有候选组合均失败，强制清理 task 避免死锁',
           task,
         );
-        useS7DBattleStore.setState((prev) => {
-          if (!prev.state) return prev;
-          const newQueue = prev.state.reinforceQueue.filter(
-            (t) => !(t.ownerId === task.ownerId && t.slot === task.slot),
-          );
-          const newPhase: typeof prev.state.phase =
-            newQueue.length === 0 && prev.state.phase === 'reinforce'
-              ? 'sub_round_action'
-              : prev.state.phase;
-          return {
-            ...prev,
-            state: {
-              ...prev.state,
-              reinforceQueue: newQueue,
-              phase: newPhase,
-            },
-          };
-        });
+        dropReinforceTask(task.ownerId, task.slot);
       }
     }
-  }, [battleState?.reinforceQueue, deployFromHand, getAvailableSpawns, logFn]);
+  }, [battleState?.reinforceQueue, deployFromHand, getAvailableSpawns, dropReinforceTask]);
 
   /** 玩家确认补位 */
   const handleReinforceConfirm = useCallback(

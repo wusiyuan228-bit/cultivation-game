@@ -131,6 +131,13 @@ interface S7DBattleStore {
     slot: FieldSlot,
     to: GridPos,
   ) => { ok: boolean; reason?: string };
+  /**
+   * 强制丢弃一条 reinforceTask（容错出口）。
+   * 当 AI 自动补位因敌方堵满出生点 / 手牌已空等极端情况无法 deploy 时调用，
+   * 防止 phase='reinforce' 永卡导致全场死锁。
+   * 若清空后队列变空，phase 自动切回 'sub_round_action'。
+   */
+  dropReinforceTask: (ownerId: BattleOwnerId, slot: FieldSlot) => void;
   /** 推进当前行动者 */
   advanceActor: () => 'next_actor' | 'sub_round_end' | 'blocked';
   /** 进入下一小轮次（或下一大回合） */
@@ -935,6 +942,29 @@ export const useS7DBattleStore = create<S7DBattleStore>((set, get) => ({
   deployFromHand: (ownerId, instanceId, slot, to) => {
     const ret = mutate(get, set, (s) => deployFromHand(s, ownerId, instanceId, slot, to));
     return ret ?? { ok: false, reason: 'no_state' };
+  },
+
+  dropReinforceTask: (ownerId, slot) => {
+    mutate(get, set, (s) => {
+      const before = s.reinforceQueue.length;
+      s.reinforceQueue = s.reinforceQueue.filter(
+        (t) => !(t.ownerId === ownerId && t.slot === slot),
+      );
+      // 队列空了 → phase 切回 sub_round_action，解除死锁
+      if (s.reinforceQueue.length === 0 && s.phase === 'reinforce') {
+        s.phase = 'sub_round_action';
+      }
+      const dropped = before - s.reinforceQueue.length;
+      if (dropped > 0) {
+        appendLog(
+          s,
+          'reinforce_done',
+          `⚠️ ${ownerId} 的 ${slot} 补位失败（无可用出生点或候选卡），已跳过`,
+          { payload: { ownerId, slot, droppedCount: dropped } },
+        );
+      }
+      return undefined;
+    });
   },
 
   advanceActor: () => {
