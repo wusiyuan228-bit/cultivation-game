@@ -35,6 +35,11 @@ import { isWalkable as isS7DCellWalkable, S7D_MAP_ROWS, S7D_MAP_COLS } from '@/d
 // 🔧 2026-05-12：让主动技能 activeCast 挂出的 modifier 真正落到全局 store
 // （修复古元绝技、远古斗帝血脉、凝荣荣群体 buff 等完全哑火的 bug）
 import { globalModStore } from '@/systems/battle/e2Helpers';
+// 🔧 2026-05-14：绝技 followUp 攻击上下文标志
+import {
+  enterUltimateAttackContext,
+  leaveUltimateAttackContext,
+} from '@/systems/battle/ultimateContext';
 
 // =============================================================================
 // 映射层：S7D BattleCardInstance ↔ 引擎 EngineUnit
@@ -574,8 +579,13 @@ export function castSkillAndApply(
         attackerCur.atk = fu.diceOverride(attackerCur);
       }
 
-      // 发动攻击
-      attackAndApply(state, casterId, tid);
+      // 🔧 2026-05-14：进入绝技攻击上下文，让 attackAndApply 内部正确标记 viaUltimate=true
+      enterUltimateAttackContext();
+      try {
+        attackAndApply(state, casterId, tid);
+      } finally {
+        leaveUltimateAttackContext();
+      }
 
       // 恢复 atk
       if (restoreAtk !== null) {

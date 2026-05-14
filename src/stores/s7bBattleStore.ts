@@ -43,6 +43,11 @@ import {
   applyTurnEndChoice,
   type TurnStartDispatchCtx,
 } from '@/systems/battle/turnStartDispatcher';
+import {
+  enterUltimateAttackContext,
+  leaveUltimateAttackContext,
+  isInUltimateAttackContext,
+} from '@/systems/battle/ultimateContext';
 
 /**
  * 统一的技能名→注册id 反查。
@@ -1146,9 +1151,12 @@ export const useS7BBattleStore = create<BattleState>((set, get) => ({
     };
 
     // —— AttackContext ——
+    // 🔧 2026-05-14 修复：绝技 followUp 攻击需标记 viaUltimate=true，
+    //   否则青竹蜂云剑·七十二路等 'basic-only' 被动会误触发并读到被临时改写的 atk
+    const _isUlt = isInUltimateAttackContext();
     const ctx: AttackContext = {
-      attackKind: 'basic',
-      viaUltimate: false,
+      attackKind: _isUlt ? 'skill_damage' : 'basic',
+      viaUltimate: _isUlt,
       segmentIndex: 0,
       attacker: mapUnitToEngine(newAttacker),
       defender: mapUnitToEngine(newDefender),
@@ -1752,7 +1760,13 @@ export const useS7BBattleStore = create<BattleState>((set, get) => ({
           set({ units: us });
         }
 
-        get().attack(unitId, tid, 0);
+        // 🔧 2026-05-14：进入绝技攻击上下文，让 attack() 内部正确标记 viaUltimate=true
+        enterUltimateAttackContext();
+        try {
+          get().attack(unitId, tid, 0);
+        } finally {
+          leaveUltimateAttackContext();
+        }
 
         // 恢复 atk
         if (restoreAtk !== null) {

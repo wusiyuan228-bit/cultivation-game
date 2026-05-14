@@ -39,6 +39,8 @@ import { isCounter } from '@/stores/battleStore';
 import { S7D_MAP_ROWS, S7D_MAP_COLS, isWalkable } from '@/data/s7dMap';
 // 🔧 2026-05-12：让 aura/群体 buff 的 stat_delta 在 S7D 决战骰数计算中生效
 import { resolveStatDelta, globalModStore } from '@/systems/battle/e2Helpers';
+// 🔧 2026-05-14：绝技 followUp 攻击上下文标志
+import { isInUltimateAttackContext } from '@/systems/battle/ultimateContext';
 
 // ============================================================================
 // 工具: 映射 S7D 卡 → 引擎 EngineUnit (局部 mutable 快照)
@@ -251,9 +253,11 @@ export function executeAttackWithHooks(
   // ==========================================================================
   // AttackContext
   // ==========================================================================
+  // 🔧 2026-05-14 修复：绝技 followUp 攻击需标记 viaUltimate=true
+  const _isUlt = isInUltimateAttackContext();
   const ctx: AttackContext = {
-    attackKind: 'basic',
-    viaUltimate: false,
+    attackKind: _isUlt ? 'skill_damage' : 'basic',
+    viaUltimate: _isUlt,
     segmentIndex: 0,
     attacker: snapshots[attackerId],
     defender: snapshots[defenderId],

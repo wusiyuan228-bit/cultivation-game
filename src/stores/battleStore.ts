@@ -39,6 +39,11 @@ import {
   applyTurnEndChoice,
   type TurnStartDispatchCtx,
 } from '@/systems/battle/turnStartDispatcher';
+import {
+  enterUltimateAttackContext,
+  leaveUltimateAttackContext,
+  isInUltimateAttackContext,
+} from '@/systems/battle/ultimateContext';
 
 /* ============ 技能名 → 注册id 反查 ============ */
 function resolveSkillRegId(name: string | undefined | null): string | undefined {
@@ -842,9 +847,11 @@ export const useBattleStore = create<BattleState>((set, get) => ({
       triggerAwakening: () => {},
     };
 
+    // 🔧 2026-05-14 修复：绝技 followUp 攻击需标记 viaUltimate=true
+    const _isUlt = isInUltimateAttackContext();
     const ctx: AttackContext = {
-      attackKind: 'basic',
-      viaUltimate: false,
+      attackKind: _isUlt ? 'skill_damage' : 'basic',
+      viaUltimate: _isUlt,
       segmentIndex: 0,
       attacker: mapUnitToEngine(newAttacker),
       defender: mapUnitToEngine(newDefender),
@@ -1417,7 +1424,13 @@ export const useBattleStore = create<BattleState>((set, get) => ({
           set({ units: us });
         }
 
-        get().attack(unitId, tid, 0);
+        // 🔧 2026-05-14：进入绝技攻击上下文
+        enterUltimateAttackContext();
+        try {
+          get().attack(unitId, tid, 0);
+        } finally {
+          leaveUltimateAttackContext();
+        }
 
         if (restoreAtk !== null) {
           const us = [...get().units];
