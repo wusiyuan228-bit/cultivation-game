@@ -71,6 +71,7 @@ import { TurnStartChoiceModal } from '@/components/battle/TurnStartChoiceModal';
 import { ReviveAllocateModal } from '@/components/battle/ReviveAllocateModal';
 import { useBattleMapInteractions } from '@/hooks/useBattleMapInteractions';
 import { effectiveStat, resolveStatSet } from '@/systems/battle/e2Helpers';
+import { downloadS7DBattleSnapshot } from '@/utils/s7dBattleSnapshot';
 
 /* ── UI 显示辅助：应用 modifier 之后的 effective atk/mnd ──
  * 优先级：stat_set > base + Σ stat_delta
@@ -2240,7 +2241,32 @@ const Sidebar: React.FC<SidebarProps> = ({ battleState, selectedUnitId, onReturn
       {/* 战报（参考 S7B 风格：按 kind 分色 + 大字号 + 顶部表头 + 回合筛选 + 正序滚到底） */}
       <div className={styles.logPanel}>
         <div className={styles.logHeader}>
-          <span className={styles.logTitle}>📜 战报</span>
+          <div className={styles.logHeaderTopRow}>
+            <span className={styles.logTitle}>📜 战报</span>
+            <button
+              type="button"
+              className={styles.logExportBtn}
+              title="导出当前战斗的完整状态快照（含全部单位状态、行动队列、补位队列、modifier、文字战报、诊断报告），用于离线复盘 BUG"
+              onClick={() => {
+                try {
+                  const s = useS7DBattleStore.getState().state;
+                  if (!s) {
+                    alert('当前没有可导出的战斗状态');
+                    return;
+                  }
+                  const filename = downloadS7DBattleSnapshot(s);
+                  // eslint-disable-next-line no-console
+                  console.log(`[S7D] 战斗快照已导出: ${filename}`);
+                } catch (err) {
+                  // eslint-disable-next-line no-console
+                  console.error('[S7D] 导出战斗快照失败', err);
+                  alert(`导出失败: ${(err as Error)?.message ?? err}`);
+                }
+              }}
+            >
+              📥 导出 JSON
+            </button>
+          </div>
           {(() => {
             const roundSet = new Set<number>();
             for (const l of battleState.log) roundSet.add(l.bigRound);
