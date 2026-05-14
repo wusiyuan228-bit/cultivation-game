@@ -2396,6 +2396,25 @@
 }
 
 /* ==========================================================================
+ * 绝技/战技瞄准态高亮 —— S7B/S7C 同款金色光晕（2026-05-14）
+ * 玩家点击有目标的绝技按钮后，所有合法目标棋子套这个样式，让玩家直观看到可点谁。
+ * 颜色用金色（与红色普攻可击区分），呼吸节奏 1.1s 与 S7B 完全一致。
+ * z-index 抬到 50 让金光浮在普通棋子之上。
+ * ========================================================================== */
+.unitPieceAimTarget {
+  outline: 3px solid #ffcc33 !important;
+  outline-offset: 2px;
+  box-shadow: 0 0 18px rgba(255, 204, 51, 0.85), 0 0 36px rgba(255, 204, 51, 0.4) !important;
+  animation: aimPulseS7D 1.1s ease-in-out infinite;
+  cursor: crosshair !important;
+  z-index: 50 !important;
+}
+@keyframes aimPulseS7D {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.35); }
+}
+
+/* ==========================================================================
  * 左下角 hover/selected 信息面板（S7B 同款）
  * ========================================================================== */
 /* 与 S7B(S7_Battle.module.css .unitInfoPanel) 完全同尺寸 —— 确保跨场景一致 */

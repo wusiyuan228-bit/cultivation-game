@@ -4,6 +4,7 @@
  * Q68：与 S8 PvP 牌池规则对齐（MVP 仅 emit）
  */
 import type { SkillRegistration, BattleUnit, IBattleEngine } from '../types';
+import { isHeroUnitId } from './_heroIdHelper';
 
 export const skill_liumei_qianmeng: SkillRegistration = {
   id: 'sr_liumei.ultimate',
@@ -15,7 +16,7 @@ export const skill_liumei_qianmeng: SkillRegistration = {
   precheck: (self: BattleUnit, engine: IBattleEngine) => {
     const deads = engine
       .getAllUnits()
-      .filter((u) => !u.isAlive && u.owner === self.owner && !u.id.includes('hero_'));
+      .filter((u) => !u.isAlive && u.owner === self.owner && !isHeroUnitId(u.id));
     return deads.length > 0
       ? { ok: true, candidateIds: deads.map((u) => u.id) }
       : { ok: false, reason: '无可选已退场友军' };

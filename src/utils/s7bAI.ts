@@ -19,6 +19,7 @@
 import { useS7BBattleStore, isCounter, MAP_ROWS, MAP_COLS } from '@/stores/s7bBattleStore';
 import type { BattleUnit } from '@/stores/s7bBattleStore';
 import { SkillRegistry } from '@/systems/battle/skillRegistry';
+import { isHeroUnitId } from '@/systems/battle/skills/_heroIdHelper';
 
 function manhattan(r1: number, c1: number, r2: number, c2: number): number {
   return Math.abs(r1 - r2) + Math.abs(c1 - c2);
@@ -250,7 +251,7 @@ function evaluateUltimate(
     // 复活类（沐佩翎/留眉）：候选是已退场的非主角友军
     if (regId === 'sr_mupeiling.ultimate' || regId === 'sr_liumei.ultimate') {
       const deads = allUnits.filter(
-        (u) => u.dead && u.isEnemy === self.isEnemy && !u.id.includes('hero_'),
+        (u) => u.dead && u.isEnemy === self.isEnemy && !isHeroUnitId(u.id),
       );
       if (deads.length === 0) {
         return { shouldCast: false, targetIds: [], reason: '无已退场友军可复活' };

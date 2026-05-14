@@ -1414,6 +1414,9 @@ export const S7D_Battle: React.FC = () => {
             <div className={styles.unitLayer}>
               {fieldUnits.map((u) => {
                 const isAttackable = attackableEnemyIds.has(u.instanceId);
+                // 🔧 2026-05-14：S7D 同款瞄准光晕（与 S7B/S7C 视觉一致）
+                //   ultimateTargeting.candidateIds 命中即套金色脉冲样式
+                const isAimTarget = !!ultimateTargeting && ultimateTargeting.candidateIds.includes(u.instanceId);
                 return (
                   <UnitPiece
                     key={u.instanceId}
@@ -1423,6 +1426,7 @@ export const S7D_Battle: React.FC = () => {
                     isSelected={selectedUnitId === u.instanceId}
                     isPlayerFaction={u.faction === battleState.playerFaction}
                     isAttackable={isAttackable}
+                    isAimTarget={isAimTarget}
                     onClick={() => handleUnitClick(u)}
                     onHoverIn={() => setHoveredUnitId(u.instanceId)}
                     onHoverOut={() => setHoveredUnitId((cur) => (cur === u.instanceId ? null : cur))}
@@ -2319,6 +2323,8 @@ interface UnitPieceProps {
   isSelected: boolean;
   isPlayerFaction: boolean;
   isAttackable: boolean;
+  /** 绝技/战技瞄准态：是否为合法目标（金色光晕） */
+  isAimTarget?: boolean;
   onClick: () => void;
   onHoverIn?: () => void;
   onHoverOut?: () => void;
@@ -2331,6 +2337,7 @@ const UnitPiece: React.FC<UnitPieceProps> = ({
   isSelected,
   isPlayerFaction,
   isAttackable,
+  isAimTarget,
   onClick,
   onHoverIn,
   onHoverOut,
@@ -2354,6 +2361,7 @@ const UnitPiece: React.FC<UnitPieceProps> = ({
     isSelected ? styles.unitPieceSelected : '',
     unit.isHero ? styles.unitPieceHero : '',
     isAttackable ? styles.unitPieceAttackable : '',
+    isAimTarget ? styles.unitPieceAimTarget : '',
   ]
     .filter(Boolean)
     .join(' ');

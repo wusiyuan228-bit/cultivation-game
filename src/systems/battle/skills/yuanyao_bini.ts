@@ -15,6 +15,7 @@
  *      下大回合按新 isEnemy 入队 —— 与策划"行动回合不变"完全吻合
  */
 import type { SkillRegistration, HookHandler, TargetSelector } from '../types';
+import { isHeroUnitId } from './_heroIdHelper';
 
 export const skill_yuanyao_bini: SkillRegistration = {
   id: 'sr_yuanyao.ultimate',
@@ -31,7 +32,7 @@ export const skill_yuanyao_bini: SkillRegistration = {
     if (self.ultimateUsed) return { ok: false, reason: '绝技已使用' };
     const targets = engine
       .getEnemiesOf(self)
-      .filter((e) => e.isAlive && !e.id.includes('hero_'));
+      .filter((e) => e.isAlive && !isHeroUnitId(e.id));
     if (targets.length === 0) {
       return { ok: false, reason: '场上无可夺取的非主角敌方' };
     }
@@ -43,7 +44,7 @@ export const skill_yuanyao_bini: SkillRegistration = {
     const tid = targetIds[0];
     const target = tid ? engine.getUnit(tid) : undefined;
     if (!target || !target.isAlive) return { consumed: false };
-    if (target.id.includes('hero_')) {
+    if (isHeroUnitId(target.id)) {
       engine.emit(
         'skill_effect_blocked',
         { skillId: 'sr_yuanyao.ultimate' },
@@ -101,7 +102,7 @@ export const skill_yuanyao_bini: SkillRegistration = {
 
       const targets = engine
         .getEnemiesOf(self)
-        .filter((e) => e.isAlive && !e.id.includes('hero_'));
+        .filter((e) => e.isAlive && !isHeroUnitId(e.id));
       if (targets.length === 0) {
         engine.emit(
           'skill_effect_blocked',

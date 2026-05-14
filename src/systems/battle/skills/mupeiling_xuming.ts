@@ -5,6 +5,7 @@
  * MVP：engine 层仅做 emit 占位，真实复活由 store 层 handleRevive 执行
  */
 import type { SkillRegistration, BattleUnit, IBattleEngine } from '../types';
+import { isHeroUnitId } from './_heroIdHelper';
 
 export const skill_mupeiling_xuming: SkillRegistration = {
   id: 'sr_mupeiling.ultimate',
@@ -16,7 +17,7 @@ export const skill_mupeiling_xuming: SkillRegistration = {
   precheck: (self: BattleUnit, engine: IBattleEngine) => {
     const deads = engine
       .getAllUnits()
-      .filter((u) => !u.isAlive && u.owner === self.owner && !u.id.includes('hero_'));
+      .filter((u) => !u.isAlive && u.owner === self.owner && !isHeroUnitId(u.id));
     return deads.length > 0
       ? { ok: true, candidateIds: deads.map((u) => u.id) }
       : { ok: false, reason: '无可复活目标（除主角外）' };

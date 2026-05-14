@@ -325,13 +325,30 @@ head('㉔冰凤寒啸');
 // ㉕ 元瑶 · 阴灵蔽日（夺非主角）
 head('㉕阴灵蔽日 Q65');
 {
+  // 模拟真实 S7B 战场的 unit id 命名
   const enemies = [
-    { id: 'hero_xiaoyan', name: '萧焱', owner: 'P2' }, // 主角 ✗
-    { id: 'ssr_x', owner: 'P2' }, // 可夺 ✓
+    { id: 'ai_hero_xiaoyan', name: '萧焱', owner: 'P2' },                   // AI 主角 ✗
+    { id: 'ai_hero_xiaoyan_partner_bsr_yinyue_0', owner: 'P2' },             // AI 搭档 ✓
+    { id: 'ai_fill_hero_xiaowu_1', owner: 'P2' },                            // AI 兜底卡 ✓
+    { id: 'ssr_x', owner: 'P2' },                                            // 玩家 SR 卡 ✓
   ];
-  const cand = enemies.filter((e) => !e.id.includes('hero_'));
+  // ⚠ 旧规则 e.id.includes('hero_') 会把 partner/fill 全错杀！
+  // 新规则用 isHeroUnitId helper，仅排除真正的主角 id（hero_xxx 或 ai_hero_xxx）
+  const HERO_NAMES = new Set(['xiaoyan', 'tangsan', 'xiaowu', 'hanli', 'wanglin', 'xuner']);
+  function isHeroUnitId(id) {
+    if (!id) return false;
+    let core = id;
+    if (core.startsWith('player_')) core = core.slice('player_'.length);
+    else if (core.startsWith('ai_')) core = core.slice('ai_'.length);
+    if (core.startsWith('fill_')) return false;
+    if (core.includes('_partner_') || core.includes('_fill_')) return false;
+    if (!core.startsWith('hero_')) return false;
+    return HERO_NAMES.has(core.slice('hero_'.length));
+  }
+  const cand = enemies.filter((e) => !isHeroUnitId(e.id));
   console.log(`  候选: ${cand.map((e) => e.id).join(',')}`);
-  if (cand.length === 1) pass('Q65 非主角过滤正确');
+  if (cand.length === 3) pass('Q65 非主角过滤正确（区分 AI 主角 / 搭档 / 兜底卡 / SR 卡）');
+  else console.log(`  ❌ 期望3个候选（partner/fill/ssr_x），实际 ${cand.length} 个`);
 }
 
 // ㉖ 许立国 · 天罡元婴·重塑 Q71
