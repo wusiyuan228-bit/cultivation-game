@@ -885,31 +885,144 @@ export const S7D_Battle: React.FC = () => {
   }, [battleState, reinforceModal]);
 
   // AI 自动补位：AI 玩家的 reinforceTask 立即从手牌选第 1 张填入默认出生点
+  // 🔧 2026-05-14 重构（AI 队友阵亡后不补位 fix）：
+  //   - 原版只尝试 spawns[0]，若该格被敌方占据就直接放弃，导致 task 永留在 reinforceQueue
+  //   - 而 phase='reinforce' 只在队列清空时才解除 → 整局战斗永远卡在 reinforce 态
+  //   - AI 行动 useEffect 因为 phase==='reinforce' 永不执行 → 全场死锁
+  //   修复：
+  //   1) 遍历该玩家所有可用出生点直到 deploy 成功
+  //   2) 候选卡也按 candidateInstanceIds 顺序逐张尝试（防止某张已被消费/不可补位）
+  //   3) 实在补不上 → 直接清掉这个 task（无伤害的容错），让 phase 解除、战斗继续
+  //   4) 详尽 console 日志便于复现时定位
   useEffect(() => {
     if (!battleState) return;
     const aiTasks = battleState.reinforceQueue.filter((t) => t.ownerId !== 'player');
     if (aiTasks.length === 0) return;
-    console.log('[S7D_Battle] 处理 AI 补位任务', aiTasks.length, '个');
+    console.log('[S7D_Battle] 处理 AI 补位任务', aiTasks.length, '个', aiTasks);
+
     for (const task of aiTasks) {
-      if (task.candidateInstanceIds.length === 0) {
-        console.warn('[S7D_Battle] AI 补位任务无候选卡', task);
+      // 重新读取最新候选卡（task.candidateInstanceIds 可能是旧快照，
+      // 如果某张卡已被前一个 task 消费过就会 not_in_hand 失败）
+      const stateNow = useS7DBattleStore.getState().state;
+      if (!stateNow) break;
+      const freshCandidates = Object.values(stateNow.units)
+        .filter((u) => u.ownerId === task.ownerId && u.zone === 'hand' && u.hp > 0)
+        .map((u) => u.instanceId);
+
+      if (freshCandidates.length === 0) {
+        console.warn(
+          '[S7D_Battle] AI 补位任务无候选卡（手牌已空），强制清理 task 解除死锁',
+          task,
+        );
+        // 强制清队（避免 phase 卡在 reinforce）
+        useS7DBattleStore.setState((prev) => {
+          if (!prev.state) return prev;
+          const newQueue = prev.state.reinforceQueue.filter(
+            (t) => !(t.ownerId === task.ownerId && t.slot === task.slot),
+          );
+          const newPhase: typeof prev.state.phase =
+            newQueue.length === 0 && prev.state.phase === 'reinforce'
+              ? 'sub_round_action'
+              : prev.state.phase;
+          return {
+            ...prev,
+            state: {
+              ...prev.state,
+              reinforceQueue: newQueue,
+              phase: newPhase,
+            },
+          };
+        });
         continue;
       }
-      const pickId = task.candidateInstanceIds[0];
+
       const spawns = getAvailableSpawns(task.ownerId);
       if (spawns.length === 0) {
-        console.warn('[S7D_Battle] AI 出生点全占用，跳过补位', task);
+        console.warn(
+          '[S7D_Battle] AI 出生点全部被占（敌方推进到家门口），强制清理 task 解除死锁',
+          { ownerId: task.ownerId, slot: task.slot, reason: task.reason },
+        );
+        // 同上：强制清队避免死锁
+        useS7DBattleStore.setState((prev) => {
+          if (!prev.state) return prev;
+          const newQueue = prev.state.reinforceQueue.filter(
+            (t) => !(t.ownerId === task.ownerId && t.slot === task.slot),
+          );
+          const newPhase: typeof prev.state.phase =
+            newQueue.length === 0 && prev.state.phase === 'reinforce'
+              ? 'sub_round_action'
+              : prev.state.phase;
+          return {
+            ...prev,
+            state: {
+              ...prev.state,
+              reinforceQueue: newQueue,
+              phase: newPhase,
+            },
+          };
+        });
+        // 写一条战报告知玩家
+        try {
+          logFn(`⚠️ ${task.ownerId} 出生点被堵无法补位（${task.reason}），跳过本次补位`);
+        } catch {
+          /* ignore */
+        }
         continue;
       }
-      const to = spawns[0];
-      const ret = deployFromHand(task.ownerId, pickId, task.slot, to);
-      if (!ret.ok) {
-        console.warn('[S7D_Battle] AI 自动补位失败:', ret.reason, task);
-      } else {
-        console.log('[S7D_Battle] AI 补位成功', task.ownerId, 'slot', task.slot);
+
+      // 多候选卡 × 多出生点，逐对尝试到成功为止
+      let success = false;
+      outer: for (const pickId of freshCandidates) {
+        for (const to of spawns) {
+          const ret = deployFromHand(task.ownerId, pickId, task.slot, to);
+          if (ret.ok) {
+            console.log(
+              '[S7D_Battle] AI 补位成功',
+              task.ownerId,
+              'slot',
+              task.slot,
+              '→',
+              `(${to.row},${to.col})`,
+              'card',
+              pickId,
+            );
+            success = true;
+            break outer;
+          } else {
+            console.debug(
+              '[S7D_Battle] AI deployFromHand 单次尝试失败:',
+              ret.reason,
+              { task: task.ownerId, slot: task.slot, pickId, to },
+            );
+          }
+        }
+      }
+      if (!success) {
+        console.error(
+          '[S7D_Battle] AI 补位所有候选组合均失败，强制清理 task 避免死锁',
+          task,
+        );
+        useS7DBattleStore.setState((prev) => {
+          if (!prev.state) return prev;
+          const newQueue = prev.state.reinforceQueue.filter(
+            (t) => !(t.ownerId === task.ownerId && t.slot === task.slot),
+          );
+          const newPhase: typeof prev.state.phase =
+            newQueue.length === 0 && prev.state.phase === 'reinforce'
+              ? 'sub_round_action'
+              : prev.state.phase;
+          return {
+            ...prev,
+            state: {
+              ...prev.state,
+              reinforceQueue: newQueue,
+              phase: newPhase,
+            },
+          };
+        });
       }
     }
-  }, [battleState?.reinforceQueue, deployFromHand, getAvailableSpawns]);
+  }, [battleState?.reinforceQueue, deployFromHand, getAvailableSpawns, logFn]);
 
   /** 玩家确认补位 */
   const handleReinforceConfirm = useCallback(
