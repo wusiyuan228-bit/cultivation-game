@@ -44,7 +44,7 @@ export interface TurnStats {
 export interface BattleUnit {
   /** 战场唯一 id（觉醒后不变） */
   id: string;
-  /** 卡面名称（觉醒会变，如"塘散"→"修罗·塘散"） */
+  /** 卡面名称（觉醒会变，如"塘散"→"冥煞·塘散"） */
   name: string;
   /** 修仙类型（剑/妖/体/灵/法/丹） */
   type: CultivationType;

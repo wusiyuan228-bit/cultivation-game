@@ -39,7 +39,7 @@ export const HEROES_DATA: Hero[] = [
       },
     },
     awakening: {
-      name: '修罗·塘散', trigger: '小舞儿退场',
+      name: '冥煞·塘散', trigger: '小舞儿退场',
       image: 'hero_tangsan_awaken',
       hp: 10, atk: 10, mnd: 3,
       skills: {
@@ -68,7 +68,7 @@ export const HEROES_DATA: Hero[] = [
       },
     },
     awakening: {
-      name: '献祭·小舞儿', trigger: '气血降至1',
+      name: '涅槃·小舞儿', trigger: '气血降至1',
       image: 'hero_xiaowu_awaken',
       hp: 1, atk: 1, mnd: 1,
       skills: {
@@ -97,7 +97,7 @@ export const HEROES_DATA: Hero[] = [
       },
     },
     awakening: {
-      name: '炎帝·萧焱', trigger: '场上有3张+斗破角色',
+      name: '焚天·萧焱', trigger: '场上有3张+斗破角色',
       image: 'hero_xiaoyan_awaken',
       hp: 9, atk: 10, mnd: 3,
       skills: {
@@ -155,7 +155,7 @@ export const HEROES_DATA: Hero[] = [
       },
     },
     awakening: {
-      name: '元婴·寒立', trigger: '累计击杀2名敌人',
+      name: '剑虚·寒立', trigger: '累计击杀2名敌人',
       image: 'hero_hanli_awaken',
       hp: 9, atk: 9, mnd: 4,
       skills: {

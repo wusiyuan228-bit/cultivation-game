@@ -2,9 +2,9 @@
  * 阶段 C 自测：觉醒系统
  *
  * 验证点：
- *   ① 小舞儿退场 → 塘散觉醒为"修罗·塘散"（atk/mnd/hp 原子替换）
- *   ② 小舞儿 hp 降至 1 → 小舞儿觉醒为"献祭·小舞儿"（hp重置为1、atk/mnd=1）
- *   ③ 寒立累计击杀2名敌人 → 寒立觉醒为"元婴·寒立"
+ *   ① 小舞儿退场 → 塘散觉醒为"冥煞·塘散"（atk/mnd/hp 原子替换）
+ *   ② 小舞儿 hp 降至 1 → 小舞儿觉醒为"涅槃·小舞儿"（hp重置为1、atk/mnd=1）
+ *   ③ 寒立累计击杀2名敌人 → 寒立觉醒为"剑虚·寒立"
  *   ④ 萧焱触发条件（场上3+斗破角色）：本阶段 C 环境只有2个斗破主角→不触发
  *   ⑤ 旺林：司徒南退场→觉醒（因 S7B 当前无司徒南 → 永不触发，符合预期）
  *   ⑥ 薰儿：古元在场+hp≤3→觉醒（因 S7B 当前无古元 → 永不触发，符合预期）
@@ -32,8 +32,8 @@ function testXiaowuLeaveTriggersTangsan() {
     { id: 'hero_xiaowu',  name: '小舞儿', hp: 0, atk: 6, mnd: 4, maxHp: 7, awakened: false, dead: true,  heroId: 'hero_xiaowu' },
   ];
   const BP = {
-    hero_tangsan: { awakened: { name: '修罗·塘散', hp: 10, atk: 10, mnd: 3, hpCap: 10 } },
-    hero_xiaowu:  { awakened: { name: '献祭·小舞儿', hp: 1, atk: 1, mnd: 1, hpCap: 1 } },
+    hero_tangsan: { awakened: { name: '冥煞·塘散', hp: 10, atk: 10, mnd: 3, hpCap: 10 } },
+    hero_xiaowu:  { awakened: { name: '涅槃·小舞儿', hp: 1, atk: 1, mnd: 1, hpCap: 1 } },
   };
   const TRIGGERS = {
     ally_xiaowu_leave: (self, all) => {
@@ -51,39 +51,39 @@ function testXiaowuLeaveTriggersTangsan() {
     tangsan.atk = data.atk; tangsan.mnd = data.mnd; tangsan.awakened = true;
   }
   console.log(`  觉醒后: ${tangsan.name} hp=${tangsan.hp}/${tangsan.maxHp} atk=${tangsan.atk} mnd=${tangsan.mnd}`);
-  console.log(tangsan.name === '修罗·塘散' && tangsan.atk === 10 ? '  ✅ 正确觉醒' : '  ❌');
+  console.log(tangsan.name === '冥煞·塘散' && tangsan.atk === 10 ? '  ✅ 正确觉醒' : '  ❌');
 }
 
 // ═════════════════════════════════════════════════════════════
 //  ② 小舞儿 hp=1 → 自身觉醒
 // ═════════════════════════════════════════════════════════════
 function testXiaowuSelfHp1() {
-  line('②小舞儿 hp=1→觉醒为献祭·小舞儿');
+  line('②小舞儿 hp=1→觉醒为涅槃·小舞儿');
   const xw = { id: 'hero_xiaowu', name: '小舞儿', hp: 1, atk: 6, mnd: 4, maxHp: 7, awakened: false, dead: false, heroId: 'hero_xiaowu' };
   const trigger = (self) => self.hp === 1 && !self.dead;
   const should = trigger(xw);
   console.log(`  hp=${xw.hp}, 触发=${should}`);
   if (should) {
-    xw.name = '献祭·小舞儿'; xw.hp = 1; xw.maxHp = 1; xw.atk = 1; xw.mnd = 1; xw.awakened = true;
+    xw.name = '涅槃·小舞儿'; xw.hp = 1; xw.maxHp = 1; xw.atk = 1; xw.mnd = 1; xw.awakened = true;
   }
   console.log(`  觉醒后: ${xw.name} hp=${xw.hp}/${xw.maxHp} atk=${xw.atk} mnd=${xw.mnd}`);
-  console.log(xw.name === '献祭·小舞儿' && xw.atk === 1 ? '  ✅' : '  ❌');
+  console.log(xw.name === '涅槃·小舞儿' && xw.atk === 1 ? '  ✅' : '  ❌');
 }
 
 // ═════════════════════════════════════════════════════════════
 //  ③ 寒立累计击杀 2 → 觉醒
 // ═════════════════════════════════════════════════════════════
 function testHanliKillCount() {
-  line('③寒立击杀2→觉醒为元婴·寒立');
+  line('③寒立击杀2→觉醒为剑虚·寒立');
   const hanli = { id: 'hero_hanli', name: '寒立', hp: 7, atk: 7, mnd: 4, maxHp: 7, killCount: 2, awakened: false, dead: false, heroId: 'hero_hanli' };
   const trigger = (self) => !self.dead && (self.killCount ?? 0) >= 2;
   const should = trigger(hanli);
   console.log(`  击杀数=${hanli.killCount}, 触发=${should}`);
   if (should) {
-    hanli.name = '元婴·寒立'; hanli.hp = 9; hanli.maxHp = 9; hanli.atk = 9; hanli.awakened = true;
+    hanli.name = '剑虚·寒立'; hanli.hp = 9; hanli.maxHp = 9; hanli.atk = 9; hanli.awakened = true;
   }
   console.log(`  觉醒后: ${hanli.name} hp=${hanli.hp}/${hanli.maxHp} atk=${hanli.atk}`);
-  console.log(hanli.name === '元婴·寒立' && hanli.atk === 9 ? '  ✅' : '  ❌');
+  console.log(hanli.name === '剑虚·寒立' && hanli.atk === 9 ? '  ✅' : '  ❌');
 }
 
 // ═════════════════════════════════════════════════════════════

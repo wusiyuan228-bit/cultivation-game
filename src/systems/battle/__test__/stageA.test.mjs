@@ -122,14 +122,14 @@ runAttack(
 // 场景 2: 修罗瞳·支配 —— 觉醒塘散攻/防双向 +2 骰
 // ════════════════════════════════════════
 runAttack(
-  { name: '修罗·塘散', type: '剑修', hp: 9, atk: 2, maxHp: 9, skills: ['修罗瞳·支配'] },
+  { name: '冥煞·塘散', type: '剑修', hp: 9, atk: 2, maxHp: 9, skills: ['修罗瞳·支配'] },
   { name: '敌方法修', type: '法修', hp: 7, atk: 3, maxHp: 7, skills: [] },
   '②修罗瞳·支配（攻骰 2→4）'
 );
 // 反向：塘散防御时
 runAttack(
   { name: '敌方法修', type: '法修', hp: 7, atk: 4, maxHp: 7, skills: [] },
-  { name: '修罗·塘散', type: '剑修', hp: 9, atk: 2, maxHp: 9, skills: ['修罗瞳·支配'] },
+  { name: '冥煞·塘散', type: '剑修', hp: 9, atk: 2, maxHp: 9, skills: ['修罗瞳·支配'] },
   '②修罗瞳·支配（防骰 2→4）'
 );
 
@@ -175,7 +175,7 @@ runAttack(
 // 场景 6: 噬金虫群 —— 伤害×2
 // ════════════════════════════════════════
 runAttack(
-  { name: '元婴·寒立', type: '剑修', hp: 10, atk: 4, maxHp: 10, skills: ['噬金虫群'] },
+  { name: '剑虚·寒立', type: '剑修', hp: 10, atk: 4, maxHp: 10, skills: ['噬金虫群'] },
   { name: '敌方法修', type: '法修', hp: 15, atk: 3, maxHp: 15, skills: [] },
   '⑥噬金虫群（×2 倍率）'
 );

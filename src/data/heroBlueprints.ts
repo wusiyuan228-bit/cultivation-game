@@ -57,7 +57,7 @@ export const HERO_BLUEPRINTS: Record<string, HeroBlueprint> = {
       portrait: 'hero_tangsan',
     },
     awakened: {
-      name: '修罗·塘散',
+      name: '冥煞·塘散',
       type: '灵修' as CultivationType,
       hp: 10, atk: 10, mnd: 3, hpCap: 10,
       skills: ['hero_tangsan.awaken.battle', 'hero_tangsan.awaken.ultimate'],
@@ -77,7 +77,7 @@ export const HERO_BLUEPRINTS: Record<string, HeroBlueprint> = {
       portrait: 'hero_xiaowu',
     },
     awakened: {
-      name: '献祭·小舞儿',
+      name: '涅槃·小舞儿',
       type: '妖修' as CultivationType,
       hp: 1, atk: 1, mnd: 1, hpCap: 1,
       skills: ['hero_xiaowu.awaken.battle', 'hero_xiaowu.awaken.ultimate'],
@@ -97,7 +97,7 @@ export const HERO_BLUEPRINTS: Record<string, HeroBlueprint> = {
       portrait: 'hero_xiaoyan',
     },
     awakened: {
-      name: '炎帝·萧焱',
+      name: '焚天·萧焱',
       type: '法修' as CultivationType,
       hp: 9, atk: 10, mnd: 3, hpCap: 9,
       skills: ['hero_xiaoyan.awaken.battle', 'hero_xiaoyan.awaken.ultimate'],
@@ -137,7 +137,7 @@ export const HERO_BLUEPRINTS: Record<string, HeroBlueprint> = {
       portrait: 'hero_hanli',
     },
     awakened: {
-      name: '元婴·寒立',
+      name: '剑虚·寒立',
       type: '剑修' as CultivationType,
       hp: 9, atk: 9, mnd: 4, hpCap: 9,
       skills: ['hero_hanli.awaken.battle', 'hero_hanli.awaken.ultimate'],
