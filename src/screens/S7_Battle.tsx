@@ -50,6 +50,7 @@ import {
 } from '@/systems/battle/skillCastability';
 import { SkillRegistry } from '@/systems/battle/skillRegistry';
 import { ReviveAllocateModal } from '@/components/battle/ReviveAllocateModal';
+import { TurnStartChoiceModal } from '@/components/battle/TurnStartChoiceModal';
 import styles from './S7_Battle.module.css';
 
 /* ======== 地图格子尺寸常量 ======== */
@@ -1773,6 +1774,52 @@ export const S7_Battle: React.FC = () => {
         pending={battle.pendingRevive}
         onConfirm={(payload) => battle.confirmReviveAllocate(payload)}
         onCancel={() => battle.cancelReviveAllocate()}
+      />
+
+      {/* ─── 玩家可控的 turn-start 技能弹窗
+              （凝荣荣·七宝琉璃·加持、奥斯卡·香肠、谷鹤·聚元炉、雅妃·补给、
+                田云子·命格、云雀子·窃元 等 12 个 turn-start 类，2026-05-14 接入）─── */}
+      <TurnStartChoiceModal
+        pending={battle.pendingTurnStartChoice}
+        resolveUnit={(id) => {
+          const u = battle.units.find((x) => x.id === id);
+          if (!u) return null;
+          return {
+            id: u.id,
+            name: u.name,
+            hp: u.hp,
+            hpMax: u.maxHp,
+            atk: u.atk,
+            mnd: u.mnd,
+            isEnemy: u.isEnemy,
+          };
+        }}
+        onConfirm={(targetId, stat) =>
+          battle.confirmTurnStartChoice(targetId, stat)
+        }
+        onCancel={() => battle.cancelTurnStartChoice()}
+      />
+
+      {/* ─── 玩家可控的 turn-end 技能弹窗（与 turn-start 对称） ─── */}
+      <TurnStartChoiceModal
+        pending={battle.pendingTurnEndChoice}
+        resolveUnit={(id) => {
+          const u = battle.units.find((x) => x.id === id);
+          if (!u) return null;
+          return {
+            id: u.id,
+            name: u.name,
+            hp: u.hp,
+            hpMax: u.maxHp,
+            atk: u.atk,
+            mnd: u.mnd,
+            isEnemy: u.isEnemy,
+          };
+        }}
+        onConfirm={(targetId, stat) =>
+          battle.confirmTurnEndChoice(targetId, stat)
+        }
+        onCancel={() => battle.cancelTurnEndChoice()}
       />
     </div>
   );

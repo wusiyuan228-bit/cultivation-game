@@ -35,6 +35,8 @@ import {
 import {
   dispatchTurnStartHooks,
   dispatchTurnEndHooks,
+  applyTurnStartChoice,
+  applyTurnEndChoice,
   type TurnStartDispatchCtx,
 } from '@/systems/battle/turnStartDispatcher';
 
@@ -266,7 +268,27 @@ function buildS7TurnHookCtx(
       const u = get().units.find((x) => x.id === uid);
       return !!u && !u.isEnemy && !u.dead;
     },
-    // S7 剿匪暂不支持 turn-start 选择弹窗，留空即可（dispatcher 退化为旧 hook 自动逻辑）
+    // ───────── 玩家弹窗能力（2026-05-14 接入剿匪场景） ─────────
+    // 让"行动轮可选发动"类技能（凝荣荣·七宝琉璃·加持、奥斯卡·香肠、
+    // 谷鹤·聚元炉、雅妃·补给、田云子·命格、云雀子·窃元等）在 S7 剿匪
+    // 中也能正常弹窗让玩家选择目标和属性，而不是退化为 AI 自动逻辑。
+    requestTurnStartChoice: (req) => {
+      // 同 actor 多个 interactive 技能仅暂存第一个（dispatcher 会 continue 后续）
+      if (get().pendingTurnStartChoice) return;
+      set({ pendingTurnStartChoice: req });
+      get().addLog(
+        `📜 「${req.promptTitle}」可发动 —— 等待玩家选择`,
+        'system',
+      );
+    },
+    requestTurnEndChoice: (req) => {
+      if (get().pendingTurnEndChoice) return;
+      set({ pendingTurnEndChoice: req });
+      get().addLog(
+        `📜 「${req.promptTitle}」可发动 —— 等待玩家选择`,
+        'system',
+      );
+    },
   };
 }
 
@@ -338,6 +360,49 @@ interface BattleState {
   /** 玩家放弃调整 → 保持默认 */
   cancelReviveAllocate: () => void;
 
+  /**
+   * 玩家可控的 on_turn_start 待决策状态（2026-05-14 剿匪场景接入）
+   *
+   * 当 turn_start dispatcher 检测到当前 actor 携带 interactiveOnTurnStart 元数据
+   * 且为玩家控制时，会调用 store.requestTurnStartChoice(...) 写入此字段。
+   * 此时 UI 应弹出"是否发动"对话框，玩家选定后调 confirmTurnStartChoice，
+   * 拒绝则调 cancelTurnStartChoice。
+   *
+   * 受益技能：凝荣荣·七宝琉璃·加持、奥斯卡·香肠、谷鹤·聚元炉、雅妃·补给、
+   * 黎沐婉·清羽、留眉·清思、田云子·命格、云雀子·窃元 等 12 个 turn-start 类。
+   */
+  pendingTurnStartChoice: {
+    actorId: string;
+    skillId: string;
+    promptTitle: string;
+    promptBody: string;
+    choices: Array<{ targetId: string; stats?: Array<'atk' | 'mnd' | 'hp'> }>;
+  } | null;
+  /** 玩家点确认；store 内会调 applyTurnStartChoice 跑技能并清空 pendingTurnStartChoice */
+  confirmTurnStartChoice: (
+    targetId: string,
+    stat: 'atk' | 'mnd' | 'hp' | undefined,
+  ) => void;
+  /** 玩家点否；store 仅清空 pendingTurnStartChoice，不结算技能 */
+  cancelTurnStartChoice: () => void;
+
+  /**
+   * turn-end 版弹窗（2026-05-14 · 大香肠等）
+   * 与 pendingTurnStartChoice 对称，触发时机是 endUnitTurn 中派发 turn-end hook 时
+   */
+  pendingTurnEndChoice: {
+    actorId: string;
+    skillId: string;
+    promptTitle: string;
+    promptBody: string;
+    choices: Array<{ targetId: string; stats?: Array<'atk' | 'mnd' | 'hp'> }>;
+  } | null;
+  confirmTurnEndChoice: (
+    targetId: string,
+    stat: 'atk' | 'mnd' | 'hp' | undefined,
+  ) => void;
+  cancelTurnEndChoice: () => void;
+
   initBattle: (
     heroUnit: Omit<BattleUnit, 'acted' | 'dead' | 'ultimateUsed' | 'immobilized' | 'stunned' | 'lastTerrain' | 'stepsUsedThisTurn' | 'attackedThisTurn'>,
     partnerUnit: Omit<BattleUnit, 'acted' | 'dead' | 'ultimateUsed' | 'immobilized' | 'stunned' | 'lastTerrain' | 'stepsUsedThisTurn' | 'attackedThisTurn'>,
@@ -388,6 +453,8 @@ const initialState = {
   actionQueue: [] as string[],
   actionIndex: 0,
   pendingRevive: null as BattleState['pendingRevive'],
+  pendingTurnStartChoice: null as BattleState['pendingTurnStartChoice'],
+  pendingTurnEndChoice: null as BattleState['pendingTurnEndChoice'],
 };
 
 export const useBattleStore = create<BattleState>((set, get) => ({
@@ -501,6 +568,8 @@ export const useBattleStore = create<BattleState>((set, get) => ({
       battleResult: null,
       actionQueue: playerQueue,
       actionIndex: 0,
+      pendingTurnStartChoice: null,
+      pendingTurnEndChoice: null,
     });
   },
 
@@ -1691,6 +1760,54 @@ export const useBattleStore = create<BattleState>((set, get) => ({
       'system',
     );
     set({ pendingRevive: null });
+  },
+
+  // ─────────────────────────────────────────────────────────────
+  // 玩家可控的 turn-start 选择确认 / 拒绝（2026-05-14 剿匪场景接入）
+  // ─────────────────────────────────────────────────────────────
+  confirmTurnStartChoice: (targetId, stat) => {
+    const pending = get().pendingTurnStartChoice;
+    if (!pending) return;
+    const ctx = buildS7TurnHookCtx(get, set);
+    try {
+      applyTurnStartChoice(pending.actorId, pending.skillId, targetId, stat, ctx);
+    } catch (e) {
+      console.error('[battleStore] applyTurnStartChoice threw:', e);
+    }
+    set({ pendingTurnStartChoice: null });
+  },
+  cancelTurnStartChoice: () => {
+    const pending = get().pendingTurnStartChoice;
+    if (!pending) return;
+    get().addLog(
+      `📜 玩家放弃发动「${pending.promptTitle}」`,
+      'system',
+    );
+    set({ pendingTurnStartChoice: null });
+  },
+
+  // ─────────────────────────────────────────────────────────────
+  // turn-end 版（与 turn-start 对称）
+  // ─────────────────────────────────────────────────────────────
+  confirmTurnEndChoice: (targetId, stat) => {
+    const pending = get().pendingTurnEndChoice;
+    if (!pending) return;
+    const ctx = buildS7TurnHookCtx(get, set);
+    try {
+      applyTurnEndChoice(pending.actorId, pending.skillId, targetId, stat, ctx);
+    } catch (e) {
+      console.error('[battleStore] applyTurnEndChoice threw:', e);
+    }
+    set({ pendingTurnEndChoice: null });
+  },
+  cancelTurnEndChoice: () => {
+    const pending = get().pendingTurnEndChoice;
+    if (!pending) return;
+    get().addLog(
+      `📜 玩家放弃发动「${pending.promptTitle}」`,
+      'system',
+    );
+    set({ pendingTurnEndChoice: null });
   },
 
   getCurrentActorId: () => {
