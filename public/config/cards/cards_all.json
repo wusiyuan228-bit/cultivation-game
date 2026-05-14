@@ -489,7 +489,7 @@
       },
       "awakening": {
         "name": "斗帝血脉·薰儿",
-        "trigger": "古元（绑定SSR）在场时气血降至3以下",
+        "trigger": "顾元（绑定SSR）在场时气血降至3以下",
         "hp": 8,
         "atk": 7,
         "mnd": 5,
@@ -687,7 +687,7 @@
       },
       "awakening": {
         "name": "仙尊·旺林",
-        "trigger": "司徒南（绑定SSR）退场",
+        "trigger": "司图楠（绑定SSR）退场",
         "hp": 10,
         "atk": 10,
         "mnd": 4,

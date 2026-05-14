@@ -52,27 +52,39 @@ line('① heroesData.ts 与 cards_all.json 的关键 desc 对齐');
     fail('塘散清心悟道仍含多余限制文案');
   }
 
-  // 3. 薰儿觉醒 trigger：古元（绑定SSR）在场时
-  if (heroesSrc.includes("trigger: '古元（绑定SSR）在场时气血降至3以下'")) {
-    pass('薰儿觉醒 trigger 已补"（绑定SSR）"');
+  // 3. 薰儿觉醒 trigger：顾元（绑定SSR）在场时
+  // 🔧 2026-05-14：薰儿/旺林作为主角名保留，但绑定的 SSR 搭档"古元/司徒南"已做防侵权改名为
+  //               "顾元/司图楠"（与 cards_all.json 卡牌名一致），trigger 文案需对齐卡名而非原型名
+  if (heroesSrc.includes("trigger: '顾元（绑定SSR）在场时气血降至3以下'")) {
+    pass('薰儿觉醒 trigger 已补"（绑定SSR）"且对齐防侵权卡名（顾元）');
   } else {
-    fail('薰儿觉醒 trigger 未对齐');
+    fail('薰儿觉醒 trigger 未对齐（应使用防侵权后的"顾元"）');
   }
 
-  // 4. 旺林觉醒 trigger：司徒南（绑定SSR）退场
-  if (heroesSrc.includes("trigger: '司徒南（绑定SSR）退场'")) {
-    pass('旺林觉醒 trigger 已补"（绑定SSR）"');
+  // 4. 旺林觉醒 trigger：司图楠（绑定SSR）退场
+  if (heroesSrc.includes("trigger: '司图楠（绑定SSR）退场'")) {
+    pass('旺林觉醒 trigger 已补"（绑定SSR）"且对齐防侵权卡名（司图楠）');
   } else {
-    fail('旺林觉醒 trigger 未对齐');
+    fail('旺林觉醒 trigger 未对齐（应使用防侵权后的"司图楠"）');
   }
 
   // 5. JSON 源头存在这些文案（保险检查）
   if (jsonSrc.includes('十字方向（上下左右各1格）')) pass('JSON 源头含"十字方向（上下左右各1格）"');
   else fail('JSON 源头文案异常');
-  if (jsonSrc.includes('古元（绑定SSR）')) pass('JSON 源头含"古元（绑定SSR）"');
-  else fail('JSON 源头文案异常');
-  if (jsonSrc.includes('司徒南（绑定SSR）')) pass('JSON 源头含"司徒南（绑定SSR）"');
-  else fail('JSON 源头文案异常');
+  // 🔧 2026-05-14：cards_all.json 中卡名已防侵权改为"顾元/司图楠"，但 trigger 字段
+  //               为了对玩家展示触发条件，仍引用搭档卡名 → 检查 trigger 字段含改名后的卡名
+  if (jsonSrc.includes('"trigger": "顾元（绑定SSR）在场时气血降至3以下"')) pass('JSON 源头 trigger 含"顾元（绑定SSR）"');
+  else if (jsonSrc.includes('古元（绑定SSR）')) {
+    fail('JSON 源头 trigger 仍写"古元"，需改为防侵权卡名"顾元"');
+  } else {
+    fail('JSON 源头 trigger 文案异常');
+  }
+  if (jsonSrc.includes('"trigger": "司图楠（绑定SSR）退场"')) pass('JSON 源头 trigger 含"司图楠（绑定SSR）"');
+  else if (jsonSrc.includes('司徒南（绑定SSR）')) {
+    fail('JSON 源头 trigger 仍写"司徒南"，需改为防侵权卡名"司图楠"');
+  } else {
+    fail('JSON 源头 trigger 文案异常');
+  }
 }
 
 /* ══════════════════════════════════════════════════ */
