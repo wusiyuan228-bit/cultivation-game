@@ -1504,7 +1504,12 @@
 
 .reinforceBox {
   width: min(1700px, 96vw);
-  height: min(1000px, 92vh);
+  /* 🔧 2026-05-14：高度改为 max-height，加保底最小值，避免在小屏挤压成扁条
+   * 原 height:min(1000px,92vh) 在 600px 高浏览器下变 552px，扣掉 header 约 460px
+   * 内部 .mainPanel 又写死 top:260px+bottom:40px → 主区高度仅 160px，确认按钮被裁。
+   * 现策略：高度自适应内容，超出 92vh 时 reinforceBody 滚动；保底 520px 确保按钮可见。 */
+  max-height: 92vh;
+  min-height: min(520px, 92vh);
   background: linear-gradient(180deg, #2a1e18, #1d1310);
   border: 2px solid #c8a14b;
   border-radius: 12px;
@@ -1537,16 +1542,34 @@
 
 .reinforceBody {
   flex: 1;
-  overflow: hidden;
+  /* 🔧 2026-05-14：横向不滚（防止水平卷轴打架），纵向允许滚动作为兜底
+   * 在 .screenEmbedded 已采用流式布局后，正常情况下不会触发；
+   * 但当浏览器高度 < 520 等极端情况时，确保确认按钮仍可滚动到点击。 */
+  overflow-x: hidden;
+  overflow-y: auto;
   position: relative;
 }
 
-/* 确保内嵌的 S7D_Lineup 正确填充容器 */
+/* 滚动条美化（与 reinforceBox 同色调） */
+.reinforceBody::-webkit-scrollbar {
+  width: 8px;
+}
+.reinforceBody::-webkit-scrollbar-thumb {
+  background: rgba(138, 113, 72, 0.5);
+  border-radius: 4px;
+}
+.reinforceBody::-webkit-scrollbar-track {
+  background: rgba(20, 13, 6, 0.4);
+}
+
+/* 🔧 2026-05-14：原先强制 height:100% + overflow:auto 让内嵌 S7D_Lineup 撑满容器，
+ * 但子组件大量元素是 absolute 定位（top:260px 等），小屏被压扁会裁掉确认按钮。
+ * 现改为：内嵌组件按内容自适应高度，由 .reinforceBody 兜底滚动。
+ * height 从 100% 改为 auto，让 screenEmbedded 的 min-height 生效。 */
 .reinforceBody > * {
   position: relative;
-  height: 100%;
   width: 100%;
-  overflow: auto;
+  min-height: 100%;
 }
 
 /* ==========================================================================
