@@ -1,30 +1,38 @@
-fix(story): 萧焱主角第四章加载失败（裸控制字符）+ 清理旧 ch2 文件
+fix(combat): 克制+1 被保底吃掉 + 小舞被动技 hover 永久"效果未知"
 
-真凶：
-story_ch4_萧焱.json 段落2 text 字段内嵌入了裸 CR/LF（位置1013，
-"……谢谢。" 之后两个空行），违反 RFC 8259。PowerShell 的 ConvertFrom-Json
-容忍此非法字符，但浏览器 / Node 严格模式 JSON.parse 直接抛 SyntaxError。
-所以本地校验和 PowerShell HEAD 测试都通过，只有萧焱主角进入第四章时
-浏览器加载失败。
+【问题1：修士克制保底吃掉】
+症状：云鹊子(法)6 vs 立飞羽(剑)7，战报"[克制+1] → 1点伤害"（用户期望2点）
+根因：旧伤害公式 damage = (aSum-dSum) + counter → max(1,d)
+      6-7+1 = 0 → max(1,0) = 1，克制被保底兜底吃掉
+修复：counter 移到 Math.max(1, d) 之后
+      6-7 = -1 → max(1,-1) = 1 → +counter = 2 ✅
+      正常情况(aSum-dSum>0)行为不变
+      克制成为"无视保底的额外伤害"，用户期望符合
+影响场景：[剿匪 S7] [大比 S7B/S7C] [决战 S7D] 全战场
+修改文件：
+  - src/stores/s7bBattleStore.ts
+  - src/stores/battleStore.ts
+  - src/utils/s7dAttackEngine.ts
+  - src/systems/battle/resolveAttack.ts
+  - src/systems/battle/__test__/stageK_liveBugFix.test.mjs（同步 regex）
 
-修复内容：
-1) public/config/story/story_ch4_萧焱.json：用状态机扫描字符串字面量
-   内的裸 CR/LF/TAB，全部转义为 \n / \r / \t（保留段落语义）
-2) src/utils/storyCache.ts 增强脏数据防御层：BOM 剥离 + 字符串内裸
-   控制字符自动转义重试（双重兜底）。下次再遇到类似问题不再阻塞玩家
-   流程，只在 console 打 warn
-3) scripts/fix-story-json.cjs：一次性修复 / 校验脚本，可在以后批量
-   替换剧情文件后跑 node scripts/fix-story-json.cjs 自动扫描修复
-4) 删除 6 个废弃的 story_ch2_*.json（仅保留 ch2a / ch2b）
-5) 更新 storyCache.ts 顶部 docstring 与 preloadEarlyChapters 注释
+【问题2：小舞无敌金身 hover 永远"效果未知"】
+症状：战报已显示"无敌金身生效"，但 hover 小舞仍显示"该敌方单位尚未发动过此技能"
+根因：UI 的 revealedEnemySkills 集合只监听 lastSkillEvent（主动技/绝技释放）
+      on_damage_calc 类被动 hook 写战报时从不更新 lastSkillEvent
+      所以被动技永远不会"被揭示"，hover 永远遮蔽
+修复：3 个战场 UI 的 hover 面板，遮蔽条件追加 && !bCheck?.isPassive
+      被动技无法主动释放，遮蔽 desc 没有意义；战报已经持续展示效果
+受益技能：所有 isPassive=true 的技能（无敌金身 / 古族血脉·共鸣 / 七十二路 / 焚决·噬焰 等）
+修改文件：
+  - src/screens/S7_Battle.tsx
+  - src/screens/S7B_Battle.tsx
+  - src/screens/S7D_Battle.tsx
+
+【手册】
+追加案例 11 到 02_策划文档/技能修复操作手册.md
 
 验证：
-- 全 43 个剧情 JSON 重新扫描：0 BOM, 0 invalid, 0 bad
 - tsc --noEmit: 0 error
 - vite build: 成功
-
-教训：
-- 校验剧情 JSON 必须用 Node.js / 浏览器，禁止仅用 PowerShell
-  ConvertFrom-Json（PowerShell 容忍 BOM + 裸控制字符，会误判为 OK）
-- 替换剧情文件后，运行 node scripts/fix-story-json.cjs 一键校验修复
-- 编辑器手敲段落分隔时切勿在字符串字面量内按回车，应使用 \n 转义
+- 单测：stageK 15/15 通过；其他 baseline 失败保持不变（不是本次引入）

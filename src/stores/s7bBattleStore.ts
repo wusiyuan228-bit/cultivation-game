@@ -1217,9 +1217,6 @@ export const useS7BBattleStore = create<BattleState>((set, get) => ({
       if (entry.source === '__final_damage__') continue;
       damage += entry.delta;
     }
-    // 克制关系（与 P0 的 damage_bonus 并列 ①）
-    const counterMod = isCounter(attacker.type, defender.type) ? 1 : 0;
-    if (counterMod) damage += counterMod;
     // 外部传入的 skillMod（兼容旧调用点）
     damage += skillMod;
     // ③ 翻倍类
@@ -1234,8 +1231,15 @@ export const useS7BBattleStore = create<BattleState>((set, get) => ({
         damage = Math.min(damage, entry.delta);
       }
     }
-    // ⑦ 最低伤害保底
+    // ⑦ 最低伤害保底（克制+1 之前先保底）
     damage = Math.max(1, damage);
+    // 🔧 2026-05-14：克制关系 +1 移到保底之后
+    // 修改原因：用户期望「保底 1 + 克制 1 = 2 点伤害」（云鹊子法 vs 立飞羽剑案例）
+    // 旧逻辑：(aSum-dSum) + counter → max(1, ...) 导致克制被保底吃掉
+    // 新逻辑：max(1, ...) + counter，克制成为"无视保底的额外伤害"，但仍受 cap 之外
+    // 注：此变更对正常情况（damage>0）无影响；只在差距大、被保底兜底时显现+1
+    const counterMod = isCounter(attacker.type, defender.type) ? 1 : 0;
+    if (counterMod) damage += counterMod;
 
     // 记录最终伤害供 on_after_hit 使用
     calcLog.push({ source: '__final_damage__', delta: damage, note: `最终伤害 = ${damage}` });

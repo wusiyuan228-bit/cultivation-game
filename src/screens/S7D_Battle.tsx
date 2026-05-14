@@ -1534,7 +1534,8 @@ export const S7D_Battle: React.FC = () => {
                         </span>
                       )}
                     </strong>
-                    {isEnemy && !battleRevealed ? (
+                    {/* 🔧 2026-05-14：被动技永不遮蔽 desc（S7D 同步 S7B/S7） */}
+                    {isEnemy && !battleRevealed && !bCheck?.isPassive ? (
                       <em style={{ opacity: .55 }}>效果未知（该敌方单位尚未发动过此技能）</em>
                     ) : (
                       <em>{previewUnit.battleSkill.desc}</em>
@@ -1567,7 +1568,7 @@ export const S7D_Battle: React.FC = () => {
                         </span>
                       )}
                     </strong>
-                    {isEnemy && !ultRevealed ? (
+                    {isEnemy && !ultRevealed && !uCheck?.isPassive ? (
                       <em style={{ opacity: .55 }}>效果未知（该敌方单位尚未发动过此绝技）</em>
                     ) : (
                       <em>{previewUnit.ultimate.desc}</em>

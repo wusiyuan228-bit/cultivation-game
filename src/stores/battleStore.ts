@@ -833,8 +833,6 @@ export const useBattleStore = create<BattleState>((set, get) => ({
       if (entry.source === '__final_damage__') continue;
       damage += entry.delta;
     }
-    const counterMod = isCounter(attacker.type, defender.type) ? 1 : 0;
-    if (counterMod) damage += counterMod;
     damage += skillMod;
     for (const entry of calcLog) {
       if (entry.source.endsWith('__multiplier__')) {
@@ -847,6 +845,9 @@ export const useBattleStore = create<BattleState>((set, get) => ({
       }
     }
     damage = Math.max(1, damage);
+    // 🔧 2026-05-14：克制 +1 移到保底之后（与 s7bBattleStore 同步）
+    const counterMod = isCounter(attacker.type, defender.type) ? 1 : 0;
+    if (counterMod) damage += counterMod;
     calcLog.push({ source: '__final_damage__', delta: damage, note: `最终伤害 = ${damage}` });
 
     // ★ 2026-05-10：普攻最终伤害走伤害管线（damage_redirect / damage_reduce / hp_floor）

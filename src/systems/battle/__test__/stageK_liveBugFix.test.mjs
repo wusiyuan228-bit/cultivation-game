@@ -160,7 +160,10 @@ line('④ 伤害计算 Phase ① 跳过 __cap__ 类 calcLog entry');
     'utf8',
   );
   // 关键：Phase ① 加减循环必须跳过 __cap__
-  const phase1Region = storeSrc.match(/\/\/ ① 攻方\/守方加减项[\s\S]{0,400}?(?:\/\/ 克制)/);
+  // 🔧 2026-05-14：「克制 +1」已挪到保底之后（用户期望 max(1,d)+counter=2）
+  // 旧 regex: 匹配 "// 攻方/守方加减项 ... // 克制" 区域
+  // 新 regex: 匹配 "// 攻方/守方加减项 ... // 外部传入的 skillMod"
+  const phase1Region = storeSrc.match(/\/\/ ① 攻方\/守方加减项[\s\S]{0,400}?(?:\/\/ 外部传入的 skillMod|\/\/ 克制)/);
   if (phase1Region && /entry\.source\.endsWith\('__cap__'\)\s*\)\s*continue/.test(phase1Region[0])) {
     pass('Phase ① 加减循环包含 "__cap__" continue 跳过');
   } else {

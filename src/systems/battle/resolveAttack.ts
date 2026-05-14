@@ -231,16 +231,6 @@ export function resolveAttack(
     if (entry.source === '__final_damage__') continue;
     damage += entry.delta;
   }
-  // 克制关系 +1（视同 damage_bonus，priority 同 TEMPORAL）
-  const counterBonus = isCounter(attacker.type, defender.type) ? 1 : 0;
-  if (counterBonus) {
-    damage += counterBonus;
-    ctx.calcLog.push({
-      source: '__counter__',
-      delta: +1,
-      note: `克制关系 +1（${attacker.type}→${defender.type}）`,
-    });
-  }
   // ③ 翻倍类（噬金虫群等）
   for (const entry of ctx.calcLog) {
     if (entry.source.endsWith('__multiplier__')) {
@@ -253,8 +243,19 @@ export function resolveAttack(
       damage = Math.min(damage, entry.delta);
     }
   }
-  // ⑦ 最低伤害保底
+  // ⑦ 最低伤害保底（克制+1 之前先保底）
   damage = Math.max(damage, MIN_ATTACK_DAMAGE);
+  // 🔧 2026-05-14：克制关系 +1 移到保底之后（与 s7bBattleStore / battleStore / s7dAttackEngine 同步）
+  // 用户期望：保底 1 + 克制 1 = 2 点伤害；克制不被保底吃掉
+  const counterBonus = isCounter(attacker.type, defender.type) ? 1 : 0;
+  if (counterBonus) {
+    damage += counterBonus;
+    ctx.calcLog.push({
+      source: '__counter__',
+      delta: +1,
+      note: `克制关系 +1（${attacker.type}→${defender.type}）`,
+    });
+  }
 
   // 记录最终伤害到 calcLog，供 on_after_hit 读取
   ctx.calcLog.push({

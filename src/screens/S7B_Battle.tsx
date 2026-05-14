@@ -2128,7 +2128,11 @@ export const S7B_Battle: React.FC = () => {
                   技能：{displayUnit.battleSkill.name}
                   {bCheck?.isPassive && <span style={{ opacity: .6, fontSize: 12, fontWeight: 'normal', marginLeft: 6 }}>（被动 · 持续生效）</span>}
                 </strong>
-                {isEnemy && !battleRevealed ? (
+                {/* 🔧 2026-05-14：被动技永不遮蔽 desc。
+                    被动技在战斗中持续生效（如小舞无敌金身被攻击时自动生效），
+                    战报会反复显示效果，遮蔽 desc 反而误导玩家。
+                    主动技仍按"是否释放过"决定是否揭示。 */}
+                {isEnemy && !battleRevealed && !bCheck?.isPassive ? (
                   <em style={{ opacity: .55 }}>效果未知（该敌方单位尚未发动过此技能）</em>
                 ) : (
                   <em>{displayUnit.battleSkill.desc}</em>
@@ -2143,7 +2147,7 @@ export const S7B_Battle: React.FC = () => {
                   绝技：{displayUnit.ultimate.name}
                   {displayUnit.ultimateUsed && <span className={styles.unitInfoUltimateUsed}>（已使用）</span>}
                 </strong>
-                {isEnemy && !ultRevealed ? (
+                {isEnemy && !ultRevealed && !uCheck?.isPassive ? (
                   <em style={{ opacity: .55 }}>效果未知（该敌方单位尚未发动过此绝技）</em>
                 ) : (
                   <em>{displayUnit.ultimate.desc}</em>

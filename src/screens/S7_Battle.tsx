@@ -1540,7 +1540,8 @@ export const S7_Battle: React.FC = () => {
                   技能：{displayUnit.battleSkill.name}
                   {bCheck?.isPassive && <span style={{ opacity: .6, fontSize: 12, fontWeight: 'normal', marginLeft: 6 }}>（被动 · 持续生效）</span>}
                 </strong>
-                {isEnemy && !battleRevealed ? (
+                {/* 🔧 2026-05-14：被动技永不遮蔽 desc（小舞无敌金身等被动技在战报中持续展现） */}
+                {isEnemy && !battleRevealed && !bCheck?.isPassive ? (
                   <em style={{ opacity: .55 }}>效果未知（该敌方单位尚未发动过此技能）</em>
                 ) : (
                   <em>{displayUnit.battleSkill.desc}</em>
@@ -1555,7 +1556,7 @@ export const S7_Battle: React.FC = () => {
                   绝技：{displayUnit.ultimate.name}
                   {displayUnit.ultimateUsed && <span className={styles.unitInfoUltimateUsed}>（已使用）</span>}
                 </strong>
-                {isEnemy && !ultRevealed ? (
+                {isEnemy && !ultRevealed && !uCheck?.isPassive ? (
                   <em style={{ opacity: .55 }}>效果未知（该敌方单位尚未发动过此绝技）</em>
                 ) : (
                   <em>{displayUnit.ultimate.desc}</em>

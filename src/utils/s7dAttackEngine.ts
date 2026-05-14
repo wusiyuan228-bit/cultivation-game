@@ -322,9 +322,6 @@ export function executeAttackWithHooks(
     if (entry.source === '__final_damage__') continue;
     damage += entry.delta;
   }
-  // 克制
-  const counterMod = isCounter(attacker.type, defender.type) ? 1 : 0;
-  if (counterMod) damage += counterMod;
   // 翻倍
   for (const entry of calcLog) {
     if (entry.source.endsWith('__multiplier__')) damage = damage * entry.delta;
@@ -335,6 +332,9 @@ export function executeAttackWithHooks(
   }
   // 最低 1
   damage = Math.max(1, damage);
+  // 🔧 2026-05-14：克制 +1 移到保底之后（与 s7bBattleStore / battleStore 同步）
+  const counterMod = isCounter(attacker.type, defender.type) ? 1 : 0;
+  if (counterMod) damage += counterMod;
   calcLog.push({ source: '__final_damage__', delta: damage, note: `最终=${damage}` });
 
   // —— 落实伤害到 snapshot.defender —— 
