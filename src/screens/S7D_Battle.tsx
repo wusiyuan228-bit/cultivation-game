@@ -447,19 +447,45 @@ export const S7D_Battle: React.FC = () => {
   );
 
   // moveRange（GridPos[]）—— 玩家方当前行动者的可达格
+  // 🔧 2026-05-14：依赖加上 position.row/col 与 stepsUsedThisTurn，
+  //   理由同 selectedPosForHook：单格走完后必须重算可达范围与起点。
+  //   另外 battleState 加入依赖，确保 store 任何变化（bump 后引用换了）都重算。
   const moveRangeList = useMemo<GridPos[]>(() => {
     if (!currentActor || !isPlayerTurn || isBattleEnded) return [];
     if (selectedUnitId !== currentActor.instanceId) return [];
     return getReachableCells(currentActor.instanceId);
-  }, [currentActor, isPlayerTurn, isBattleEnded, getReachableCells, selectedUnitId]);
+  }, [
+    currentActor,
+    currentActor?.position?.row,
+    currentActor?.position?.col,
+    currentActor?.stepsUsedThisTurn,
+    battleState,
+    isPlayerTurn,
+    isBattleEnded,
+    getReachableCells,
+    selectedUnitId,
+  ]);
 
   // selectedUnitPos：仅在玩家方行动且"已点选行动棋子"时启用路径预览
+  // 🔧 2026-05-14（黄色虚线残留 fix v2）：
+  //   依赖必须包含 currentActor.position.row/col 而非仅 currentActor 引用本身。
+  //   原因：s7dBattleStore.bump() 只浅拷贝 units map，单个 unit 对象引用不变；
+  //   moveUnitStep 直接 mutate u.position，currentActor 引用不变 → useMemo 不重算
+  //   → selectedPosForHook 永远是初始位置 (10,6)，路径 SVG 起点也卡死在 (10,6)。
+  //   解决：把具体坐标加入依赖数组，让 React 比较值而非引用。
   const selectedPosForHook = useMemo<{ row: number; col: number } | null>(() => {
     if (!currentActor || !currentActor.position) return null;
     if (!isPlayerTurn || isBattleEnded) return null;
     if (selectedUnitId !== currentActor.instanceId) return null;
     return { row: currentActor.position.row, col: currentActor.position.col };
-  }, [currentActor, isPlayerTurn, isBattleEnded, selectedUnitId]);
+  }, [
+    currentActor,
+    currentActor?.position?.row,
+    currentActor?.position?.col,
+    isPlayerTurn,
+    isBattleEnded,
+    selectedUnitId,
+  ]);
 
   const moveStepForHook = useCallback(
     (to: GridPos) => {
