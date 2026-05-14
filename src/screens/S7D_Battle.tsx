@@ -691,6 +691,13 @@ export const S7D_Battle: React.FC = () => {
           .log(
             `${unit.name} 从 (${from.row},${from.col}) 移动至 (${to.row},${to.col}) · 消耗 ${steps} 步`,
           );
+        // 🔧 2026-05-14（黄色虚线残留 fix）：
+        // 移动结束后，鼠标若没动，hoverCell 仍指向旧目标格。此时
+        // selectedUnitPos 已更新到新位置 + moveRangeKeySet 重新生效，
+        // hoverPath 会立即从"新位置→旧 hoverCell"再画出一条黄色虚线，
+        // 玩家观感是"上一段路径残留没擦掉"。
+        // 清掉 hoverCell 即可，鼠标重新移动到任意格才会重新生成预览。
+        setHoverCell(null);
       });
     },
     [moveUnit, hoverPath, computePathTo, startMoveAlong],

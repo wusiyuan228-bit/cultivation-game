@@ -2237,6 +2237,31 @@
   box-shadow: 0 0 16px rgba(80, 220, 150, 0.7), 0 0 6px rgba(80, 220, 150, 0.9) inset !important;
 }
 
+/* 当前行动者 + 已选中：绿色脉动覆盖金色脉动
+ * 由于 .unitPieceCurrent 用了 @keyframes 动画驱动 box-shadow，
+ * 普通的 .unitPieceSelected box-shadow !important 也压不过动画。
+ * 这里通过复合选择器 (特异性 0,2,0) 切换 animation 名，让动画本身变绿。
+ * 光晕大小 / 边框粗细与金色版（piecePulseS7B）严格一致，仅换色。 */
+.unitPieceCurrent.unitPieceSelected {
+  animation: piecePulseS7BSelected 1.2s ease-in-out infinite;
+  border: 3px solid #80dc96 !important;
+}
+
+@keyframes piecePulseS7BSelected {
+  0%, 100% {
+    box-shadow:
+      0 0 12px 2px rgba(128, 220, 150, 0.85),
+      0 0 28px 6px rgba(80, 200, 130, 0.55),
+      0 0 8px rgba(128, 220, 150, 0.9) inset;
+  }
+  50% {
+    box-shadow:
+      0 0 22px 4px rgba(128, 220, 150, 1),
+      0 0 48px 14px rgba(80, 200, 130, 0.75),
+      0 0 14px rgba(128, 220, 150, 1) inset;
+  }
+}
+
 /* 棋子内：头像 */
 .unitPieceAvatar {
   position: absolute;
