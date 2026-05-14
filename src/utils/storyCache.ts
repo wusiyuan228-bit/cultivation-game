@@ -80,7 +80,15 @@ export function fetchStory(heroId: HeroId, chapter: ChapterKey): Promise<StoryDa
   if (loading.has(key)) return loading.get(key)!;
 
   const p = fetchWithRetry(buildUrl(heroId, chapter))
-    .then((r) => r.json())
+    .then((r) => r.text())
+    .then((txt) => {
+      // 2026-05-14：BOM 防御层
+      // 部分编辑器（Win 记事本/Excel/某些VS Code 配置）保存 UTF-8 时会写入 BOM (EF BB BF)，
+      // JSON.parse 在 BOM 开头会抛 SyntaxError。这里统一剥掉首字符的 U+FEFF。
+      // 案例：story_ch2b_寒立 / story_ch4_小舞儿 / story_ch5_寒立 曾因此加载失败。
+      const cleaned = txt.charCodeAt(0) === 0xfeff ? txt.slice(1) : txt;
+      return JSON.parse(cleaned) as StoryData;
+    })
     .then((data: StoryData) => {
       cache.set(key, data);
       loading.delete(key);
