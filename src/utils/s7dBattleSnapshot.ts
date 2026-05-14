@@ -32,7 +32,7 @@ import { globalModStore } from '@/systems/battle/e2Helpers';
 import type { Modifier } from '@/systems/battle/types';
 
 /** Schema 版本号；后续若快照结构有不兼容变更，递增此值 */
-export const S7D_SNAPSHOT_SCHEMA = 1;
+export const S7D_SNAPSHOT_SCHEMA = 2;
 
 /** 完整快照对象的类型 */
 export interface S7DBattleSnapshot {
@@ -205,12 +205,26 @@ interface ModifierSnapshot {
 }
 
 interface DiagnosticsBundle {
-  /** 每个 owner 在 log 里出现过的 (bigRound, subRound) 集合（基于 actor_id 出现的 turn_start log） */
+  /**
+   * 每个 owner 在 log 里出现过的 (bigRound, subRound) 集合。
+   *
+   * S7D 引擎并不会 emit `kind: 'turn_start'` 的 log 事件，因此本字段改为：
+   * 扫描所有 `actorId` 不为空的 log entry（attack / move / skill_cast 等），
+   * 通过 `state.units[actorId].ownerId` 反查 owner，把对应的 (round, sub) 计入活动表。
+   *
+   * 这意味着只要某 owner 在某 (round, sub) 内由其任意单位发起过任何"可观测动作"，
+   * 就会被视为"曾行动过"。
+   */
   actorActivityByOwner: Record<
     string,
-    Array<{ round: number; sub: 1 | 2 }>
+    Array<{ round: number; sub: 1 | 2; actorIds: string[] }>
   >;
-  /** 每个 owner 当前是否有任意一槽为空 */
+  /**
+   * 每个 owner 的紧凑活动字符串，方便人眼扫描，例如：
+   * "ai_hero_xuner: R1-S1✅ R1-S2✅ R2-S1❌ R2-S2✅ R3-S1❌ ..."
+   */
+  activitySummaryByOwner: Record<string, string>;
+  /** 当前每个 owner 是否有任意一槽为空 */
   playersWithEmptySlot: string[];
   /** 当前不在场（zone≠field）但 hp>0 的单位（应该会被补位调度的候选） */
   benchAlive: Array<{ ownerId: string; instanceId: string; name: string; hp: number; zone: string }>;
@@ -218,7 +232,14 @@ interface DiagnosticsBundle {
   halfDeadInField: Array<{ ownerId: string; instanceId: string; name: string; hp: number }>;
   /** 当前 zone=grave 但仍有 fieldSlot/position 的"残留死尸"单位 */
   graveWithSlotResidue: Array<{ ownerId: string; instanceId: string; name: string; fieldSlot?: 1 | 2 }>;
-  /** 在战报里完全没出现 turn_start 的 (owner, round, sub) 三元组 */
+  /**
+   * 在战报里完全没出现 actor 活动的 (owner, round, sub) 三元组。
+   *
+   * 判定规则（更精确）：
+   *   - 该 owner 在战报开打到该 (round, sub) 之前未"出局"（无 owner_eliminated / crystal_destroyed 事件）
+   *   - 该 (round, sub) 没有任何 owner 名下的单位发起过 attack / move / skill_cast
+   *   - 排除战斗已结束之后的回合
+   */
   silentSkips: Array<{ ownerId: string; round: number; sub: 1 | 2 }>;
 }
 
@@ -430,29 +451,59 @@ function mapCrystal(c: S7DBattleState['crystalA']): CrystalSnapshot {
 }
 
 /**
- * 诊断包：自动从战报 + 当前状态扫出所有"行动轮次缺失"的可疑情况
+ * 诊断包：自动从战报 + 当前状态扫出所有"行动轮次缺失"的可疑情况。
+ *
+ * 核心思路：
+ *   S7D 引擎只 emit "结果型" log（attack / move / skill_cast / damage / round_start / sub_round_start ...）
+ *   不会 emit 任何 "turn_start" 事件。因此判定"某 owner 在某 (round, sub) 是否行动过"
+ *   只能通过扫描带 `actorId` 的事件、反查 ownerId 来归并。
+ *
+ *   一个 owner 在 (R, S) 行动过 ⇔ 战报里至少出现一次 actorId 属于该 owner、
+ *   bigRound==R、subRound==S 的 attack / move / skill_cast 事件。
  */
 function buildDiagnostics(state: S7DBattleState): DiagnosticsBundle {
-  // 1. 每个 owner 在哪些 (round, sub) 出现过 turn_start
-  const actorActivityByOwner: Record<string, Array<{ round: number; sub: 1 | 2 }>> = {};
+  // ── 1. actorActivityByOwner：聚合所有有 actorId 的 log
+  const actorActivityByOwner: Record<
+    string,
+    Array<{ round: number; sub: 1 | 2; actorIds: string[] }>
+  > = {};
   for (const p of state.players) {
     actorActivityByOwner[p.ownerId] = [];
   }
+
+  /** 视作"行动证据"的 log kind */
+  const ACTION_KINDS = new Set([
+    'attack',
+    'move',
+    'skill_cast',
+    // 万一以后真的加了 turn_start，也兼容
+    'turn_start',
+  ]);
+
   for (const entry of state.log) {
-    if (entry.kind !== 'turn_start') continue;
+    if (!ACTION_KINDS.has(entry.kind)) continue;
     if (!entry.actorId) continue;
+    if (!entry.subRound) continue;
     const u = state.units[entry.actorId];
     if (!u) continue;
-    const sub = (entry.subRound ?? 1) as 1 | 2;
+    const sub = entry.subRound as 1 | 2;
     const list = actorActivityByOwner[u.ownerId];
     if (!list) continue;
-    // 去重
-    if (!list.some((it) => it.round === entry.bigRound && it.sub === sub)) {
-      list.push({ round: entry.bigRound, sub });
+    let bucket = list.find((it) => it.round === entry.bigRound && it.sub === sub);
+    if (!bucket) {
+      bucket = { round: entry.bigRound, sub, actorIds: [] };
+      list.push(bucket);
+    }
+    if (!bucket.actorIds.includes(entry.actorId)) {
+      bucket.actorIds.push(entry.actorId);
     }
   }
+  // 按 round/sub 排序，便于阅读
+  for (const list of Object.values(actorActivityByOwner)) {
+    list.sort((a, b) => (a.round - b.round) || (a.sub - b.sub));
+  }
 
-  // 2. 当前哪些玩家有空槽
+  // ── 2. playersWithEmptySlot
   const playersWithEmptySlot: string[] = [];
   for (const p of state.players) {
     if (p.fieldSlots.slot1 === undefined || p.fieldSlots.slot2 === undefined) {
@@ -460,7 +511,7 @@ function buildDiagnostics(state: S7DBattleState): DiagnosticsBundle {
     }
   }
 
-  // 3. 当前 zone≠field 但 hp>0 的单位
+  // ── 3. benchAlive
   const benchAlive: DiagnosticsBundle['benchAlive'] = [];
   for (const u of Object.values(state.units)) {
     if (u.zone !== 'field' && u.hp > 0) {
@@ -474,7 +525,7 @@ function buildDiagnostics(state: S7DBattleState): DiagnosticsBundle {
     }
   }
 
-  // 4. hp<=0 但 zone=field 的"半死"单位
+  // ── 4. halfDeadInField
   const halfDeadInField: DiagnosticsBundle['halfDeadInField'] = [];
   for (const u of Object.values(state.units)) {
     if (u.hp <= 0 && u.zone === 'field') {
@@ -487,7 +538,7 @@ function buildDiagnostics(state: S7DBattleState): DiagnosticsBundle {
     }
   }
 
-  // 5. zone=grave 但 fieldSlot/position 残留的"死尸残留"
+  // ── 5. graveWithSlotResidue
   const graveWithSlotResidue: DiagnosticsBundle['graveWithSlotResidue'] = [];
   for (const u of Object.values(state.units)) {
     if (u.zone === 'grave' && (u.fieldSlot !== undefined || u.position !== undefined)) {
@@ -500,31 +551,126 @@ function buildDiagnostics(state: S7DBattleState): DiagnosticsBundle {
     }
   }
 
-  // 6. 静默跳过的 (owner, round, sub) 三元组：
-  //    遍历 log 里出现过的所有 (round, sub)，对每个 owner 检查是否有 turn_start，
-  //    若 owner 在该 (round, sub) 应当登场（fieldSlots 非空 / hp>0）但没有 turn_start，则记一笔
+  // ── 6. silentSkips：扫所有出现过的 (round, sub)，对每个 owner 检查是否有活动
+  //
+  //    "owner 已出局"判定：扫 log 中是否出现过该 owner 的 owner_eliminated 事件，
+  //    或其 heroId 名下所有单位都进入 grave。这里采用偏保守策略：
+  //      - 若 owner 当前 alive=false → 我们再扫 log，找到该 owner 第一次"完全出局"
+  //        的 (round, sub) 作为分界点；之后的所有 (R, S) 都不算 silentSkip。
+  //      - 若 owner 当前 alive=true → 整局所有 (R, S) 都该有活动。
   const allSubRounds = new Set<string>();
   for (const entry of state.log) {
     if (entry.subRound) allSubRounds.add(`${entry.bigRound}-${entry.subRound}`);
   }
-  const silentSkips: DiagnosticsBundle['silentSkips'] = [];
-  for (const key of allSubRounds) {
-    const [r, s] = key.split('-').map((x) => Number(x));
-    for (const p of state.players) {
-      if (!actorActivityByOwner[p.ownerId]) continue;
-      const acted = actorActivityByOwner[p.ownerId].some((it) => it.round === r && it.sub === s);
-      if (acted) continue;
-      // 当前是死透了的玩家就别记
-      if (!p.alive) continue;
-      // 这一刻该 owner 在 slotN（N 等于 sub）有可行动单位吗？
-      // 注意：这里只能用"当前"状态做近似判定，理想做法是按时间回放。
-      // 但导出时只取近似——把所有可疑的都列出来，让人审。
-      silentSkips.push({ ownerId: p.ownerId, round: r, sub: s as 1 | 2 });
+
+  /** 推算 owner 出局的 (round, sub)（含），之后不再追责 */
+  const ownerEliminatedAt: Record<string, { round: number; sub: 1 | 2 } | null> = {};
+  for (const p of state.players) {
+    ownerEliminatedAt[p.ownerId] = null;
+    if (p.alive) continue; // 还活着就 null
+    // 找该 owner 名下的所有 unit；其全部进入 grave 的最早 (round, sub) 作为出局点
+    const ownedUnits = p.instanceIds
+      .map((id) => state.units[id])
+      .filter(Boolean);
+    if (ownedUnits.length === 0) continue;
+    // 简化：取最晚的 deadAtBigRound/SubRound 作为"全队覆灭"时间
+    let latestRound = 0;
+    let latestSub: 1 | 2 = 1;
+    let allDead = true;
+    for (const u of ownedUnits) {
+      if (u.zone !== 'grave') {
+        allDead = false;
+        break;
+      }
+      const r = u.deadAtBigRound ?? 0;
+      const s = (u.deadAtSubRound ?? 1) as 1 | 2;
+      if (r > latestRound || (r === latestRound && s > latestSub)) {
+        latestRound = r;
+        latestSub = s;
+      }
     }
+    if (allDead && latestRound > 0) {
+      ownerEliminatedAt[p.ownerId] = { round: latestRound, sub: latestSub };
+    }
+  }
+
+  /** 战斗结束的 (round, sub)（含），之后的回合都不追责 */
+  let battleEndedAt: { round: number; sub: 1 | 2 } | null = null;
+  if (state.winner !== null && state.endReason !== null) {
+    // 找最后一条 round_end 或最大 (round, sub)
+    let maxR = 0;
+    let maxS: 1 | 2 = 1;
+    for (const entry of state.log) {
+      if (entry.bigRound > maxR || (entry.bigRound === maxR && (entry.subRound ?? 1) > maxS)) {
+        maxR = entry.bigRound;
+        maxS = (entry.subRound ?? 1) as 1 | 2;
+      }
+    }
+    if (maxR > 0) battleEndedAt = { round: maxR, sub: maxS };
+  }
+
+  const silentSkips: DiagnosticsBundle['silentSkips'] = [];
+  const sortedKeys = Array.from(allSubRounds).sort((a, b) => {
+    const [ar, as] = a.split('-').map(Number);
+    const [br, bs] = b.split('-').map(Number);
+    return (ar - br) || (as - bs);
+  });
+  for (const key of sortedKeys) {
+    const [r, s] = key.split('-').map((x) => Number(x));
+    const sub = s as 1 | 2;
+    // 战斗结束之后的不算
+    if (battleEndedAt) {
+      if (r > battleEndedAt.round || (r === battleEndedAt.round && sub > battleEndedAt.sub)) {
+        continue;
+      }
+    }
+    for (const p of state.players) {
+      const list = actorActivityByOwner[p.ownerId];
+      if (!list) continue;
+      const acted = list.some((it) => it.round === r && it.sub === sub);
+      if (acted) continue;
+      // owner 已出局之后不追责
+      const elim = ownerEliminatedAt[p.ownerId];
+      if (elim) {
+        if (r > elim.round || (r === elim.round && sub > elim.sub)) continue;
+      }
+      silentSkips.push({ ownerId: p.ownerId, round: r, sub });
+    }
+  }
+
+  // ── 7. activitySummaryByOwner：紧凑的"R1-S1✅ R1-S2❌"字符串
+  const activitySummaryByOwner: Record<string, string> = {};
+  // 收集战斗里出现过的所有 (round, sub) 并排序
+  const orderedSubs = sortedKeys.map((k) => {
+    const [rr, ss] = k.split('-').map(Number);
+    return { round: rr, sub: ss as 1 | 2 };
+  });
+  for (const p of state.players) {
+    const list = actorActivityByOwner[p.ownerId] || [];
+    const elim = ownerEliminatedAt[p.ownerId];
+    const segments: string[] = [];
+    for (const { round, sub } of orderedSubs) {
+      // 战斗结束后不展示
+      if (battleEndedAt) {
+        if (round > battleEndedAt.round || (round === battleEndedAt.round && sub > battleEndedAt.sub)) continue;
+      }
+      let mark = '✅';
+      const acted = list.some((it) => it.round === round && it.sub === sub);
+      if (!acted) {
+        if (elim && (round > elim.round || (round === elim.round && sub > elim.sub))) {
+          mark = '☠'; // 已出局
+        } else {
+          mark = '❌'; // 静默跳过
+        }
+      }
+      segments.push(`R${round}-S${sub}${mark}`);
+    }
+    activitySummaryByOwner[p.ownerId] = segments.join(' ');
   }
 
   return {
     actorActivityByOwner,
+    activitySummaryByOwner,
     playersWithEmptySlot,
     benchAlive,
     halfDeadInField,
