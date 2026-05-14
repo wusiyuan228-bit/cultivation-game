@@ -147,18 +147,26 @@ export function executeAttackWithHooks(
     logs.push({ kind, text });
   };
 
-  // ═══ 攻击入口·this_attack 残留兜底清理（2026-05-13 加固） ═══
+  // ═══ 攻击入口·this_attack 残留兜底清理（2026-05-14 修复） ═══
   // 防御性扫描：上一次 attack 末尾若因任何 return 路径绕过 cleanupAfterAttack
-  // 而残留 this_attack modifier（如千刃雪天使圣剑 atk+4），本次入口先驱散。
+  // 而残留 this_attack modifier，本次入口先驱散。
+  //
+  // ⚠ 但必须**排除本次攻防双方**的 this_attack modifier（千刃雪绝技 activeCast
+  // 先挂 atk+4 → followUpAttack 触发 attack，无差别清理会让绝技失效）。
   {
     const stale: string[] = [];
     globalModStore.forEach((m) => {
-      if (m.duration.type === 'this_attack') stale.push(m.id);
+      if (m.duration.type !== 'this_attack') return;
+      const sid = (m as any).sourceUnitId as string | undefined;
+      const tid = (m as any).targetUnitId as string | undefined;
+      if (sid === attackerId || sid === defenderId) return;
+      if (tid === attackerId || tid === defenderId) return;
+      stale.push(m.id);
     });
     if (stale.length > 0) {
       for (const id of stale) globalModStore.detach(id);
       console.warn(
-        `[s7dAttackEngine.attackAndApply] 入口清理了 ${stale.length} 个残留 this_attack modifier:`,
+        `[s7dAttackEngine.attackAndApply] 入口清理了 ${stale.length} 个第三方残留 this_attack modifier:`,
         stale,
       );
     }

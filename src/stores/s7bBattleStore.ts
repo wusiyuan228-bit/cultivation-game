@@ -996,19 +996,30 @@ export const useS7BBattleStore = create<BattleState>((set, get) => ({
     /*  让 SkillRegistry 的 hook 可以直接修改双方数值                  */
     /* ============================================================== */
 
-    // ═══ 攻击入口·this_attack 残留兜底清理（2026-05-13 加固） ═══
+    // ═══ 攻击入口·this_attack 残留兜底清理（2026-05-14 修复） ═══
     // 防御性扫描：上一次 attack 末尾若因任何 return 路径绕过 cleanupAfterAttack
-    // 而残留 this_attack modifier，本次入口先把它们全部驱散，避免"千刃雪绝技 +4
-    // 永久残留导致每次普攻多 4 骰"的级联 bug。
+    // 而残留 this_attack modifier（如千刃雪天使圣剑 atk+4 之前的残留），本次入口先驱散。
+    //
+    // ⚠ 但必须**排除本次攻防双方**的 this_attack modifier，因为：
+    //   - 千刃雪绝技流程：activeCast 挂 atk+4（this_attack, sourceUnitId=self）→ followUpAttack 触发 attack
+    //   - 若入口无差别清理，会把刚挂上的 atk+4 一起驱散，导致绝技 atk+4 完全失效。
+    //
+    // 旧逻辑（commit af6a228）忘了排除攻防双方，造成"绝技不生效"反向 bug。
     {
       const stale: string[] = [];
       globalModStore.forEach((m) => {
-        if (m.duration.type === 'this_attack') stale.push(m.id);
+        if (m.duration.type !== 'this_attack') return;
+        // 属于本次攻防双方的 this_attack modifier 一律保留（这是为本次攻击预备的）
+        const sid = (m as any).sourceUnitId as string | undefined;
+        const tid = (m as any).targetUnitId as string | undefined;
+        if (sid === attacker.id || sid === defender.id) return;
+        if (tid === attacker.id || tid === defender.id) return;
+        stale.push(m.id);
       });
       if (stale.length > 0) {
         for (const id of stale) globalModStore.detach(id);
         console.warn(
-          `[s7bBattleStore.attack] 入口清理了 ${stale.length} 个残留 this_attack modifier:`,
+          `[s7bBattleStore.attack] 入口清理了 ${stale.length} 个第三方残留 this_attack modifier:`,
           stale,
         );
       }

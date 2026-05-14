@@ -628,18 +628,26 @@ export const useBattleStore = create<BattleState>((set, get) => ({
     const attacker = units[aIdx];
     const defender = units[dIdx];
 
-    // ═══ 攻击入口·this_attack 残留兜底清理（2026-05-13 加固） ═══
+    // ═══ 攻击入口·this_attack 残留兜底清理（2026-05-14 修复） ═══
     // 防御性扫描：上一次 attack 末尾若因任何 return 路径绕过 cleanupAfterAttack
-    // 而残留 this_attack modifier，本次入口先把它们全部驱散。
+    // 而残留 this_attack modifier，本次入口先驱散。
+    //
+    // ⚠ 但必须**排除本次攻防双方**的 this_attack modifier（千刃雪绝技 activeCast
+    // 先挂 atk+4 → followUpAttack 触发 attack，无差别清理会让绝技失效）。
     {
       const stale: string[] = [];
       globalModStore.forEach((m) => {
-        if (m.duration.type === 'this_attack') stale.push(m.id);
+        if (m.duration.type !== 'this_attack') return;
+        const sid = (m as any).sourceUnitId as string | undefined;
+        const tid = (m as any).targetUnitId as string | undefined;
+        if (sid === attacker.id || sid === defender.id) return;
+        if (tid === attacker.id || tid === defender.id) return;
+        stale.push(m.id);
       });
       if (stale.length > 0) {
         for (const id of stale) globalModStore.detach(id);
         console.warn(
-          `[battleStore.attackReal] 入口清理了 ${stale.length} 个残留 this_attack modifier:`,
+          `[battleStore.attackReal] 入口清理了 ${stale.length} 个第三方残留 this_attack modifier:`,
           stale,
         );
       }
