@@ -1,38 +1,63 @@
-fix(combat): 克制+1 被保底吃掉 + 小舞被动技 hover 永久"效果未知"
+fix(skill+ui): 小舞无敌金身被动技 hover 隐藏 + 修士克制关系不生效 双修复
 
-【问题1：修士克制保底吃掉】
-症状：云鹊子(法)6 vs 立飞羽(剑)7，战报"[克制+1] → 1点伤害"（用户期望2点）
-根因：旧伤害公式 damage = (aSum-dSum) + counter → max(1,d)
-      6-7+1 = 0 → max(1,0) = 1，克制被保底兜底吃掉
-修复：counter 移到 Math.max(1, d) 之后
-      6-7 = -1 → max(1,-1) = 1 → +counter = 2 ✅
-      正常情况(aSum-dSum>0)行为不变
-      克制成为"无视保底的额外伤害"，用户期望符合
-影响场景：[剿匪 S7] [大比 S7B/S7C] [决战 S7D] 全战场
-修改文件：
-  - src/stores/s7bBattleStore.ts
-  - src/stores/battleStore.ts
-  - src/utils/s7dAttackEngine.ts
-  - src/systems/battle/resolveAttack.ts
-  - src/systems/battle/__test__/stageK_liveBugFix.test.mjs（同步 regex）
+────────────────── Bug 1：小舞·无敌金身 hover 隐藏 ──────────────────
+现象：小舞·无敌金身是被动技（被攻击致死时自动触发并保留 1 hp），
+战报已多次显示触发效果，玩家再次 hover 小舞却仍看到"效果未知（该敌方
+单位尚未发动过此技能）"。
 
-【问题2：小舞无敌金身 hover 永远"效果未知"】
-症状：战报已显示"无敌金身生效"，但 hover 小舞仍显示"该敌方单位尚未发动过此技能"
-根因：UI 的 revealedEnemySkills 集合只监听 lastSkillEvent（主动技/绝技释放）
-      on_damage_calc 类被动 hook 写战报时从不更新 lastSkillEvent
-      所以被动技永远不会"被揭示"，hover 永远遮蔽
-修复：3 个战场 UI 的 hover 面板，遮蔽条件追加 && !bCheck?.isPassive
-      被动技无法主动释放，遮蔽 desc 没有意义；战报已经持续展示效果
-受益技能：所有 isPassive=true 的技能（无敌金身 / 古族血脉·共鸣 / 七十二路 / 焚决·噬焰 等）
-修改文件：
-  - src/screens/S7_Battle.tsx
-  - src/screens/S7B_Battle.tsx
-  - src/screens/S7D_Battle.tsx
+根因：S7/S7B/S7D 三个战场的 hover tooltip 一刀切：
+  isEnemy && !battleRevealed → 显示"效果未知"
+没区分被动 / 主动。被动技在战斗中持续生效（不需"释放"动作），所以
+revealed 标记永远不会被设上，desc 被永久遮蔽 → 误导玩家。
 
-【手册】
-追加案例 11 到 02_策划文档/技能修复操作手册.md
+修复：3 个 UI 文件统一加判断：
+  isEnemy && !battleRevealed && !bCheck?.isPassive ? 遮蔽 : 显示
+绝技字段同步加 !uCheck?.isPassive。被动技永远展示 desc，主动技仍按
+"是否释放过"决定。
 
-验证：
-- tsc --noEmit: 0 error
-- vite build: 成功
-- 单测：stageK 15/15 通过；其他 baseline 失败保持不变（不是本次引入）
+受益技能：所有 isPassive=true 的被动技约 50+ 个（小舞无敌金身、薰儿
+古族血脉·共鸣、古元古族天火阵、奥斯卡香肠等）。
+
+────────────────── Bug 2：修士类型克制关系不生效 ──────────────────
+现象：云雀子(法)攻击立飞宇(剑)，符合 法→剑 克制关系，预期 1+1=2 点
+伤害（保底1+克制+1），实际只造成 1 点。
+
+根因：3 个 Store/Engine 的伤害结算流程顺序为
+  ① 加减项 → 克制+1 → ② 翻倍 → ⑥ cap → ⑦ max(1, …)
+克制 +1 在保底 max(1,…) 之前。当攻方修为 ≤ 守方修为，
+(aSum-dSum) 为负，加上克制+1 后仍可能 ≤ 0，被 max(1,…) 吃掉。
+
+修复：3 处 Store/Engine 同步改为
+  ① 加减项 → ② 翻倍 → ⑥ cap → ⑦ max(1, …) → 克制+1
+克制成为"无视保底的额外伤害"，但仍受 cap（cap 通常用于 hp_floor 类
+保护，与克制不冲突）。对正常情况（攻击高于防御）伤害值无影响；只在
+被保底兜底场景下显现 +1 差异（用户云鹊子→立飞羽案例）。
+
+修改文件（3 个 Store/Engine + 3 个 UI + 1 个测试）：
+  - src/stores/battleStore.ts          (剿匪 S7)
+  - src/stores/s7bBattleStore.ts        (大比 S7B/S7C)
+  - src/utils/s7dAttackEngine.ts        (决战 S7D)
+  - src/systems/battle/resolveAttack.ts (普攻通用伤害管线)
+  - src/screens/S7_Battle.tsx           (剿匪 hover tooltip)
+  - src/screens/S7B_Battle.tsx          (大比 hover tooltip)
+  - src/screens/S7D_Battle.tsx          (决战 hover tooltip)
+  - src/systems/battle/__test__/stageK_liveBugFix.test.mjs
+    （regex 同步：克制+1 后置后，phase ① 区域结束标志由 "// 克制"
+     改为 "// 外部传入的 skillMod"，向下兼容旧布局）
+
+────────────────── 验证 ──────────────────
+- npx tsc --noEmit                 0 error
+- node stageK_liveBugFix.test.mjs   15/15 通过（关键回归）
+- node stageL_systemicAudit.test.mjs 15/15 通过（系统性审计）
+- npx vite build                   built in 3.64s
+- 全部 stage 单测：12/16 套全过；剩 4 套失败均为历史遗留：
+    stageJ：薰儿/旺林觉醒 trigger 文档对齐（与本次修改无关）
+    stageO：唐昊未在 multiSegmentSkills（与本次修改无关）
+    stageP：SKILL_SYSTEM_OPTIMIZATION.md 含"非李飞羽"对照说明被误判
+    stageQ：被动技阈值告警（≥55 才通过，当前54，仅告警）
+
+────────────────── 教训沉淀 ──────────────────
+"克制+1"在伤害结算的位置是关键设计决策。挪到 max(1,…) 之后可保证
+"克制无视保底"，但任何后续在 max(1,…) 之后插入的钩子都需要明确
+是否要叠加在克制之上（目前 __final_damage__ entry 仍在最后写入，
+格式不变）。
