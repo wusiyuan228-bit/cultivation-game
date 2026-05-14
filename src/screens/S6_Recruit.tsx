@@ -711,12 +711,14 @@ export const S6_Recruit: React.FC = () => {
     // pool=1 → 第二章招募完成；pool=2 → 第三章招募完成；pool=3 → 第四章招募完成
     markPhaseDone(poolRound === 3 ? 4 : poolRound === 2 ? 3 : 2);
     SaveSystem.save(1);
-    // 招募3（S6c）完成 → 进入二次密谈 S8?round=2
+    // 招募3（S6c / 神灵降世）完成 → 直接切换到第五章剧情起点，不再进入中间密谈
     // 招募2（S6b）完成 → 切换到第四章并回到筹备页（而非直接跳剧情）
     // 招募1（S6a）完成 → 回筹备页 S6
     if (poolRound === 3) {
+      setChapter(5);
+      setSegmentIndex(0);
       SaveSystem.save(1);
-      navigate('/s8?round=2');
+      navigate('/story');
     } else if (poolRound === 2) {
       // ★ 关键顺序：setChapter 内部会重置 recruitDone=false，必须在它之后再 markRecruitDone
       //   否则筹备页会再次显示招募卡 → 玩家点击 → 又进入 S6b 死循环
@@ -1251,7 +1253,7 @@ export const S6_Recruit: React.FC = () => {
               ))}
             </div>
             <button className={styles.finishBtn} onClick={handleFinishRecruit}>
-              {poolRound === 3 ? '进入二次密谈' :
+              {poolRound === 3 ? '进入第五章剧情' :
                poolRound === 2 ? '返回筹备阶段' : '返回筹备阶段'}
             </button>
           </div>
