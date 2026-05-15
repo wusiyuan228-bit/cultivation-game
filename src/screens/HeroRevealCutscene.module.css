@@ -1,17 +1,18 @@
 /* ============================================================
-   仙缘初见 · 开场卡牌领取过场（专属样式）
-   - overlay 由 createPortal 挂到 document.body，不受 .app-stage transform 影响
-   - 反面（技能详情）使用 S4_StoryReading.module.css 的 detailView 样式
-   - 翻面按钮使用 S4 的 .flipBtn 样式（与已收集卡牌完全一致），本文件不再自定义
-   - 卡牌（含反面文字）通过 transform: scale 整体等比缩放，
-     从而在不污染 S4 样式、保持原版式的前提下随窗口自适应
+   仙缘初见 · 开场卡牌领取过场
+   ★ 自适应方案：本组件渲染在 .app-stage(1920×1080) 内
+     全程使用固定 px，由 App.tsx 的 transform: scale 整体等比缩放
+     与 S4 详情卡 / 抽卡演出 / 全项目其它 UI 行为完全一致
+   ★ 反面（技能详情）复用 S4_StoryReading.module.css 的 detailView
+   ★ 翻面按钮复用 S4 的 .flipBtn（42×42 圆形）
    ============================================================ */
 
+/* —— 半透明遮罩：覆盖整个 1920×1080 画布 —— */
 .overlay {
-  position: fixed;
+  position: absolute;
   inset: 0;
-  width: 100vw;
-  height: 100vh;
+  width: 1920px;
+  height: 1080px;
   background: radial-gradient(
     ellipse at center,
     rgba(20, 18, 38, 0.82) 0%,
@@ -26,7 +27,7 @@
 }
 
 /* ============================================================
-   阶段 1：透明光球 —— 整体用 vmin 自适应（视口短边）
+   阶段 1：透明光球
    ============================================================ */
 .orbWrap {
   position: relative;
@@ -35,18 +36,17 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  /* 容器尺寸跟随视口短边 */
-  width: min(360px, 50vmin);
-  height: min(480px, 70vmin);
+  width: 360px;
+  height: 480px;
 }
 
 .orbAura {
   position: absolute;
-  top: 6%;
+  top: 24px;
   left: 50%;
   transform: translateX(-50%);
-  width: min(320px, 45vmin);
-  height: min(320px, 45vmin);
+  width: 320px;
+  height: 320px;
   border-radius: 50%;
   background: radial-gradient(
     circle,
@@ -61,10 +61,10 @@
 
 .orb {
   position: relative;
-  width: min(200px, 28vmin);
-  height: min(200px, 28vmin);
+  width: 200px;
+  height: 200px;
   border-radius: 50%;
-  margin-top: min(60px, 8vmin);
+  margin-top: 60px;
   background: radial-gradient(
     circle at 35% 30%,
     rgba(255, 240, 200, 0.85) 0%,
@@ -99,8 +99,8 @@
   position: absolute;
   top: 18%;
   left: 22%;
-  width: min(36px, 5vmin);
-  height: min(36px, 5vmin);
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.78);
   filter: blur(4px);
@@ -108,8 +108,8 @@
 }
 
 .orbText {
-  margin-top: clamp(14px, 3vmin, 28px);
-  font-size: clamp(20px, 5vmin, 38px);
+  margin-top: 28px;
+  font-size: 38px;
   letter-spacing: 0.5em;
   color: #ffe6a0;
   text-shadow:
@@ -120,8 +120,8 @@
 }
 
 .orbHint {
-  margin-top: clamp(8px, 2vmin, 16px);
-  font-size: clamp(12px, 2vmin, 16px);
+  margin-top: 16px;
+  font-size: 16px;
   color: rgba(255, 230, 180, 0.65);
   letter-spacing: 0.15em;
   animation: orbHintBlink 1.8s ease-in-out infinite;
@@ -150,27 +150,26 @@
 
 /* ============================================================
    阶段 2：金光卡牌容器
-   - cardStage 全屏 fixed，内部 flex 居中
-   - 这样 cardWrap 与 continueBtn 都基于同一个全屏坐标系
+   - cardStage 也是 absolute 全画布，内部 flex 居中
+   - 卡牌、光晕全部依靠 .app-stage 的 transform: scale 自适应
    ============================================================ */
 .cardStage {
-  position: fixed;
+  position: absolute;
   inset: 0;
+  width: 1920px;
+  height: 1080px;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 100vw;
-  height: 100vh;
 }
 
-/* —— 卡牌后方：主光晕 + 外散光（位置不参与布局） —— */
+/* —— 卡牌后方：主光晕 + 外散光（不参与布局，画布内固定尺寸） —— */
 .goldenHalo {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: min(1100px, 90vmin);
-  height: min(1100px, 90vmin);
+  width: 1100px;
+  height: 1100px;
   transform: translate(-50%, -50%);
   background: radial-gradient(
     circle at center,
@@ -191,8 +190,8 @@
   position: absolute;
   top: 50%;
   left: 50%;
-  width: min(1700px, 140vmin);
-  height: min(1700px, 140vmin);
+  width: 1700px;
+  height: 1700px;
   transform: translate(-50%, -50%);
   background: radial-gradient(
     circle at center,
@@ -218,31 +217,18 @@
 }
 
 /* ============================================================
-   卡牌缩放外壳（cardScaler）：尺寸由组件 inline style 设置
-   - 组件层用 useResizeScale Hook 计算缩放比，并写到 inline style
-   - 这里只定义"它必然要满足"的属性
+   卡牌本体：固定 580×774（在 1920×1080 画布坐标系下）
+   - 不再做任何二次缩放，由 .app-stage 整体 transform: scale 处理自适应
+   - 与 S4 详情卡 640×854 行为完全一致（只是尺寸略小）
    ============================================================ */
-.cardScaler {
-  /* 实际宽高与 transform 由 inline style 设置 */
-  position: relative;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* —— 卡牌容器：保持设计稿原始尺寸 640×854 ——
-   不直接缩放本体，由外层 cardScaler 用 transform: scale 整体缩放
-   从而保证反面文字、padding、字号与 S4 详情页完全一致 */
 .cardWrap {
   position: relative;
-  width: 640px;
-  height: 854px;
+  width: 580px;
+  height: 774px;
   perspective: 2000px;
-  /* 转换原点 = 中心，配合 cardScaler 缩放 */
-  transform-origin: center center;
+  z-index: 2;
 
-  /* 紧贴卡牌的金色光晕（drop-shadow 会随 scale 一起缩，故无需另外控制） */
+  /* 紧贴卡牌的金色光晕（drop-shadow 自动随缩放） */
   filter:
     drop-shadow(0 0 24px rgba(255, 220, 140, 0.85))
     drop-shadow(0 0 60px rgba(255, 195, 90, 0.55))
@@ -264,9 +250,3 @@
       drop-shadow(0 0 150px rgba(255, 185, 80, 0.4));
   }
 }
-
-/* ============================================================
-   说明：底部按钮 / 提示文字均已去除。
-   - 「卡牌」阶段下点击卡牌外的任意空白处即可触发 onClose 进入第二章
-   - 卡牌内部点击仅做翻面（在组件层 stopPropagation）
-   ============================================================ */

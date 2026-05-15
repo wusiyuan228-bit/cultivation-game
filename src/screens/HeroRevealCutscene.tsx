@@ -3,27 +3,22 @@
  *
  * 三段动画：
  *   1) 透明光球居中浮现，文字"仙缘初见"提示玩家点击
- *   2) 点击光球 → 主角立绘卡（3:4，与"已收集卡牌"详情页同尺寸）
+ *   2) 点击光球 → 主角立绘卡（3:4，与"已收集卡牌"详情页同尺寸 580×774）
  *      由小到大放大出现，金色光晕环绕（首次入场专属）
  *   3) 卡牌可翻面：
- *       - 整卡任意位置点击翻面（与 S4 / CollectionModal 行为一致）
- *       - 右上角小圆按钮 ⟳（与已收集卡牌完全相同样式：42×42，圆形，单图标）
- *      正面 = 立绘大图  / 反面 = 技能详情看板（直接复用 S4 detailView 样式）
+ *       - 整卡任意位置点击翻面（与 CollectionModal 行为一致）
+ *       - 右上角 ⟳ 按钮（复用 S4 .flipBtn 样式）
  *
- * 进入第二章的交互：
- *   - 在「卡牌」阶段，点击卡牌之外的任意空白处即触发 onClose（跳转第二章）
- *   - 卡牌内部点击会被 cardWrap 的 stopPropagation 拦截（仅做翻面）
+ * 进入第二章：在「卡牌」阶段，点击卡牌之外的任意空白处即触发 onClose
  *
- * 关键工程点：
- *   - createPortal 到 document.body，绕开 .app-stage 的 transform: scale
- *   - 卡牌钉死在 viewport 几何中心：absolute + top/left:50% + translate(-50%,-50%)·scale(s)
- *     由于 CSS transform 从右往左执行，translate(-50%) 是按已缩放后的尺寸计算的
- *     → 元素几何中心精确对齐 viewport 中心，不论窗口怎么拉伸
- *   - 卡牌尺寸通过 calcScale() 自适应（高、宽两方向各取最小缩放比）
+ * 自适应方案（关键）：
+ *   ★ 本组件渲染在 .app-stage 内部，依赖 App.tsx 的 transform: scale 整体缩放
+ *   ★ 因此 overlay 用 position: absolute（覆盖 1920×1080 画布），不用 fixed
+ *   ★ 卡牌、光球都用固定 px 尺寸 → 自动随画布等比缩放，与 S4 详情卡 / 抽卡演出行为完全一致
+ *   ★ 严禁使用 createPortal 挂到 document.body，那会脱离画布缩放（UI_SPEC 明确禁令）
  */
 
-import React, { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { getHeroById } from '@/hooks/useConfig';
 import { getRealmAfterUps, useGameStore } from '@/stores/gameStore';
@@ -35,18 +30,6 @@ import styles from './HeroRevealCutscene.module.css';
 const RARITY_COLOR = '#ffd65e';
 const RARITY_LABEL = 'SSR';
 
-/** 卡牌设计稿原始尺寸（在 S4 已收集卡牌 640×854 基础上等比缩小到 580×774） */
-const CARD_DESIGN_W = 580;
-const CARD_DESIGN_H = 774;
-/**
- * 卡牌相对视口的最大占比（核心自适应参数）：
- *   - 高度最多占视口 78%（顶部+底部各留 ~11%）
- *   - 宽度最多占视口 58%（窄屏/竖屏时由宽度兜底）
- *   两者取最小值 → 永远等比缩放，永远不会贴屏
- */
-const MAX_HEIGHT_RATIO = 0.78;
-const MAX_WIDTH_RATIO = 0.58;
-
 const COUNTER_MAP: Record<CultivationType, { beats: string; beatenBy: string } | null> = {
   剑修: { beats: '妖修', beatenBy: '法修' },
   法修: { beats: '剑修', beatenBy: '灵修' },
@@ -55,23 +38,6 @@ const COUNTER_MAP: Record<CultivationType, { beats: string; beatenBy: string } |
   妖修: { beats: '体修', beatenBy: '剑修' },
   丹修: null,
 };
-
-/**
- * 计算卡牌的等比缩放系数：
- * - 卡牌高度 = viewport_h * MAX_HEIGHT_RATIO  → 缩放比 sh
- * - 卡牌宽度 = viewport_w * MAX_WIDTH_RATIO   → 缩放比 sw
- * - 两者取最小值（保证两个方向都不超出比例）
- * - 不再硬性 cap 到 1：在大屏上允许放大到 >1，在小屏上自然缩到 <1
- *   这样卡牌永远占据视口的固定比例，四周留白稳定
- */
-function calcScale(): number {
-  if (typeof window === 'undefined') return 1;
-  const w = window.innerWidth;
-  const h = window.innerHeight;
-  const sw = (w * MAX_WIDTH_RATIO) / CARD_DESIGN_W;
-  const sh = (h * MAX_HEIGHT_RATIO) / CARD_DESIGN_H;
-  return Math.max(0.2, Math.min(sw, sh));
-}
 
 interface Props {
   heroId: HeroId;
@@ -83,13 +49,6 @@ type Stage = 'orb' | 'card';
 export const HeroRevealCutscene: React.FC<Props> = ({ heroId, onClose }) => {
   const [stage, setStage] = useState<Stage>('orb');
   const [flipped, setFlipped] = useState(false);
-  const [scale, setScale] = useState<number>(() => calcScale());
-
-  useEffect(() => {
-    const onResize = () => setScale(calcScale());
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, []);
 
   const hero = getHeroById(heroId);
   const cardBonuses = useGameStore((s) => s.cardBonuses);
@@ -110,17 +69,15 @@ export const HeroRevealCutscene: React.FC<Props> = ({ heroId, onClose }) => {
 
   const toggleFlip = () => setFlipped((f) => !f);
 
-  const node = (
+  return (
     <motion.div
       className={styles.overlay}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.4 }}
-      onKeyDown={(e) => e.stopPropagation()}
       onClick={() => {
         // 仅在「卡牌」阶段，点击卡牌之外的任意空白处进入第二章
-        // 卡牌内部点击会被 cardWrap 的 stopPropagation 拦截，不会触发本回调
         if (stage === 'card') onClose();
       }}
     >
@@ -134,7 +91,7 @@ export const HeroRevealCutscene: React.FC<Props> = ({ heroId, onClose }) => {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 1.6 }}
             transition={{ duration: 0.6, ease: 'easeOut' }}
-            onClick={() => setStage('card')}
+            onClick={(e) => { e.stopPropagation(); setStage('card'); }}
           >
             <div className={styles.orbAura} />
             <div className={styles.orb}>
@@ -160,28 +117,20 @@ export const HeroRevealCutscene: React.FC<Props> = ({ heroId, onClose }) => {
             <div className={styles.goldenHalo} />
             <div className={styles.goldenRays} />
 
-            {/* 卡牌（直接 absolute 钉在 cardStage 中心 + transform: scale 等比缩放） */}
+            {/* 卡牌本体：固定 580×774，由 .app-stage 整体 transform: scale 自适应 */}
             <motion.div
               className={styles.cardWrap}
-              initial={{ scale: 0.05 * scale, opacity: 0 }}
-              animate={{ scale: scale, opacity: 1 }}
+              initial={{ scale: 0.05, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
               transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
-              style={{
-                position: 'absolute',
-                top: '50%',
-                left: '50%',
-                /* x:-50%, y:-50% 由 motion 加在 transform 末尾 */
-                x: '-50%',
-                y: '-50%',
-              }}
               onClick={(e) => e.stopPropagation()}
             >
-              {/* —— 翻面骨架：整卡可点翻面（与 CollectionModal 一致） —— */}
+              {/* 翻面骨架：整卡可点翻面（与 CollectionModal 一致） */}
               <div
                 className={`${s4Styles.flipContainer} ${flipped ? s4Styles.isFlipped : ''}`}
                 onClick={toggleFlip}
               >
-                {/* 右上角小圆按钮（与已收集卡牌一模一样：42×42 圆形，单图标） */}
+                {/* 右上角小圆按钮（复用 S4 .flipBtn 样式） */}
                 <button
                   type="button"
                   className={s4Styles.flipBtn}
@@ -192,7 +141,7 @@ export const HeroRevealCutscene: React.FC<Props> = ({ heroId, onClose }) => {
                   ⟳
                 </button>
 
-                {/* ===== 正面：立绘大图（默认显示，对应 cardFaceFront） ===== */}
+                {/* ===== 正面：立绘大图 ===== */}
                 <div
                   className={`${s4Styles.cardFace} ${s4Styles.cardFaceBack}`}
                   style={{ borderColor: RARITY_COLOR, transform: 'rotateY(0deg)' }}
@@ -210,7 +159,7 @@ export const HeroRevealCutscene: React.FC<Props> = ({ heroId, onClose }) => {
                   </div>
                 </div>
 
-                {/* ===== 反面：技能详情看板（与已收集卡牌详情页同款） ===== */}
+                {/* ===== 反面：技能详情看板（复用 S4 detailView） ===== */}
                 <div
                   className={`${s4Styles.cardFace} ${s4Styles.cardFaceFront}`}
                   style={{ borderColor: RARITY_COLOR, transform: 'rotateY(180deg)' }}
@@ -324,6 +273,4 @@ export const HeroRevealCutscene: React.FC<Props> = ({ heroId, onClose }) => {
       </AnimatePresence>
     </motion.div>
   );
-
-  return createPortal(node, document.body);
 };
