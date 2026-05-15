@@ -34,6 +34,7 @@ export const S5c_MentorshipChoice: React.FC = () => {
   const cardBonuses = useGameStore((s) => s.cardBonuses);
   const addSpiritStones = useGameStore((s) => s.addSpiritStones);
   const setMentorship = useGameStore((s) => s.setMentorship);
+  const applyAiMentorships = useGameStore((s) => s.applyAiMentorships);
   // 2026-05-13：拜师确认后插入"第二章后篇·入门余波"剧情阅读
   const setChapter = useGameStore((s) => s.setChapter);
   const setStorySubChapter = useGameStore((s) => s.setStorySubChapter);
@@ -68,10 +69,12 @@ export const S5c_MentorshipChoice: React.FC = () => {
     const opt = MENTORSHIP_OPTIONS.find((o) => o.id === selected);
     if (!opt) return;
     setMentorship(opt.id);
+    // 玩家拜师的同时，6 位 AI 主角也按 AI_MENTORSHIP_TABLE 同步获得拜师加成
+    applyAiMentorships();
     addSpiritStones(opt.reward.spiritStones);
     setConfirmed(opt);
     SaveSystem.save(1);
-  }, [selected, confirmed, setMentorship, addSpiritStones]);
+  }, [selected, confirmed, setMentorship, applyAiMentorships, addSpiritStones]);
 
   const handleAdvance = useCallback(() => {
     // 2026-05-13 流程调整：拜师完成 →（先读"第二章后篇·入门余波"）→ 筹备阶段（S6）

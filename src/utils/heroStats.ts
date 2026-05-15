@@ -9,13 +9,16 @@
  *     有效心境 = 基础心境 + cardBonuses[heroId].mnd + (主角且 includeMentor 时叠藏经阁)
  *
  *   - cardBonuses 来自 gameStore，存放每张卡（含主角）境界提升获得的三维+1
- *   - 拜师加成（御敌堂修为+1 / 藏经阁心境+1）只对**玩家自己控制的主角**生效
- *     —— 因此 includeMentor=true 仅在 heroId === 玩家 heroId 时使用
+ *   - 拜师加成区分玩家与 AI：
+ *       玩家主角 → battleBonus / knowledgeBonus（来自 setMentorship）
+ *       AI 主角  → aiMentorship[heroId] 决定（'yudi' → 修为+1，'danyao' → 心境+1）
+ *     —— 因此 includeMentor=true 时函数会根据 heroId 是否等于玩家 heroId 自动选择来源
  *
  * 使用约定
- *   - 战斗（S7/S7B/S7D）初始化时调用 getEffectiveHeroStats(heroId, { includeMentor: 是否玩家主角 })
- *   - 跑团界面（S3/S4/S5/S6 显示卡牌数值）调用 getEffectiveHeroStats(heroId, { includeMentor: 是否玩家主角 })
- *   - 非主角卡的 cardBonus 叠加由各调用点自行处理（heroStats 不负责普通卡）
+ *   - 战斗（S7/S7B/S7D）初始化时调用 getEffectiveHeroStats(heroId, { includeMentor: true })
+ *     → 玩家主角自动取玩家拜师，AI 主角自动取 AI 拜师
+ *   - 跑团界面（S3/S4/S5/S6 显示卡牌数值）同上
+ *   - 非主角卡的 cardBonus 叠加由 getEffectiveCardStats 处理
  * ─────────────────────────────────────────────────────────────────
  */
 
@@ -35,21 +38,22 @@ export interface EffectiveHeroStats {
   realmBonusHp: number;
   realmBonusAtk: number;
   realmBonusMnd: number;
-  /** 调试用：拜师带来的加成（仅玩家主角） */
+  /** 调试用：拜师带来的加成 */
   mentorBonusAtk: number;
   mentorBonusMnd: number;
 }
 
 export interface GetStatsOptions {
-  /** 是否叠加拜师加成（仅玩家自己控制的主角传 true） */
+  /**
+   * 是否叠加拜师加成（默认 true）。
+   * - true：函数自动根据 heroId 是玩家还是 AI 选择正确的拜师来源
+   * - false：只叠基础 + 境界提升，跳过拜师层（用于"对战时显示对方裸值"等特殊场景）
+   */
   includeMentor?: boolean;
 }
 
 /**
  * 计算指定主角的有效属性。
- *
- * @param heroId 主角 id
- * @param opts.includeMentor 是否叠加拜师加成（true 仅适用于玩家自己的主角）
  */
 export function getEffectiveHeroStats(
   heroId: HeroId,
@@ -76,9 +80,19 @@ export function getEffectiveHeroStats(
 
   let mentorAtk = 0;
   let mentorMnd = 0;
-  if (opts.includeMentor) {
-    mentorAtk = state.battleBonus ?? 0;     // 御敌堂 → 修为+1
-    mentorMnd = state.knowledgeBonus ?? 0;  // 藏经阁 → 心境+1
+  // 默认开启拜师加成；只有显式传 false 才跳过
+  const includeMentor = opts.includeMentor !== false;
+  if (includeMentor) {
+    if (heroId === state.heroId) {
+      // 玩家本人拜师 → 来自 setMentorship 写入的 battleBonus / knowledgeBonus
+      mentorAtk = state.battleBonus ?? 0;
+      mentorMnd = state.knowledgeBonus ?? 0;
+    } else {
+      // AI 主角拜师 → 来自 aiMentorship 表
+      const aiMentor = state.aiMentorship?.[heroId];
+      if (aiMentor === 'yudi') mentorAtk = 1;
+      else if (aiMentor === 'danyao') mentorMnd = 1;
+    }
   }
 
   return {

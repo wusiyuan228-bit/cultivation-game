@@ -6,7 +6,7 @@
  *   ② 招募道友（抽卡）— 暂占位（本版本S6抽卡尚未实装）
  *   ③ 进入下一回合 — 保留灵石进入下一章剧情
  */
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { BackButton } from '@/components/BackButton';
@@ -25,6 +25,7 @@ import { getHeroById } from '@/hooks/useConfig';
 import { getPoolCardById } from '@/systems/recruit/cardPoolLoader';
 import { getCachedImage } from '@/utils/imageCache';
 import { TYPE_TOKEN } from '@/data/heroConstants';
+import { getAiTargetRealmUps } from '@/data/aiProgression';
 import type { HeroId, CultivationType, Hero } from '@/types/game';
 import styles from './S6_Preparation.module.css';
 
@@ -78,6 +79,12 @@ export const S6_Preparation: React.FC = () => {
   const markPhaseDone = useGameStore((s) => s.markPhaseDone);
   const setChapter = useGameStore((s) => s.setChapter);
   const canEnterChapter = useGameStore((s) => s.canEnterChapter);
+  const applyAiRealmUps = useGameStore((s) => s.applyAiRealmUps);
+
+  // 进入筹备界面时，按当前章节同步 AI 主角的境界提升进度（幂等）
+  useEffect(() => {
+    applyAiRealmUps(getAiTargetRealmUps(chapter));
+  }, [applyAiRealmUps, chapter]);
 
   const hero = heroId ? getHeroById(heroId) : null;
 

@@ -2,7 +2,7 @@
  * S8 密谈环节 — v2（按用户口述规则重写）
  *
  * 规则：
- *  - 密谈次数 = ⌈主角战斗卡心境 (含 cardBonuses.mnd) ÷ 2⌉
+ *  - 密谈次数 = ⌈主角心境（含 cardBonuses.mnd + 藏经阁拜师加成）÷ 2⌉
  *  - 我 ≥ 对方 心境 → 必得对方已知线索池中的一条（未重复）
  *  - 对方 > 我 心境 → 50% 真话 / 50% 伪造假线索
  *
@@ -10,7 +10,7 @@
  *
  * 2026-05-01 v2 重写：改用 /config/events/npc_dialogues.json 作为问答源
  *   · 移除坦诚度设计
- *   · 心境值改取 battle_card.mnd + cardBonuses.mnd
+ *   · 心境值改为 getEffectiveHeroStats(id, { includeMentor: id===玩家heroId }).mnd
  */
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -38,20 +38,24 @@ import {
   type NegotiationResult,
 } from '@/data/s8NegotiationData';
 import { ensureBindCardsLoaded } from '@/systems/recruit/cardPoolLoader';
+import { getEffectiveHeroStats } from '@/utils/heroStats';
 import styles from './S8_Negotiation.module.css';
 
 type Stage = 'intro' | 'pickHero' | 'pickTopic' | 'answer' | 'allDone';
 
-/** 计算某主角的战斗卡心境（含境界提升加成） */
+/** 计算某主角的心境（含境界提升 + 玩家自己时叠加藏经阁拜师加成） */
 function useBattleMnd(heroId: HeroId | null): number {
   const cardBonuses = useGameStore((s) => s.cardBonuses);
+  const knowledgeBonus = useGameStore((s) => s.knowledgeBonus);
+  const playerHeroId = useGameStore((s) => s.heroId);
   return useMemo(() => {
     if (!heroId) return 0;
-    const hero = HEROES_DATA.find((h) => h.id === heroId);
-    const base = hero?.battle_card?.mnd ?? 0;
-    const bonus = cardBonuses[heroId]?.mnd ?? 0;
-    return base + bonus;
-  }, [heroId, cardBonuses]);
+    // 单一属性方案：取统一基础值 + 境界提升 + (是玩家本人时)藏经阁加成
+    const eff = getEffectiveHeroStats(heroId, { includeMentor: heroId === playerHeroId });
+    return eff.mnd;
+    // 依赖 cardBonuses/knowledgeBonus 仅为驱动 useMemo 重算
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [heroId, cardBonuses, knowledgeBonus, playerHeroId]);
 }
 
 export const S8_Negotiation: React.FC = () => {
@@ -127,8 +131,10 @@ export const S8_Negotiation: React.FC = () => {
     if (!selectedHero || !heroId) return;
 
     const targetHero = HEROES_DATA.find((h) => h.id === selectedHero);
-    const targetBonus = useGameStore.getState().cardBonuses[selectedHero]?.mnd ?? 0;
-    const targetMnd = (targetHero?.battle_card?.mnd ?? 0) + targetBonus;
+    // 对方是 AI 主角，自动叠加其 AI 拜师加成（getEffectiveHeroStats 默认 includeMentor: true）
+    const targetMnd = targetHero
+      ? getEffectiveHeroStats(selectedHero).mnd
+      : 0;
 
     const targetKnown = getAccumulatedClueTitles(selectedHero, round);
     const myOwned = clueEntries.map((e) => e.title);
@@ -466,9 +472,10 @@ const PickHeroPanel: React.FC<{
       <div className={styles.heroGrid}>
         {heroes.map((h) => {
           const full = HEROES_DATA.find((x) => x.id === h.id);
-          const base = full?.battle_card?.mnd ?? 0;
-          const bonus = cardBonuses[h.id]?.mnd ?? 0;
-          const targetMnd = base + bonus;
+          // AI 主角自带其拜师加成（getEffectiveHeroStats 默认开启 includeMentor）
+          const targetMnd = full
+            ? getEffectiveHeroStats(h.id).mnd
+            : 0;
           const isPair = isSpecialPair(askerHeroId, h.id);
           // 该 NPC 当前可问的"剩余真线索数" = NPC 累积线索池 - 玩家已持有
           const npcPool = getAccumulatedClueTitles(h.id, round);

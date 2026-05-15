@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import type { HeroId, SaveSlot, MentorshipId, S7DFinalResult } from '@/types/game';
+import { HEROES_DATA } from '@/data/heroesData';
+import { AI_MENTORSHIP_TABLE } from '@/data/aiProgression';
 
 /** 单张卡牌的游戏过程加成（境界提升等） */
 export interface CardBonus {
@@ -99,6 +101,13 @@ interface GameState {
   battleBonus: number;
   /** 知识心境判定加成（藏经阁拜师 → 心境+1） */
   knowledgeBonus: number;
+  /**
+   * AI 主角的拜师选择 → 决定 AI 主角的修为/心境拜师加成
+   *   yudi   → AI 修为+1
+   *   danyao → AI 心境+1
+   * 在玩家完成 S5c 后由 applyAiMentorships 一次性写入。
+   */
+  aiMentorship: Partial<Record<HeroId, MentorshipId>>;
   /** 卡牌境界（主角卡）—— 保留兼容旧存档 */
   mentalLevel: '凡人' | '炼气' | '筑基' | '结丹';
   /** 每张卡牌的个别属性加成（境界提升带来的三维+1） */
@@ -217,6 +226,17 @@ interface GameState {
   upgradeCardRealm: (cardId: string, currentRealm: string) => boolean;
   /** 获取指定卡牌的加成 */
   getCardBonus: (cardId: string) => CardBonus;
+  /**
+   * 给所有 AI 主角批量发放拜师加成（按 AI_MENTORSHIP_TABLE）。
+   * 玩家完成 S5c 后由 applyAiMentorships 一次性调用，重复调用幂等。
+   */
+  applyAiMentorships: () => void;
+  /**
+   * 给所有 AI 主角批量执行境界提升（不消耗灵石），让 cardBonuses[aiHeroId]
+   * 的 realmUps 达到目标次数。重复调用幂等。
+   * @param targetUps 目标累计提升次数（由章节决定）
+   */
+  applyAiRealmUps: (targetUps: number) => void;
   /** 标记当前章招募已完成 */
   markRecruitDone: () => void;
   /** 写入剿匪战（S7A）玩家击杀数（0~8）— 决定 S6b 抽卡顺序 */
@@ -293,6 +313,7 @@ const initial = {
   s5: { ...INITIAL_S5 },
   battleBonus: 0,
   knowledgeBonus: 0,
+  aiMentorship: {} as Partial<Record<HeroId, MentorshipId>>,
   mentalLevel: '凡人' as '凡人' | '炼气' | '筑基' | '结丹',
   cardBonuses: {} as Record<string, CardBonus>,
   recruitDone: false,
@@ -472,6 +493,43 @@ export const useGameStore = create<GameState>((set, get) => ({
     return get().cardBonuses[cardId] ?? EMPTY_BONUS;
   },
 
+  applyAiMentorships: () => set((s) => {
+    // 幂等：如果已经有任何 AI 拜师记录，直接返回（避免重复加成）
+    if (Object.keys(s.aiMentorship).length > 0) return {};
+    const next: Partial<Record<HeroId, MentorshipId>> = {};
+    for (const [heroId, mentorId] of Object.entries(AI_MENTORSHIP_TABLE)) {
+      // 跳过玩家自己（玩家走 setMentorship 路径）
+      if (heroId === s.heroId) continue;
+      next[heroId as HeroId] = mentorId as MentorshipId;
+    }
+    return { aiMentorship: next };
+  }),
+
+  applyAiRealmUps: (targetUps: number) => set((s) => {
+    if (!Number.isFinite(targetUps) || targetUps <= 0) return {};
+    const nextBonuses = { ...s.cardBonuses };
+    for (const hero of HEROES_DATA) {
+      // 跳过玩家自己（玩家通过 upgradeCardRealm 主动提升）
+      if (hero.id === s.heroId) continue;
+      const existing = nextBonuses[hero.id] ?? { ...EMPTY_BONUS };
+      // 当前已提升次数 < 目标次数 才需要补；同时不能超过飞升上限
+      let ups = existing.realmUps;
+      while (ups < targetUps && canUpgradeRealm(hero.realm, ups)) {
+        ups += 1;
+      }
+      const delta = ups - existing.realmUps;
+      if (delta > 0) {
+        nextBonuses[hero.id] = {
+          hp: existing.hp + delta,
+          atk: existing.atk + delta,
+          mnd: existing.mnd + delta,
+          realmUps: ups,
+        };
+      }
+    }
+    return { cardBonuses: nextBonuses };
+  }),
+
   markRecruitDone: () => set({ recruitDone: true }),
 
   setBanditKillCount: (n) => set({ lastBanditKillCount: Math.max(0, Math.min(8, Math.floor(n))) }),
@@ -540,6 +598,10 @@ export const useGameStore = create<GameState>((set, get) => ({
       s5: (s as any).s5 ?? { ...INITIAL_S5 },
       battleBonus: (s as any).battleBonus ?? 0,
       knowledgeBonus: (s as any).knowledgeBonus ?? 0,
+      aiMentorship: (() => {
+        const v = (s as any).aiMentorship;
+        return v && typeof v === 'object' && !Array.isArray(v) ? { ...v } : {};
+      })(),
       mentalLevel: (s as any).mentalLevel ?? '凡人',
       cardBonuses: (s as any).cardBonuses ?? {},
       recruitDone: (s as any).recruitDone ?? false,
@@ -611,6 +673,7 @@ export const SaveSystem = {
       s5: s.s5,
       battleBonus: s.battleBonus,
       knowledgeBonus: s.knowledgeBonus,
+      aiMentorship: s.aiMentorship,
       mentalLevel: s.mentalLevel,
       cardBonuses: s.cardBonuses,
       recruitDone: s.recruitDone,

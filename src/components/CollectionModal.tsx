@@ -180,7 +180,7 @@ export const CollectionModal: React.FC<Props> = ({
               const rarityColor = RARITY_COLOR[rarityLabel] ?? '#888';
               const toggleFlip = () => setCardFlipped((f) => !f);
 
-              // 主角卡属性 = 基础值 + 游戏过程中的加成（拜师/境界提升等）
+              // 单一属性方案：基础值 + 境界提升加成 + (主角且玩家自己时)拜师加成
               const isMainHero = detailCardId === heroId;
               const cardBonus = cardBonuses[detailCardId] ?? { hp: 0, atk: 0, mnd: 0, realmUps: 0 };
               const displayAtk = hero.run_card.atk + cardBonus.atk + (isMainHero ? battleBonus : 0);
@@ -232,23 +232,13 @@ export const CollectionModal: React.FC<Props> = ({
                             <div className={styles.detailRarity} style={{ color: rarityColor }}>{rarityLabel} · {hero.type}</div>
                             <div className={styles.detailRealm}>境界：{currentRealm}</div>
                             <div className={styles.statsBlock}>
-                              <div className={styles.statsLabel}>跑团卡属性</div>
+                              <div className={styles.statsLabel}>属性</div>
                               <div className={styles.detailStats}>
                                 <span>生命 {displayHp}{totalHpBonus > 0 ? <em style={{ color: '#5be05b', fontSize: 12, marginLeft: 2 }}>(+{totalHpBonus})</em> : null}</span>
                                 <span>修为 {displayAtk}{totalAtkBonus > 0 ? <em style={{ color: '#5be05b', fontSize: 12, marginLeft: 2 }}>(+{totalAtkBonus})</em> : null}</span>
                                 <span>心境 {displayMnd}{totalMndBonus > 0 ? <em style={{ color: '#5be05b', fontSize: 12, marginLeft: 2 }}>(+{totalMndBonus})</em> : null}</span>
                               </div>
                             </div>
-                            {chapter >= 5 && (
-                              <div className={styles.statsBlock}>
-                                <div className={styles.statsLabel}>决战卡属性</div>
-                                <div className={styles.detailStats}>
-                                  <span>生命 {hero.battle_card.hp}</span>
-                                  <span>修为 {hero.battle_card.atk}</span>
-                                  <span>心境 {hero.battle_card.mnd}</span>
-                                </div>
-                              </div>
-                            )}
                           </div>
                         </div>
                         <div className={styles.detailDivider} />

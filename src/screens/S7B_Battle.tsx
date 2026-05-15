@@ -33,6 +33,7 @@ import { effectiveStat, resolveStatSet } from '@/systems/battle/e2Helpers';
 import { TurnStartChoiceModal } from '@/components/battle/TurnStartChoiceModal';
 import { ReviveAllocateModal } from '@/components/battle/ReviveAllocateModal';
 import { getEffectiveHeroStats, getEffectiveCardStats } from '@/utils/heroStats';
+import { getAiTargetRealmUps } from '@/data/aiProgression';
 import styles from './S7_Battle.module.css';
 
 /**
@@ -546,6 +547,8 @@ export const S7B_Battle: React.FC = () => {
         '[S7B] 进入宗门大比但 heroId 为空 —— 主角数据丢失。请回主菜单从存档载入或重新开始游戏。'
       );
     }
+    // 同步 AI 主角的境界提升进度（按当前章节）—— 幂等
+    useGameStore.getState().applyAiRealmUps(getAiTargetRealmUps(useGameStore.getState().chapter));
   }, [heroId, setHero, addCard, urlParams.isTest, urlParams.isSect]);
 
   const battle = useS7BBattleStore();
@@ -776,14 +779,16 @@ export const S7B_Battle: React.FC = () => {
         const h = getHeroById(id as HeroId);
         const bonus = cardBonuses[id] ?? { hp: 0, atk: 0, mnd: 0, realmUps: 0 };
         if (h) {
+          // 招募来的"主角卡"也享受 AI 拜师加成（getEffectiveHeroStats 默认 includeMentor）
+          const eff = getEffectiveHeroStats(h.id);
           const bc = h.battle_card;
           return {
             id: h.id,
             name: h.name,
             type: h.type,
-            hp: bc.hp + bonus.hp,
-            atk: bc.atk + bonus.atk,
-            mnd: bc.mnd + bonus.mnd,
+            hp: eff.hp,
+            atk: eff.atk,
+            mnd: eff.mnd,
             battleSkill: bc.skills.battle_skill ? { name: bc.skills.battle_skill.name, desc: bc.skills.battle_skill.desc } : null,
             ultimate: bc.skills.ultimate ? { name: bc.skills.ultimate.name, desc: bc.skills.ultimate.desc } : null,
             portrait: getCachedImage(h.id),
@@ -792,13 +797,14 @@ export const S7B_Battle: React.FC = () => {
         // 非主角卡（R/N/SR/SSR）—— 从 poolCard 读取战斗技能与绝技
         const poolCard = getPoolCardById(id);
         if (poolCard) {
+          const cardEff = getEffectiveCardStats({ hp: poolCard.hp, atk: poolCard.atk, mnd: poolCard.mnd }, poolCard.id);
           return {
             id: poolCard.id,
             name: poolCard.name,
             type: poolCard.type as CultivationType,
-            hp: poolCard.hp + bonus.hp,
-            atk: poolCard.atk + bonus.atk,
-            mnd: poolCard.mnd + bonus.mnd,
+            hp: cardEff.hp,
+            atk: cardEff.atk,
+            mnd: cardEff.mnd,
             battleSkill: poolCard.battleSkill
               ? { name: poolCard.battleSkill.name, desc: poolCard.battleSkill.desc }
               : null,
@@ -817,8 +823,9 @@ export const S7B_Battle: React.FC = () => {
   const handleConfirmPartner = useCallback(
     (partnerIds: string[]) => {
       if (!hero) return;
-      const bonus = cardBonuses[heroId!] ?? { hp: 0, atk: 0, mnd: 0, realmUps: 0 };
       const bc = hero.battle_card;
+      // 单一属性方案：玩家主角 = 基础 + 境界提升 + 御敌堂/藏经阁拜师
+      const heroEff = getEffectiveHeroStats(hero.id);
 
       // MVP 技能 ID 映射
       const SKILL_ID_MAP: Record<string, string> = {
@@ -831,10 +838,10 @@ export const S7B_Battle: React.FC = () => {
         id: hero.id,
         name: heroName || hero.name,
         type: hero.type,
-        hp: bc.hp + bonus.hp,
-        maxHp: bc.hp + bonus.hp,
-        atk: bc.atk + bonus.atk + battleBonus,
-        mnd: bc.mnd + bonus.mnd + knowledgeBonus,
+        hp: heroEff.hp,
+        maxHp: heroEff.hp,
+        atk: heroEff.atk,
+        mnd: heroEff.mnd,
         isEnemy: false,
         row: 0,
         col: 0,
@@ -915,7 +922,7 @@ export const S7B_Battle: React.FC = () => {
 
       // ── 主角单元 ──
       const aiHeroBC = aiHero.battle_card;
-      const aiEff = getEffectiveHeroStats(aiHero.id, { includeMentor: false });
+      const aiEff = getEffectiveHeroStats(aiHero.id);
       const aiHeroUnit = {
         id: `ai_${aiHero.id}`,
         name: aiHero.name,
@@ -970,7 +977,7 @@ export const S7B_Battle: React.FC = () => {
       while (aiUnits.length < aiUnitCount) {
         const fillHero = shuffledHeroes[aiUnits.length] ?? shuffledHeroes[0];
         const fbc = fillHero.battle_card;
-        const fillEff = getEffectiveHeroStats(fillHero.id, { includeMentor: false });
+        const fillEff = getEffectiveHeroStats(fillHero.id);
         aiUnits.push({
           id: `ai_fill_${fillHero.id}_${aiUnits.length}`,
           name: fillHero.name,

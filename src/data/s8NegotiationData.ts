@@ -8,7 +8,7 @@
  *
  * 数据源：
  *   - 问题/答案：公共配置 /config/events/npc_dialogues.json (30组×3题=90题)
- *   - 心境值：heroesData.battle_card.mnd + gameStore.cardBonuses[id].mnd
+ *   - 心境值：getEffectiveHeroStats(id, { includeMentor: id===玩家heroId }).mnd
  *   - 每位 AI 主角的"已知线索池"：按剧情阶段写死（见 AI_KNOWN_CLUES_BY_ROUND）
  */
 

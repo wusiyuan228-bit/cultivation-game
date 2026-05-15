@@ -29,6 +29,7 @@ import { useReturnToMenu } from '@/hooks/useReturnToMenu';
 import { useGameStore } from '@/stores/gameStore';
 import { SaveSystem } from '@/stores/gameStore';
 import { getEffectiveHeroStats } from '@/utils/heroStats';
+import { getAiTargetRealmUps } from '@/data/aiProgression';
 import { useS7DBattleStore } from '@/stores/s7dBattleStore';
 import {
   S7D_MAP_COLS,
@@ -352,6 +353,11 @@ const dropReinforceTask = useS7DBattleStore((s) => s.dropReinforceTask);
           return;
         }
 
+        // ===== AI 模拟成长：让 AI 主角的境界提升与玩家所处章节同步 =====
+        // 幂等操作：若已是目标值则不再写入。getAiTargetRealmUps 按 chapter 决定累计次数。
+        const _curChapter = useGameStore.getState().chapter;
+        useGameStore.getState().applyAiRealmUps(getAiTargetRealmUps(_curChapter));
+
         const playerFaction: BattleFaction = finalFaction === 'B' ? 'B' : 'A';
         const playerHero = getHero(heroId);
         if (!playerHero) {
@@ -378,7 +384,7 @@ const dropReinforceTask = useS7DBattleStore((s) => s.dropReinforceTask);
         const aiLineupArr = Object.entries(aiLineups).map(([aiHeroId, lineup]) => {
           const aiHero = getHero(aiHeroId as HeroId);
           // AI 主角不享受拜师加成；境界加成（如未来策划要给 AI）会自动叠
-          const aiEff = aiHero ? getEffectiveHeroStats(aiHero.id, { includeMentor: false }) : null;
+          const aiEff = aiHero ? getEffectiveHeroStats(aiHero.id) : null;
           return {
             ownerId: aiOwnerIdOf(aiHeroId as HeroId),
             heroId: aiHeroId as HeroId,

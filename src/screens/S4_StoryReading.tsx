@@ -606,23 +606,13 @@ export const S4_StoryReading: React.FC = () => {
                               <div className={styles.detailRarity} style={{ color: rarityColor }}>{rarityLabel} · {h.type}</div>
                               <div className={styles.detailRealm}>境界：{currentRealm}</div>
                               <div className={styles.statsBlock}>
-                                <div className={styles.statsLabel}>跑团卡属性</div>
+                                <div className={styles.statsLabel}>属性</div>
                                 <div className={styles.detailStats}>
                                   <span>生命 {displayHp}{totalHpBonus > 0 ? <em style={{ color: '#5be05b', fontSize: 12, marginLeft: 2 }}>(+{totalHpBonus})</em> : null}</span>
                                   <span>修为 {displayAtk}{totalAtkBonus > 0 ? <em style={{ color: '#5be05b', fontSize: 12, marginLeft: 2 }}>(+{totalAtkBonus})</em> : null}</span>
                                   <span>心境 {displayMnd}{totalMndBonus > 0 ? <em style={{ color: '#5be05b', fontSize: 12, marginLeft: 2 }}>(+{totalMndBonus})</em> : null}</span>
                                 </div>
                               </div>
-                              {chapter >= 5 && (
-                                <div className={styles.statsBlock}>
-                                  <div className={styles.statsLabel}>决战卡属性</div>
-                                  <div className={styles.detailStats}>
-                                    <span>生命 {h.battle_card.hp}</span>
-                                    <span>修为 {h.battle_card.atk}</span>
-                                    <span>心境 {h.battle_card.mnd}</span>
-                                  </div>
-                                </div>
-                              )}
                             </div>
                           </div>
                           <div className={styles.detailDivider} />
