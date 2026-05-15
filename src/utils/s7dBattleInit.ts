@@ -37,6 +37,7 @@ import type { CultivationType, Hero, HeroId } from '@/types/game';
 import { HEROES_DATA } from '@/data/heroesData';
 import { S7D_CRYSTAL_A, S7D_CRYSTAL_B, S7D_SPAWN_A, S7D_SPAWN_B } from '@/data/s7dMap';
 import { asset } from '@/utils/assetPath';
+import { getEffectiveHeroStats, getEffectiveCardStats } from '@/utils/heroStats';
 
 // ==========================================================================
 // 卡池加载（本文件内独立缓存，避免耦合 s7dAiLineup）
@@ -132,14 +133,21 @@ interface BuildCardCtx {
   ownerId: BattleOwnerId;
   faction: BattleFaction;
   cardId: string;
+  /**
+   * 仅当 ownerId === 'player' 且 isHero 时为 true，
+   * 表示对该主角叠加拜师加成（御敌堂修为+1 / 藏经阁心境+1）。
+   * AI 控制的主角即使是同一个 Hero 数据，也不享受该玩家的拜师加成。
+   */
+  isPlayerHero?: boolean;
 }
 
 function buildCardInstance(ctx: BuildCardCtx, raw: RawCardData | null, hero: Hero | null): BattleCardInstance {
   const isHero = !!hero;
   const instanceId = `${ctx.ownerId}:${ctx.cardId}`;
 
-  // 主角卡：读取主角 battle_card 数据
+  // 主角卡：基础属性 + 境界加成 + (玩家主角时)拜师加成
   if (isHero && hero) {
+    const eff = getEffectiveHeroStats(hero.id, { includeMentor: !!ctx.isPlayerHero });
     const bc = hero.battle_card;
     return {
       instanceId,
@@ -152,13 +160,13 @@ function buildCardInstance(ctx: BuildCardCtx, raw: RawCardData | null, hero: Her
       type: hero.type,
       rarity: '主角',
       portrait: `hero/${hero.id}`,
-      hp: bc.hp,
-      hpMax: bc.hp,
-      atk: bc.atk,
-      mnd: bc.mnd,
-      hpInitial: bc.hp,
-      atkInitial: bc.atk,
-      mndInitial: bc.mnd,
+      hp: eff.hp,
+      hpMax: eff.hp,
+      atk: eff.atk,
+      mnd: eff.mnd,
+      hpInitial: eff.hp,
+      atkInitial: eff.atk,
+      mndInitial: eff.mnd,
       zone: 'hand', // 先入手牌，后续由 placeStarterOnField 挪到战斗区
       immobilized: false,
       stunned: false,
@@ -224,6 +232,14 @@ function buildCardInstance(ctx: BuildCardCtx, raw: RawCardData | null, hero: Her
     };
   }
 
+  // 普通战卡：基础属性 + (玩家持卡时)境界加成
+  // 只有玩家自己投入境界提升的卡才在 cardBonuses 中有记录；AI 持卡的 cardBonus 总是空，
+  // 因此对所有 ownerId 统一调用 getEffectiveCardStats 是安全的。
+  const eff = getEffectiveCardStats(
+    { hp: raw.hp, atk: raw.atk, mnd: raw.mnd },
+    raw.id,
+  );
+
   return {
     instanceId,
     cardId: ctx.cardId,
@@ -234,13 +250,13 @@ function buildCardInstance(ctx: BuildCardCtx, raw: RawCardData | null, hero: Her
     type: raw.type,
     rarity: raw.rarity,
     portrait: raw.image ?? raw.portrait ?? '',
-    hp: raw.hp,
-    hpMax: raw.hp,
-    atk: raw.atk,
-    mnd: raw.mnd,
-    hpInitial: raw.hp,
-    atkInitial: raw.atk,
-    mndInitial: raw.mnd,
+    hp: eff.hp,
+    hpMax: eff.hp,
+    atk: eff.atk,
+    mnd: eff.mnd,
+    hpInitial: eff.hp,
+    atkInitial: eff.atk,
+    mndInitial: eff.mnd,
     zone: 'hand',
     immobilized: false,
     stunned: false,
@@ -362,7 +378,7 @@ export async function initS7DBattle(params: S7DBattleInitParams): Promise<S7DBat
     const isHero = cardId === playerHeroId;
     const raw = idx.get(cardId) ?? null;
     const u = buildCardInstance(
-      { ownerId: playerOwnerId, faction: playerFaction, cardId },
+      { ownerId: playerOwnerId, faction: playerFaction, cardId, isPlayerHero: isHero },
       raw,
       isHero ? playerHero : null,
     );

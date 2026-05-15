@@ -24,6 +24,7 @@ import { MusicToggle } from '@/components/MusicToggle';
 import { CommonHud } from '@/components/CommonHud';
 import { getCachedImage } from '@/utils/imageCache';
 import { generateAllAiLineups, type AILineup } from '@/utils/s7dAiLineup';
+import { getEffectiveHeroStats } from '@/utils/heroStats';
 import {
   getPoolCardById,
   loadRecruitPool1,
@@ -328,11 +329,16 @@ const MemberCard: React.FC<MemberCardProps> = ({ hero, isPlayer, aiLineup, aiLoa
           <div className={styles.memberType}>
             {hero.type} · {hero.realm}
           </div>
-          <div className={styles.memberStats}>
-            <span>HP<b>{hero.battle_card.hp}</b></span>
-            <span>攻<b>{hero.battle_card.atk}</b></span>
-            <span>心<b>{hero.battle_card.mnd}</b></span>
-          </div>
+          {(() => {
+            const eff = getEffectiveHeroStats(hero.id, { includeMentor: isPlayer });
+            return (
+              <div className={styles.memberStats}>
+                <span>HP<b>{eff.hp}</b></span>
+                <span>攻<b>{eff.atk}</b></span>
+                <span>心<b>{eff.mnd}</b></span>
+              </div>
+            );
+          })()}
         </div>
       </div>
 

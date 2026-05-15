@@ -37,6 +37,7 @@ import { CollectionModal } from '@/components/CollectionModal';
 import { getPoolCardById } from '@/systems/recruit/cardPoolLoader';
 import { getCachedImage } from '@/utils/imageCache';
 import { generateAllAiLineups } from '@/utils/s7dAiLineup';
+import { getEffectiveHeroStats, getEffectiveCardStats } from '@/utils/heroStats';
 import styles from './S7D_Lineup.module.css';
 
 /** 登场选卡场景模式 */
@@ -100,32 +101,35 @@ interface CardDisplayInfo {
 }
 
 function resolveCard(id: string): CardDisplayInfo | null {
+  const playerHeroId = useGameStore.getState().heroId;
   const hero = HEROES_DATA.find((h) => h.id === id);
   if (hero) {
+    const eff = getEffectiveHeroStats(hero.id, { includeMentor: hero.id === playerHeroId });
     return {
       id: hero.id,
       name: hero.name,
       rarity: '主角',
       type: hero.type,
       realm: hero.realm,
-      hp: hero.battle_card.hp,
-      atk: hero.battle_card.atk,
-      mnd: hero.battle_card.mnd,
+      hp: eff.hp,
+      atk: eff.atk,
+      mnd: eff.mnd,
       portrait: getCachedImage(hero.id) ?? '',
       isHero: true,
     };
   }
   const p = getPoolCardById(id);
   if (!p) return null;
+  const eff = getEffectiveCardStats({ hp: p.hp, atk: p.atk, mnd: p.mnd }, p.id);
   return {
     id: p.id,
     name: p.name,
     rarity: p.rarity,
     type: p.type,
     realm: p.realm,
-    hp: p.hp,
-    atk: p.atk,
-    mnd: p.mnd,
+    hp: eff.hp,
+    atk: eff.atk,
+    mnd: eff.mnd,
     portrait: getCachedImage(p.id) ?? '',
     isHero: false,
   };

@@ -32,6 +32,7 @@ import {
 import { effectiveStat, resolveStatSet } from '@/systems/battle/e2Helpers';
 import { TurnStartChoiceModal } from '@/components/battle/TurnStartChoiceModal';
 import { ReviveAllocateModal } from '@/components/battle/ReviveAllocateModal';
+import { getEffectiveHeroStats, getEffectiveCardStats } from '@/utils/heroStats';
 import styles from './S7_Battle.module.css';
 
 /**
@@ -914,14 +915,15 @@ export const S7B_Battle: React.FC = () => {
 
       // ── 主角单元 ──
       const aiHeroBC = aiHero.battle_card;
+      const aiEff = getEffectiveHeroStats(aiHero.id, { includeMentor: false });
       const aiHeroUnit = {
         id: `ai_${aiHero.id}`,
         name: aiHero.name,
         type: aiHero.type,
-        hp: aiHeroBC.hp,
-        maxHp: aiHeroBC.hp,
-        atk: aiHeroBC.atk,
-        mnd: aiHeroBC.mnd,
+        hp: aiEff.hp,
+        maxHp: aiEff.hp,
+        atk: aiEff.atk,
+        mnd: aiEff.mnd,
         isEnemy: true,
         row: 0,
         col: 0,
@@ -938,26 +940,29 @@ export const S7B_Battle: React.FC = () => {
       };
 
       // ── AI 搭档单元（来自其招募的卡） ──
-      const aiPartnerUnits = aiPartnerCards.map((pc, i) => ({
-        id: `ai_${aiHero.id}_partner_${pc.id}_${i}`,
-        name: pc.name,
-        type: (pc.type as CultivationType) ?? aiHero.type,
-        hp: pc.hp,
-        maxHp: pc.hp,
-        atk: pc.atk,
-        mnd: pc.mnd,
-        isEnemy: true,
-        row: 0,
-        col: 0,
-        battleSkill: pc.battleSkill
-          ? { name: pc.battleSkill.name, desc: pc.battleSkill.desc }
-          : null,
-        ultimate: pc.ultimate
-          ? { name: pc.ultimate.name, desc: pc.ultimate.desc }
-          : null,
-        portrait: getCachedImage(pc.id),
-        skillId: pc.battleSkill ? SKILL_ID_MAP[pc.battleSkill.name] : undefined,
-      }));
+      const aiPartnerUnits = aiPartnerCards.map((pc, i) => {
+        const pcEff = getEffectiveCardStats({ hp: pc.hp, atk: pc.atk, mnd: pc.mnd }, pc.id);
+        return {
+          id: `ai_${aiHero.id}_partner_${pc.id}_${i}`,
+          name: pc.name,
+          type: (pc.type as CultivationType) ?? aiHero.type,
+          hp: pcEff.hp,
+          maxHp: pcEff.hp,
+          atk: pcEff.atk,
+          mnd: pcEff.mnd,
+          isEnemy: true,
+          row: 0,
+          col: 0,
+          battleSkill: pc.battleSkill
+            ? { name: pc.battleSkill.name, desc: pc.battleSkill.desc }
+            : null,
+          ultimate: pc.ultimate
+            ? { name: pc.ultimate.name, desc: pc.ultimate.desc }
+            : null,
+          portrait: getCachedImage(pc.id),
+          skillId: pc.battleSkill ? SKILL_ID_MAP[pc.battleSkill.name] : undefined,
+        };
+      });
 
       const aiUnits = [aiHeroUnit, ...aiPartnerUnits];
 
@@ -965,14 +970,15 @@ export const S7B_Battle: React.FC = () => {
       while (aiUnits.length < aiUnitCount) {
         const fillHero = shuffledHeroes[aiUnits.length] ?? shuffledHeroes[0];
         const fbc = fillHero.battle_card;
+        const fillEff = getEffectiveHeroStats(fillHero.id, { includeMentor: false });
         aiUnits.push({
           id: `ai_fill_${fillHero.id}_${aiUnits.length}`,
           name: fillHero.name,
           type: fillHero.type,
-          hp: fbc.hp,
-          maxHp: fbc.hp,
-          atk: fbc.atk,
-          mnd: fbc.mnd,
+          hp: fillEff.hp,
+          maxHp: fillEff.hp,
+          atk: fillEff.atk,
+          mnd: fillEff.mnd,
           isEnemy: true,
           row: 0,
           col: 0,

@@ -1,7 +1,12 @@
 /**
- * 6主角静态数据 — V6 战斗技能终稿（与 cards_all.json 保持同步）
+ * 6主角静态数据 — V7 单一属性方案（与 cards_all.json 保持同步）
  *
- * 技能类型字段说明：
+ * 【2026-05 重构】移除"跑团属性 vs 战斗属性"双轨设计：
+ *   主角只有一份属性，run_card.{hp,atk,mnd} === battle_card.{hp,atk,mnd}（数值统一）。
+ *   保留 run_card / battle_card 字段名仅为兼容旧调用点，建议新代码统一从 utils/heroStats.ts
+ *   的 getEffectiveHeroStats() 取值（自动叠加 cardBonuses + 拜师增益）。
+ *
+ * 技能类型字段说明（不变）：
  *   run_card.skills.run_skill       → 密谈技能（secret）
  *   battle_card.skills.run_skill    → 招募技能（recruit）
  *   battle_card.skills.battle_skill → 战斗技能（battle）
@@ -31,7 +36,7 @@ export const HEROES_DATA: Hero[] = [
       },
     },
     battle_card: {
-      hp: 8, atk: 7, mnd: 3,
+      hp: 6, atk: 5, mnd: 4,
       skills: {
         run_skill: { name: '清心悟道', desc: '抽到卡牌后可选择放回卡池，并获得7灵石', type: 'recruit', category: 'return_for_gem', params: { reward: 7 } },
         battle_skill: { name: '蓝银囚笼', desc: '进攻时，目标的下一个行动轮无法移动', type: 'battle' },
@@ -53,14 +58,14 @@ export const HEROES_DATA: Hero[] = [
     type: '妖修', gender: '女', faction: 'A', realm: '筑基', realm_level: 2, max_realm: '结丹', max_realm_level: 3,
     s7aKillMock: 5,
     run_card: {
-      hp: 5, atk: 4, mnd: 5,
+      hp: 5, atk: 5, mnd: 6,
       skills: {
         run_skill: { name: '妖力感知', desc: '每次密谈时，强制获得与之密谈角色的一条未知线索', type: 'secret' },
         battle_skill: null,
       },
     },
     battle_card: {
-      hp: 7, atk: 6, mnd: 4,
+      hp: 5, atk: 5, mnd: 6,
       skills: {
         run_skill: { name: '妖力共鸣', desc: '抽取2张卡牌，选1张获取', type: 'recruit', category: 'preview_2', params: { count: 2 } },
         battle_skill: { name: '无敌金身', desc: '被攻击时，将本次受到的伤害降为2点', type: 'battle' },
@@ -89,7 +94,7 @@ export const HEROES_DATA: Hero[] = [
       },
     },
     battle_card: {
-      hp: 7, atk: 8, mnd: 3,
+      hp: 5, atk: 6, mnd: 4,
       skills: {
         run_skill: { name: '焚决吞噬', desc: '每轮抽卡回合可额外消耗5灵石，多抽一张卡', type: 'recruit', category: 'extra_draw_paid', params: { extraCost: 5 } },
         battle_skill: { name: '焚决·噬焰', desc: '进攻时，吞噬目标1点修为（目标修为永久-1，最低为1；自身修为永久+1，可突破上限）', type: 'battle' },
@@ -111,14 +116,14 @@ export const HEROES_DATA: Hero[] = [
     type: '灵修', gender: '女', faction: 'B', realm: '筑基', realm_level: 2, max_realm: '结丹', max_realm_level: 3,
     s7aKillMock: 5,
     run_card: {
-      hp: 5, atk: 4, mnd: 6,
+      hp: 5, atk: 5, mnd: 6,
       skills: {
         run_skill: { name: '古族血脉感应', desc: '密谈成功时，额外获得线索+1', type: 'secret' },
         battle_skill: null,
       },
     },
     battle_card: {
-      hp: 6, atk: 5, mnd: 5,
+      hp: 5, atk: 5, mnd: 6,
       skills: {
         run_skill: { name: '金帝焚天诀', desc: '每次抽卡时灵石费用-2', type: 'recruit', category: 'cost_reduce', params: { reduce: 2 } },
         battle_skill: { name: '古族血脉·共鸣', desc: '行动轮结束时，相邻1格内所有友军和自己回复1点气血（不可超过气血上限）', type: 'battle' },
@@ -140,14 +145,14 @@ export const HEROES_DATA: Hero[] = [
     type: '剑修', gender: '男', faction: '摇摆', realm: '筑基', realm_level: 2, max_realm: '结丹', max_realm_level: 3,
     s7aKillMock: 5,
     run_card: {
-      hp: 5, atk: 5, mnd: 5,
+      hp: 6, atk: 5, mnd: 5,
       skills: {
         run_skill: { name: '谨慎如凡', desc: '每次心境判定时，判定结果固定+1', type: 'secret' },
         battle_skill: null,
       },
     },
     battle_card: {
-      hp: 7, atk: 7, mnd: 4,
+      hp: 6, atk: 5, mnd: 5,
       skills: {
         run_skill: { name: '灵药储备', desc: '主动跳过抽卡轮次时，获得3灵石', type: 'recruit', category: 'skip_reward', params: { reward: 3 } },
         battle_skill: { name: '青竹蜂云剑·七十二路', desc: '进攻时，可以用修为和心境总和颗骰子进行判定', type: 'battle' },
@@ -169,14 +174,14 @@ export const HEROES_DATA: Hero[] = [
     type: '法修', gender: '男', faction: '摇摆', realm: '筑基', realm_level: 2, max_realm: '结丹', max_realm_level: 3,
     s7aKillMock: 4,
     run_card: {
-      hp: 4, atk: 5, mnd: 5,
+      hp: 5, atk: 6, mnd: 5,
       skills: {
         run_skill: { name: '逆天改命', desc: '心境判定失败时可消耗1灵石重投（每次判定限1次）', type: 'secret' },
         battle_skill: null,
       },
     },
     battle_card: {
-      hp: 7, atk: 8, mnd: 3,
+      hp: 5, atk: 6, mnd: 5,
       skills: {
         run_skill: { name: '天运窃取', desc: '每轮抽卡回合可额外消耗3灵石，必定抽到该卡池中最高稀有度的卡牌', type: 'recruit', category: 'guarantee_highest', params: { extraCost: 3 } },
         battle_skill: { name: '邪灵诀·夺命', desc: '进攻时，吸取目标1点气血回复自身（可突破气血上限）', type: 'battle' },

@@ -28,6 +28,7 @@ import { BackButton } from '@/components/BackButton';
 import { useReturnToMenu } from '@/hooks/useReturnToMenu';
 import { useGameStore } from '@/stores/gameStore';
 import { SaveSystem } from '@/stores/gameStore';
+import { getEffectiveHeroStats } from '@/utils/heroStats';
 import { useS7DBattleStore } from '@/stores/s7dBattleStore';
 import {
   S7D_MAP_COLS,
@@ -358,7 +359,9 @@ const dropReinforceTask = useS7DBattleStore((s) => s.dropReinforceTask);
           setLoading(false);
           return;
         }
-        const playerMndFrozen = playerHero.battle_card.mnd;
+        // mindFrozen = 基础心境 + 境界提升心境加成 + 藏经阁拜师加成
+        const playerEff = getEffectiveHeroStats(heroId, { includeMentor: true });
+        const playerMndFrozen = playerEff.mnd;
 
         let aiLineups = s7dAiLineups;
         if (!aiLineups) {
@@ -374,13 +377,15 @@ const dropReinforceTask = useS7DBattleStore((s) => s.dropReinforceTask);
 
         const aiLineupArr = Object.entries(aiLineups).map(([aiHeroId, lineup]) => {
           const aiHero = getHero(aiHeroId as HeroId);
+          // AI 主角不享受拜师加成；境界加成（如未来策划要给 AI）会自动叠
+          const aiEff = aiHero ? getEffectiveHeroStats(aiHero.id, { includeMentor: false }) : null;
           return {
             ownerId: aiOwnerIdOf(aiHeroId as HeroId),
             heroId: aiHeroId as HeroId,
             faction: lineup.faction as BattleFaction,
             deployedCards: lineup.deployedCards,
             starterCards: lineup.starterCards,
-            mindFrozen: aiHero?.battle_card?.mnd ?? 3,
+            mindFrozen: aiEff?.mnd ?? aiHero?.battle_card?.mnd ?? 3,
           };
         });
 
