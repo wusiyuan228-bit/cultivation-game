@@ -1,5 +1,8 @@
 /* ============================================================
-   仙缘初见 · 开场卡牌领取过场
+   仙缘初见 · 开场卡牌领取过场（专属样式）
+   - overlay 由 createPortal 挂到 document.body，不受 .app-stage transform 影响
+   - 背面（技能详情）使用 S4_StoryReading.module.css 的 detailView 样式
+   - 本文件只负责：遮罩、光球、金光光效、卡牌入场、底部按钮、右上翻面按钮
    ============================================================ */
 
 .overlay {
@@ -21,7 +24,7 @@
 }
 
 /* ============================================================
-   阶段 1：光球
+   阶段 1：透明光球
    ============================================================ */
 .orbWrap {
   position: relative;
@@ -44,8 +47,8 @@
   border-radius: 50%;
   background: radial-gradient(
     circle,
-    rgba(255, 215, 130, 0.28) 0%,
-    rgba(255, 200, 100, 0.12) 35%,
+    rgba(255, 215, 130, 0.32) 0%,
+    rgba(255, 200, 100, 0.14) 35%,
     transparent 70%
   );
   filter: blur(8px);
@@ -74,9 +77,7 @@
   transition: transform 0.2s ease;
 }
 
-.orbWrap:hover .orb {
-  transform: scale(1.06);
-}
+.orbWrap:hover .orb { transform: scale(1.06); }
 
 .orbInner {
   position: absolute;
@@ -127,22 +128,18 @@
   0%, 100% { transform: translateY(0) scale(1); }
   50% { transform: translateY(-8px) scale(1.02); }
 }
-
 @keyframes orbInnerSpin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
-
 @keyframes orbHighlight {
   0%, 100% { opacity: 0.78; transform: scale(1); }
   50% { opacity: 0.4; transform: scale(1.15); }
 }
-
 @keyframes orbAuraPulse {
   0%, 100% { transform: translateX(-50%) scale(1); opacity: 0.85; }
   50% { transform: translateX(-50%) scale(1.18); opacity: 1; }
 }
-
 @keyframes orbHintBlink {
   0%, 100% { opacity: 0.45; }
   50% { opacity: 1; }
@@ -161,416 +158,154 @@
   height: 100%;
 }
 
-/* 背景径向光晕（首次入场仪式）—— 越靠近卡牌越明显，向外迅速衰减 */
+/* —— 卡牌后方 · 主光晕：明显的金黄色径向光（贴近卡牌就很亮） —— */
+.goldenHalo {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1100px;
+  height: 1100px;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(
+    circle at center,
+    rgba(255, 235, 160, 0.78) 0%,
+    rgba(255, 215, 110, 0.55) 18%,
+    rgba(255, 195, 90, 0.32) 35%,
+    rgba(255, 175, 70, 0.14) 55%,
+    rgba(255, 160, 60, 0.05) 75%,
+    transparent 100%
+  );
+  filter: blur(12px);
+  animation: haloBreath 3.2s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* —— 卡牌后方 · 外散金光（更大更柔，呼吸） —— */
 .goldenRays {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 1600px;
-  height: 1600px;
+  width: 1700px;
+  height: 1700px;
   transform: translate(-50%, -50%);
-  background:
-    radial-gradient(
-      ellipse 360px 460px at center,
-      rgba(255, 235, 170, 0.55) 0%,
-      rgba(255, 215, 130, 0.42) 18%,
-      rgba(255, 200, 100, 0.28) 32%,
-      rgba(255, 190, 90, 0.16) 50%,
-      rgba(255, 180, 80, 0.08) 65%,
-      rgba(255, 170, 70, 0.03) 80%,
-      transparent 100%
-    );
-  filter: blur(8px);
-  animation: raysBreath 4s ease-in-out infinite;
-  pointer-events: none;
-}
-
-/* 第二层：更柔的外散光，配合呼吸 */
-.goldenRays::after {
-  content: '';
-  position: absolute;
-  inset: 0;
   background: radial-gradient(
     circle at center,
-    rgba(255, 220, 140, 0.18) 0%,
-    rgba(255, 200, 100, 0.10) 30%,
-    rgba(255, 180, 80, 0.04) 55%,
-    transparent 80%
-  );
-  filter: blur(20px);
-  animation: raysBreathSlow 6s ease-in-out infinite;
-}
-
-@keyframes raysBreath {
-  0%, 100% { opacity: 0.85; transform: translate(-50%, -50%) scale(1); }
-  50% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
-}
-
-@keyframes raysBreathSlow {
-  0%, 100% { opacity: 0.7; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.12); }
-}
-
-/* 卡牌容器（3:4 比例，框金光呼吸） */
-.cardWrap {
-  position: relative;
-  width: 580px;
-  height: 780px;
-  perspective: 1500px;
-  filter: drop-shadow(0 12px 40px rgba(255, 200, 100, 0.4));
-}
-
-/* 金色光环 1（紧贴卡牌）—— 径向晕染，越靠近越亮，无硬边 */
-.glowRing {
-  position: absolute;
-  inset: -40px;
-  border-radius: 50%;
-  background: radial-gradient(
-    ellipse 55% 50% at center,
-    rgba(255, 240, 180, 0.85) 0%,
-    rgba(255, 215, 130, 0.55) 35%,
-    rgba(255, 195, 100, 0.25) 60%,
-    rgba(255, 180, 80, 0.08) 80%,
-    transparent 100%
-  );
-  filter: blur(22px);
-  animation: ringPulse 2.4s ease-in-out infinite;
-  z-index: 0;
-  pointer-events: none;
-}
-
-/* 金色光环 2（外圈散射）—— 更大更柔，整体呼吸 */
-.glowRingOuter {
-  position: absolute;
-  inset: -120px;
-  border-radius: 50%;
-  background: radial-gradient(
-    ellipse 50% 48% at center,
-    rgba(255, 220, 140, 0.45) 0%,
-    rgba(255, 200, 100, 0.22) 35%,
-    rgba(255, 180, 80, 0.08) 65%,
+    rgba(255, 220, 130, 0.42) 0%,
+    rgba(255, 200, 100, 0.22) 25%,
+    rgba(255, 180, 80, 0.10) 50%,
+    rgba(255, 170, 70, 0.04) 70%,
     transparent 90%
   );
   filter: blur(40px);
-  animation: ringPulseOuter 3.6s ease-in-out infinite;
+  animation: raysBreath 5s ease-in-out infinite;
+  pointer-events: none;
   z-index: 0;
-  pointer-events: none;
 }
 
-@keyframes ringPulse {
-  0%, 100% { opacity: 0.85; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.04); }
+@keyframes haloBreath {
+  0%, 100% { opacity: 0.85; transform: translate(-50%, -50%) scale(1); }
+  50%      { opacity: 1;    transform: translate(-50%, -50%) scale(1.08); }
+}
+@keyframes raysBreath {
+  0%, 100% { opacity: 0.55; transform: translate(-50%, -50%) scale(1); }
+  50%      { opacity: 0.95; transform: translate(-50%, -50%) scale(1.10); }
 }
 
-@keyframes ringPulseOuter {
-  0%, 100% { opacity: 0.55; transform: scale(1); }
-  50% { opacity: 0.95; transform: scale(1.08); }
-}
-
-/* 3D 翻转 */
-.flipContainer {
+/* —— 卡牌容器：3:4 与 S4 详情 modal 同尺寸（640×854） —— */
+.cardWrap {
   position: relative;
-  width: 100%;
-  height: 100%;
-  transform-style: preserve-3d;
-  transition: transform 0.3s cubic-bezier(0.6, 0.05, 0.28, 1);
-  cursor: pointer;
+  width: 640px;
+  height: 854px;
+  perspective: 2000px;
   z-index: 1;
+
+  /* 紧贴卡牌的金色光晕：用多层 box-shadow 实现"越靠近卡牌越亮、向外柔和衰减"，
+     同时配合背景两层径向光板，效果是浓郁金光，不是灰色雾。*/
+  filter:
+    drop-shadow(0 0 24px rgba(255, 220, 140, 0.85))
+    drop-shadow(0 0 60px rgba(255, 195, 90, 0.55))
+    drop-shadow(0 0 120px rgba(255, 175, 70, 0.30));
+  animation: cardGlowBreath 2.8s ease-in-out infinite;
 }
 
-.flipContainer.isFlipped {
-  transform: rotateY(180deg);
-}
-
-.cardFace {
-  position: absolute;
-  inset: 0;
-  border-radius: 10px;
-  overflow: hidden;
-  backface-visibility: hidden;
-  border: 3px solid #ffd65e;
-  background: linear-gradient(135deg, #1a1428 0%, #2a1f3a 100%);
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 230, 150, 0.4),
-    inset 0 0 30px rgba(255, 200, 100, 0.18);
-}
-
-.cardFaceFront {
-  /* 立绘正面 */
-}
-
-.cardFaceBack {
-  transform: rotateY(180deg);
-}
-
-.cardFullImg {
-  position: absolute;
-  inset: 0;
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-}
-
-/* 金色边角装饰 */
-.corner {
-  position: absolute;
-  width: 40px;
-  height: 40px;
-  border: 2px solid #ffd65e;
-  pointer-events: none;
-  filter: drop-shadow(0 0 4px rgba(255, 215, 130, 0.7));
-}
-.cornerTL { top: 8px; left: 8px; border-right: none; border-bottom: none; }
-.cornerTR { top: 8px; right: 8px; border-left: none; border-bottom: none; }
-.cornerBL { bottom: 8px; left: 8px; border-right: none; border-top: none; }
-.cornerBR { bottom: 8px; right: 8px; border-left: none; border-top: none; }
-
-/* 立绘正面下方姓名条 */
-.cardFullMeta {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding: 18px 20px 16px;
-  background: linear-gradient(
-    to top,
-    rgba(0, 0, 0, 0.85) 0%,
-    rgba(0, 0, 0, 0.5) 60%,
-    transparent 100%
-  );
-}
-
-.cardFullName {
-  font-size: 36px;
-  font-weight: 700;
-  color: #ffe6a0;
-  text-shadow:
-    0 0 8px rgba(255, 200, 100, 0.7),
-    0 2px 4px rgba(0, 0, 0, 0.8);
-  letter-spacing: 0.1em;
-  font-family: '楷体', 'STKaiti', serif;
-}
-
-.cardFullTags {
-  margin-top: 6px;
-  font-size: 14px;
-}
-
-.rarityTag {
-  color: #ffd65e;
-  border-left: 3px solid #ffd65e;
-  padding-left: 8px;
-  letter-spacing: 0.1em;
-}
-
-.flipHint {
-  position: absolute;
-  top: 14px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 12px;
-  color: rgba(255, 230, 180, 0.55);
-  letter-spacing: 0.15em;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
-  pointer-events: none;
-  animation: flipHintBlink 2s ease-in-out infinite;
-}
-
-@keyframes flipHintBlink {
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 1; }
+@keyframes cardGlowBreath {
+  0%, 100% {
+    filter:
+      drop-shadow(0 0 24px rgba(255, 220, 140, 0.85))
+      drop-shadow(0 0 60px rgba(255, 195, 90, 0.55))
+      drop-shadow(0 0 120px rgba(255, 175, 70, 0.30));
+  }
+  50% {
+    filter:
+      drop-shadow(0 0 32px rgba(255, 235, 170, 1))
+      drop-shadow(0 0 80px rgba(255, 210, 110, 0.7))
+      drop-shadow(0 0 150px rgba(255, 185, 80, 0.4));
+  }
 }
 
 /* ============================================================
-   背面：技能详情看板
+   右上角翻面按钮（独立于卡牌，可无限翻转）
    ============================================================ */
-.detailView {
+.flipBtnTop {
   position: absolute;
-  inset: 0;
-  padding: 22px 22px 18px;
-  overflow-y: auto;
-  color: #e8e2d0;
-  background: linear-gradient(
-    135deg,
-    rgba(28, 22, 42, 0.98) 0%,
-    rgba(38, 28, 56, 0.98) 100%
-  );
-  cursor: default;
-}
-
-.detailView::-webkit-scrollbar {
-  width: 5px;
-}
-.detailView::-webkit-scrollbar-thumb {
-  background: rgba(255, 215, 130, 0.4);
-  border-radius: 3px;
-}
-
-.detailHeader {
-  display: flex;
-  gap: 14px;
-  align-items: flex-start;
-}
-
-.detailPortrait {
-  width: 100px;
-  height: 130px;
-  border-radius: 6px;
-  background-size: cover;
-  background-position: center;
-  border: 2px solid #ffd65e;
-  flex-shrink: 0;
-  box-shadow: 0 0 12px rgba(255, 200, 100, 0.4);
-}
-
-.detailMeta {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-}
-
-.detailName {
-  font-size: 24px;
-  font-weight: 700;
-  color: #ffe6a0;
-  letter-spacing: 0.05em;
-}
-
-.detailRarity {
-  font-size: 13px;
-  color: #ffd65e;
-  letter-spacing: 0.08em;
-}
-
-.detailRealm {
-  font-size: 13px;
-  color: #b8a9d1;
-}
-
-.statsBlock {
-  margin-top: 6px;
-}
-
-.statsLabel {
-  font-size: 12px;
-  color: rgba(255, 230, 180, 0.55);
-  letter-spacing: 0.1em;
-  margin-bottom: 4px;
-}
-
-.detailStats {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  font-size: 13px;
-  color: #d8d2c0;
-}
-
-.bonusTip {
-  color: #5be05b;
-  font-size: 11px;
-  margin-left: 2px;
-  font-style: normal;
-}
-
-.detailDivider {
-  height: 1px;
-  margin: 14px 0 12px;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(255, 215, 130, 0.5) 50%,
-    transparent 100%
-  );
-}
-
-.detailSection {
-  margin-bottom: 14px;
-}
-
-.sectionTitle {
-  font-size: 14px;
-  color: #ffd65e;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  margin: 0 0 8px;
-  padding-left: 8px;
-  border-left: 3px solid #ffd65e;
-}
-
-.skillRow {
-  background: rgba(255, 220, 130, 0.06);
-  border-left: 2px solid rgba(255, 215, 130, 0.4);
-  padding: 8px 10px;
-  border-radius: 0 4px 4px 0;
-  margin-bottom: 6px;
-}
-
-.skillName {
-  display: block;
-  font-size: 14px;
-  color: #ffe6a0;
-  font-weight: 600;
-  margin-bottom: 4px;
-}
-
-.skillDesc {
-  display: block;
-  font-size: 12px;
-  color: #c8c0a8;
-  line-height: 1.6;
-}
-
-.skillNone {
-  font-size: 12px;
-  color: rgba(255, 230, 180, 0.4);
-  padding: 4px 0;
-}
-
-.skillLocked {
+  top: -16px;
+  right: -16px;
+  z-index: 20;
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  color: rgba(255, 230, 180, 0.55);
-  padding: 6px 10px;
-  background: rgba(255, 215, 130, 0.04);
-  border-radius: 4px;
-  border-left: 2px solid rgba(255, 215, 130, 0.25);
-}
-
-.lockIcon {
+  gap: 6px;
+  padding: 8px 14px;
+  border: 2px solid #ffd65e;
+  border-radius: 22px;
+  background: linear-gradient(
+    135deg,
+    rgba(60, 40, 20, 0.95) 0%,
+    rgba(90, 60, 30, 0.95) 50%,
+    rgba(60, 40, 20, 0.95) 100%
+  );
+  color: #ffe6a0;
+  font-family: '楷体', 'STKaiti', serif;
   font-size: 14px;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  box-shadow:
+    0 0 14px rgba(255, 200, 100, 0.6),
+    inset 0 0 6px rgba(255, 230, 150, 0.3);
+  transition: all 0.25s ease;
+  user-select: none;
 }
 
-.counterInfo {
-  display: flex;
-  gap: 18px;
-  font-size: 12px;
-  flex-wrap: wrap;
+.flipBtnTop:hover {
+  transform: scale(1.08) rotate(8deg);
+  box-shadow:
+    0 0 22px rgba(255, 200, 100, 0.9),
+    inset 0 0 10px rgba(255, 230, 150, 0.5);
+  color: #fff5d0;
 }
 
-.counterWin {
-  color: #6ed46e;
+.flipBtnIcon {
+  font-size: 18px;
+  display: inline-block;
+  animation: flipBtnSpin 4s linear infinite;
 }
-
-.counterLose {
-  color: #e07a7a;
+.flipBtnText {
+  font-size: 13px;
+  white-space: nowrap;
 }
-
-.counterNeutral {
-  color: #b8a9d1;
+@keyframes flipBtnSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
 }
 
 /* ============================================================
-   底部「继续」按钮 —— fixed 强制屏幕水平居中（与卡牌同一铅垂线）
+   底部「继续」按钮 —— fixed 屏幕水平居中
+   （portal 已挂到 body，fixed 不再受 stage scale 影响）
    ============================================================ */
 .continueBtn {
   position: fixed;
   bottom: 80px;
-  left: 50vw;
+  left: 50%;
   transform: translateX(-50%);
   padding: 12px 36px;
   font-size: 18px;
@@ -600,60 +335,4 @@
     0 0 30px rgba(255, 200, 100, 0.85),
     inset 0 0 12px rgba(255, 230, 150, 0.4);
   color: #fff5d0;
-}
-
-/* ============================================================
-   右上角翻面按钮（始终可点，独立于卡牌 onClick）
-   ============================================================ */
-.flipBtn {
-  position: absolute;
-  top: -14px;
-  right: -14px;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  border: 2px solid #ffd65e;
-  border-radius: 22px;
-  background: linear-gradient(
-    135deg,
-    rgba(60, 40, 20, 0.95) 0%,
-    rgba(90, 60, 30, 0.95) 50%,
-    rgba(60, 40, 20, 0.95) 100%
-  );
-  color: #ffe6a0;
-  font-family: '楷体', 'STKaiti', serif;
-  font-size: 14px;
-  letter-spacing: 0.1em;
-  cursor: pointer;
-  box-shadow:
-    0 0 14px rgba(255, 200, 100, 0.6),
-    inset 0 0 6px rgba(255, 230, 150, 0.3);
-  transition: all 0.25s ease;
-  user-select: none;
-}
-
-.flipBtn:hover {
-  transform: scale(1.08) rotate(8deg);
-  box-shadow:
-    0 0 22px rgba(255, 200, 100, 0.9),
-    inset 0 0 10px rgba(255, 230, 150, 0.5);
-  color: #fff5d0;
-}
-
-.flipBtnIcon {
-  font-size: 18px;
-  display: inline-block;
-  animation: flipBtnSpin 4s linear infinite;
-}
-
-.flipBtnText {
-  font-size: 13px;
-  white-space: nowrap;
-}
-
-@keyframes flipBtnSpin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
 }
