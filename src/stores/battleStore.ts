@@ -539,7 +539,7 @@ export const useBattleStore = create<BattleState>((set, get) => ({
       dead: false,
       immobilized: true,
       stunned: false,
-      portrait: asset('images/map/tile_enemy.png'),
+      portrait: asset('images/map/tile_enemy.webp'),
       lastTerrain: null,
       stepsUsedThisTurn: 0,
       attackedThisTurn: false,

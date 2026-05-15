@@ -1779,11 +1779,11 @@ export const S7B_Battle: React.FC = () => {
               };
 
               const terrainTile: Record<string, string> = {
-                spring: asset('images/map/tile_spring.png'),
-                atk_boost: asset('images/map/tile_atk_boost.png'),
-                mnd_boost: asset('images/map/tile_mnd_boost.png'),
-                miasma: asset('images/map/tile_miasma.png'),
-                obstacle: asset('images/map/tile_obstacle.png'),
+                spring: asset('images/map/tile_spring.webp'),
+                atk_boost: asset('images/map/tile_atk_boost.webp'),
+                mnd_boost: asset('images/map/tile_mnd_boost.webp'),
+                miasma: asset('images/map/tile_miasma.webp'),
+                obstacle: asset('images/map/tile_obstacle.webp'),
               };
 
               return (

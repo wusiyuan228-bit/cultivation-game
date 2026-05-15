@@ -2352,12 +2352,12 @@ interface MapCellProps {
 }
 
 const TERRAIN_TILE_IMG: Partial<Record<string, string>> = {
-  spring: asset('images/map/tile_spring.png'),
-  atk_boost: asset('images/map/tile_atk_boost.png'),
-  mnd_boost: asset('images/map/tile_mnd_boost.png'),
-  miasma: asset('images/map/tile_miasma.png'),
-  river: asset('images/map/tile_river.png'),
-  bridge: asset('images/map/tile_bridge.png'),
+  spring: asset('images/map/tile_spring.webp'),
+  atk_boost: asset('images/map/tile_atk_boost.webp'),
+  mnd_boost: asset('images/map/tile_mnd_boost.webp'),
+  miasma: asset('images/map/tile_miasma.webp'),
+  river: asset('images/map/tile_river.webp'),
+  bridge: asset('images/map/tile_bridge.webp'),
 };
 const TERRAIN_TEXT_LABEL: Partial<Record<string, string>> = {
   spring: '生+1',
