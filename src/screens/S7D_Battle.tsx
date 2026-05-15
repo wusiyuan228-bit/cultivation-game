@@ -727,11 +727,24 @@ const dropReinforceTask = useS7DBattleStore((s) => s.dropReinforceTask);
         if (!stateNow) return;
         const unit = stateNow.units[unitId];
         if (!unit) return;
-        // 补一条总移动日志（与瞬移版本一致）
+        // 补一条总移动日志（与瞬移版本一致 / 结构化）
+        // 🔧 2026-05-15 BUG #LOG-PLAYER-MOVE 修复：
+        //   原代码用 `.log(text)` → 落入 kind:'text'，丢失 actorId/payload，
+        //   导致日志分析/回放/统计无法识别玩家移动。
+        //   现改为 logStructured('move', ...) 与 AI 路径完全对齐。
         useS7DBattleStore
           .getState()
-          .log(
+          .logStructured(
+            'move',
             `${unit.name} 从 (${from.row},${from.col}) 移动至 (${to.row},${to.col}) · 消耗 ${steps} 步`,
+            {
+              actorId: unitId,
+              payload: {
+                from: { row: from.row, col: from.col },
+                to: { row: to.row, col: to.col },
+                steps,
+              },
+            },
           );
         // 🔧 2026-05-14（黄色虚线残留 fix）：
         // 移动结束后，鼠标若没动，hoverCell 仍指向旧目标格。此时

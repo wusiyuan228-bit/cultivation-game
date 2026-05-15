@@ -28,7 +28,9 @@ import type {
   GridPos,
   ReinforceTask,
   S7DBattleInitParams,
+  S7DBattleLog,
   S7DBattleState,
+  S7DLogKind,
 } from '@/types/s7dBattle';
 import { initS7DBattle } from '@/utils/s7dBattleInit';
 import {
@@ -150,8 +152,21 @@ interface S7DBattleStore {
   advanceSubRound: () => 'started' | 'ended' | 'blocked';
   /** 强制检查胜负并写入（通常由 advanceSubRound 内部调用，此处暴露供紧急调用） */
   checkWin: () => void;
-  /** 追加一条自定义战报 */
+  /** 追加一条自定义战报（仅文本，kind=text） */
   log: (text: string) => void;
+  /**
+   * 追加一条结构化战报（自定义 kind + actorId/payload/targetIds 等）。
+   *
+   * 设计动机（2026-05-15 BUG #LOG-PLAYER-MOVE）：
+   *   早期玩家手动移动结束后只走 `.log(text)`，落到 kind:'text'，导致
+   *   日志分析脚本无法按 actorId 检索玩家移动。本 API 与底层 `appendLog`
+   *   1:1 对齐，统一 AI / 玩家事件结构。
+   */
+  logStructured: (
+    kind: S7DLogKind,
+    text: string,
+    extras?: Partial<Omit<S7DBattleLog, 'seq' | 'kind' | 'text' | 'bigRound'>>,
+  ) => void;
   /** 使用战技（Batch 2B：接入 SkillRegistry 真实执行） */
   useBattleSkill: (casterId: string, targetIds: string[]) => boolean;
   /** 使用绝技（Batch 2B：接入 SkillRegistry 真实执行） */
@@ -1064,6 +1079,16 @@ export const useS7DBattleStore = create<S7DBattleStore>((set, get) => ({
 
   log: (text) => {
     mutate(get, set, (s) => appendLog(s, 'text', text));
+  },
+
+  logStructured: (kind, text, extras) => {
+    mutate(get, set, (s) =>
+      appendLog(s, kind, text, {
+        actorId: extras?.actorId,
+        targetIds: extras?.targetIds,
+        payload: extras?.payload,
+      }),
+    );
   },
 
   useBattleSkill: (casterId, targetIds) => {

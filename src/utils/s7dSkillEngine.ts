@@ -41,6 +41,30 @@ import {
   leaveUltimateAttackContext,
 } from '@/systems/battle/ultimateContext';
 
+function clonePos(u: BattleCardInstance | undefined) {
+  return u?.position ? { row: u.position.row, col: u.position.col } : null;
+}
+
+function buildSkillLogPayload(
+  state: S7DBattleState,
+  casterId: string,
+  targetIds: string[],
+  skillType: 'battle' | 'ultimate',
+  skillName: string,
+  pickedPosition?: { row: number; col: number },
+) {
+  return {
+    skillType,
+    skillName,
+    casterPosition: clonePos(state.units[casterId]),
+    targetPositions: targetIds.map((targetId) => ({
+      targetId,
+      position: clonePos(state.units[targetId]),
+    })),
+    pickedPosition: pickedPosition ? { row: pickedPosition.row, col: pickedPosition.col } : null,
+  };
+}
+
 // =============================================================================
 // 映射层：S7D BattleCardInstance ↔ 引擎 EngineUnit
 // =============================================================================
@@ -449,7 +473,7 @@ export function castSkillAndApply(
   appendLog(state, 'skill_cast', `${prefix} ${caster.name} ${label}【${meta.name}】！`, {
     actorId: casterId,
     targetIds,
-    payload: { skillType, skillName: meta.name },
+    payload: buildSkillLogPayload(state, casterId, targetIds, skillType, meta.name, pickedPosition),
   });
 
   // 引擎 emit 的战报

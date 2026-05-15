@@ -489,7 +489,24 @@ export function attackAndApply(
     state,
     'attack',
     `⚔️ ${attacker.name} 攻击 ${defender.name}：${outcome.attackerSum}(${outcome.attackerDice.join('+')}) vs ${outcome.defenderSum}(${outcome.defenderDice.join('+')})${bonusText}${counterText}${multText}${capText} → ${outcome.damage}伤害`,
-    { actorId: attackerId, targetIds: [defenderId] },
+    {
+      actorId: attackerId,
+      targetIds: [defenderId],
+      payload: {
+        attackerPosition: attacker.position
+          ? { row: attacker.position.row, col: attacker.position.col }
+          : null,
+        defenderPosition: defender.position
+          ? { row: defender.position.row, col: defender.position.col }
+          : null,
+        attackerDice: outcome.attackerDice,
+        defenderDice: outcome.defenderDice,
+        attackerSum: outcome.attackerSum,
+        defenderSum: outcome.defenderSum,
+        damage: outcome.damage,
+        counterMod: outcome.counterMod,
+      },
+    },
   );
 
   // —— 技能 hook 的战报 —— 

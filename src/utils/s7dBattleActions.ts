@@ -59,6 +59,18 @@ export function appendLog(
   text: string,
   extras?: Partial<Omit<S7DBattleLog, 'seq' | 'kind' | 'text' | 'bigRound'>>,
 ): void {
+  // 🔧 2026-05-15 dev-only 警告：移动/攻击/技能/伤害类事件必须带 actorId
+  //   防止再出现"玩家移动落入 kind=text"这种隐式 bug。
+  if (
+    import.meta.env?.DEV &&
+    (kind === 'move' || kind === 'attack' || kind === 'skill_cast' || kind === 'damage') &&
+    !extras?.actorId
+  ) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[s7dBattle][appendLog] kind="${kind}" 缺少 actorId，将影响日志检索：${text}`,
+    );
+  }
   state.logSeq += 1;
   const entry: S7DBattleLog = {
     seq: state.logSeq,
