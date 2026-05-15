@@ -9,14 +9,18 @@
  *       - 整卡任意位置点击翻面（与 S4 / CollectionModal 行为一致）
  *       - 右上角小圆按钮 ⟳（与已收集卡牌完全相同样式：42×42，圆形，单图标）
  *      正面 = 立绘大图  / 反面 = 技能详情看板（直接复用 S4 detailView 样式）
- *      点击下方按钮 → onClose（触发跳转第二章）
+ *
+ * 进入第二章的交互：
+ *   - 在「卡牌」阶段，点击卡牌之外的任意空白处即触发 onClose（跳转第二章）
+ *   - 卡牌内部点击会被 cardWrap 的 stopPropagation 拦截（仅做翻面）
+ *   - 屏幕底部金色小字提示："点击卡牌翻面查看 · 点击周围任意处进入第二章"
  *
  * 关键工程点：
  *   - createPortal 到 document.body，绕开 .app-stage 的 transform: scale
- *   - 「继续」按钮放在 cardStage 内（与 cardWrap 平级），不要嵌套在 cardWrap 里，
- *     否则 motion 给 cardWrap 加的 transform 会把 fixed 元素的定位坐标系改成 cardWrap
- *     → 这是上次截图中按钮叠在卡牌右下角的根因
- *   - 卡牌尺寸用 min(640px, 70vh*0.75, 56vw)，随窗口自适应
+ *   - 卡牌钉死在 viewport 几何中心：absolute + top/left:50% + translate(-50%,-50%)·scale(s)
+ *     由于 CSS transform 从右往左执行，translate(-50%) 是按已缩放后的尺寸计算的
+ *     → 元素几何中心精确对齐 viewport 中心，不论窗口怎么拉伸
+ *   - 卡牌尺寸通过 calcScale() 自适应（高、宽两方向各取最小缩放比）
  */
 
 import React, { useState, useEffect } from 'react';
@@ -35,8 +39,8 @@ const RARITY_LABEL = 'SSR';
 /** 卡牌设计稿原始尺寸（与 S4 已收集卡牌详情页一致） */
 const CARD_DESIGN_W = 640;
 const CARD_DESIGN_H = 854;
-/** 底部按钮预留空间（按钮高度 + 间距） */
-const BTN_RESERVE_BOTTOM = 110;
+/** 底部预留空间（提示文字 + 呼吸边距） */
+const BTN_RESERVE_BOTTOM = 48;
 /** 卡牌四周边距（避免贴屏） */
 const SIDE_MARGIN = 16;
 
@@ -82,13 +86,6 @@ export const HeroRevealCutscene: React.FC<Props> = ({ heroId, onClose }) => {
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
-  /** 按钮 bottom = 视口高 - (中心 + 卡牌缩放后高/2) - 间距 → 简化：按钮顶部紧贴卡底下方 24px */
-  const cardScaledH = CARD_DESIGN_H * scale;
-  const buttonBottom = Math.max(
-    16,
-    (typeof window !== 'undefined' ? window.innerHeight : 1080) / 2 - cardScaledH / 2 - 56,
-  );
-
   const hero = getHeroById(heroId);
   const cardBonuses = useGameStore((s) => s.cardBonuses);
   const battleBonus = useGameStore((s) => s.battleBonus);
@@ -116,6 +113,11 @@ export const HeroRevealCutscene: React.FC<Props> = ({ heroId, onClose }) => {
       exit={{ opacity: 0 }}
       transition={{ duration: 0.4 }}
       onKeyDown={(e) => e.stopPropagation()}
+      onClick={() => {
+        // 仅在「卡牌」阶段，点击卡牌之外的任意空白处进入第二章
+        // 卡牌内部点击会被 cardWrap 的 stopPropagation 拦截，不会触发本回调
+        if (stage === 'card') onClose();
+      }}
     >
       <AnimatePresence mode="wait">
         {/* ============= 阶段 1：透明光球 ============= */}
@@ -167,6 +169,7 @@ export const HeroRevealCutscene: React.FC<Props> = ({ heroId, onClose }) => {
                 x: '-50%',
                 y: '-50%',
               }}
+              onClick={(e) => e.stopPropagation()}
             >
               {/* —— 翻面骨架：整卡可点翻面（与 CollectionModal 一致） —— */}
               <div
@@ -312,23 +315,15 @@ export const HeroRevealCutscene: React.FC<Props> = ({ heroId, onClose }) => {
               </div>
             </motion.div>
 
-            {/*
-              底部「继续」按钮：
-              - position: fixed，钉在视口正中央水平、底部 vh 偏移
-              - left:50% + translateX(-50%) 真正居中（不依赖父级 flex）
-              - bottom 由 buttonBottom 动态计算，确保在卡牌正下方且不重叠
-            */}
-            <motion.button
-              type="button"
-              className={styles.continueBtn}
-              style={{ bottom: buttonBottom }}
+            {/* 底部提示小字（fixed 钉在视口底部水平居中） */}
+            <motion.div
+              className={styles.hintText}
               initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 1.0, duration: 0.4 }}
-              onClick={(e) => { e.stopPropagation(); onClose(); }}
+              animate={{ opacity: 0.8 }}
+              transition={{ delay: 1.0, duration: 0.6 }}
             >
-              ✦ 携此仙缘，前往第二章 ✦
-            </motion.button>
+              点击卡牌翻面查看 · 点击周围任意处进入第二章
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

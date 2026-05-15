@@ -266,42 +266,23 @@
 }
 
 /* ============================================================
-   底部「继续」按钮
-   - position: fixed，直接钉在 viewport 上（不受 cardStage flex 影响）
-   - left:50% + translateX(-50%) 真正水平居中
-   - bottom 由组件层 inline style 动态计算
+   底部提示小字（点击空白进入第二章 · 点击卡牌翻面）
+   - position: fixed，钉在视口底部水平居中
+   - 不接收点击（pointer-events: none），点击穿透到 overlay 走 onClose
    ============================================================ */
-.continueBtn {
+.hintText {
   position: fixed;
-  /* bottom 由组件层根据卡牌实际大小精确定位（确保不与卡牌重叠） */
   left: 50%;
+  bottom: clamp(12px, 2.5vh, 28px);
   transform: translateX(-50%);
-  padding: clamp(8px, 1.4vh, 14px) clamp(20px, 3vw, 42px);
-  font-size: clamp(13px, 1.4vw, 18px);
-  letter-spacing: 0.15em;
+  font-size: clamp(11px, 1.2vw, 14px);
+  letter-spacing: 0.12em;
   color: #ffe6a0;
-  background: linear-gradient(
-    135deg,
-    rgba(80, 50, 20, 0.92) 0%,
-    rgba(120, 80, 30, 0.92) 50%,
-    rgba(80, 50, 20, 0.92) 100%
-  );
-  border: 2px solid #ffd65e;
-  border-radius: 6px;
-  cursor: pointer;
   font-family: '楷体', 'STKaiti', serif;
-  box-shadow:
-    0 0 20px rgba(255, 200, 100, 0.55),
-    inset 0 0 8px rgba(255, 230, 150, 0.25);
-  transition: all 0.25s ease;
+  text-shadow:
+    0 0 8px rgba(255, 200, 100, 0.55),
+    0 0 16px rgba(255, 200, 100, 0.3);
+  pointer-events: none;
   z-index: 5;
   white-space: nowrap;
-}
-
-.continueBtn:hover {
-  transform: translateX(-50%) scale(1.05);
-  box-shadow:
-    0 0 30px rgba(255, 200, 100, 0.85),
-    inset 0 0 12px rgba(255, 230, 150, 0.4);
-  color: #fff5d0;
 }
