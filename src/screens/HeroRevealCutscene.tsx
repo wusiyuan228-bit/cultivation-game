@@ -13,7 +13,6 @@
  * 进入第二章的交互：
  *   - 在「卡牌」阶段，点击卡牌之外的任意空白处即触发 onClose（跳转第二章）
  *   - 卡牌内部点击会被 cardWrap 的 stopPropagation 拦截（仅做翻面）
- *   - 屏幕底部金色小字提示："点击卡牌翻面查看 · 点击周围任意处进入第二章"
  *
  * 关键工程点：
  *   - createPortal 到 document.body，绕开 .app-stage 的 transform: scale
@@ -36,11 +35,11 @@ import styles from './HeroRevealCutscene.module.css';
 const RARITY_COLOR = '#ffd65e';
 const RARITY_LABEL = 'SSR';
 
-/** 卡牌设计稿原始尺寸（与 S4 已收集卡牌详情页一致） */
-const CARD_DESIGN_W = 640;
-const CARD_DESIGN_H = 854;
-/** 底部预留空间（提示文字 + 呼吸边距） */
-const BTN_RESERVE_BOTTOM = 48;
+/** 卡牌设计稿原始尺寸（在 S4 已收集卡牌 640×854 基础上等比缩小到 580×774） */
+const CARD_DESIGN_W = 580;
+const CARD_DESIGN_H = 774;
+/** 底部预留空间（呼吸边距，避免卡牌贴屏） */
+const BTN_RESERVE_BOTTOM = 24;
 /** 卡牌四周边距（避免贴屏） */
 const SIDE_MARGIN = 16;
 
@@ -313,16 +312,6 @@ export const HeroRevealCutscene: React.FC<Props> = ({ heroId, onClose }) => {
                   </div>
                 </div>
               </div>
-            </motion.div>
-
-            {/* 底部提示小字（fixed 钉在视口底部水平居中） */}
-            <motion.div
-              className={styles.hintText}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.8 }}
-              transition={{ delay: 1.0, duration: 0.6 }}
-            >
-              点击卡牌翻面查看 · 点击周围任意处进入第二章
             </motion.div>
           </motion.div>
         )}

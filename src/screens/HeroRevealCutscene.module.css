@@ -266,23 +266,7 @@
 }
 
 /* ============================================================
-   底部提示小字（点击空白进入第二章 · 点击卡牌翻面）
-   - position: fixed，钉在视口底部水平居中
-   - 不接收点击（pointer-events: none），点击穿透到 overlay 走 onClose
+   说明：底部按钮 / 提示文字均已去除。
+   - 「卡牌」阶段下点击卡牌外的任意空白处即可触发 onClose 进入第二章
+   - 卡牌内部点击仅做翻面（在组件层 stopPropagation）
    ============================================================ */
-.hintText {
-  position: fixed;
-  left: 50%;
-  bottom: clamp(12px, 2.5vh, 28px);
-  transform: translateX(-50%);
-  font-size: clamp(11px, 1.2vw, 14px);
-  letter-spacing: 0.12em;
-  color: #ffe6a0;
-  font-family: '楷体', 'STKaiti', serif;
-  text-shadow:
-    0 0 8px rgba(255, 200, 100, 0.55),
-    0 0 16px rgba(255, 200, 100, 0.3);
-  pointer-events: none;
-  z-index: 5;
-  white-space: nowrap;
-}
