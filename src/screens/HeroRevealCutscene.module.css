@@ -1,0 +1,602 @@
+/* ============================================================
+   仙缘初见 · 开场卡牌领取过场
+   ============================================================ */
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(20, 18, 38, 0.82) 0%,
+    rgba(8, 6, 16, 0.96) 100%
+  );
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  overflow: hidden;
+}
+
+/* ============================================================
+   阶段 1：光球
+   ============================================================ */
+.orbWrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  width: 360px;
+  height: 480px;
+}
+
+.orbAura {
+  position: absolute;
+  top: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 215, 130, 0.28) 0%,
+    rgba(255, 200, 100, 0.12) 35%,
+    transparent 70%
+  );
+  filter: blur(8px);
+  animation: orbAuraPulse 2.6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.orb {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  margin-top: 60px;
+  background: radial-gradient(
+    circle at 35% 30%,
+    rgba(255, 240, 200, 0.85) 0%,
+    rgba(255, 215, 130, 0.55) 25%,
+    rgba(200, 160, 90, 0.35) 55%,
+    rgba(120, 90, 50, 0.1) 90%
+  );
+  box-shadow:
+    0 0 40px 8px rgba(255, 220, 140, 0.5),
+    0 0 80px 20px rgba(255, 200, 100, 0.28),
+    inset 0 0 40px rgba(255, 245, 220, 0.4);
+  animation: orbFloat 3.2s ease-in-out infinite;
+  transition: transform 0.2s ease;
+}
+
+.orbWrap:hover .orb {
+  transform: scale(1.06);
+}
+
+.orbInner {
+  position: absolute;
+  inset: 25%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 40% 35%,
+    rgba(255, 250, 230, 0.8) 0%,
+    rgba(255, 220, 150, 0.3) 50%,
+    transparent 100%
+  );
+  animation: orbInnerSpin 6s linear infinite;
+}
+
+.orbHighlight {
+  position: absolute;
+  top: 18%;
+  left: 22%;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.78);
+  filter: blur(4px);
+  animation: orbHighlight 3.2s ease-in-out infinite;
+}
+
+.orbText {
+  margin-top: 28px;
+  font-size: 38px;
+  letter-spacing: 0.5em;
+  color: #ffe6a0;
+  text-shadow:
+    0 0 12px rgba(255, 220, 140, 0.85),
+    0 0 24px rgba(255, 180, 80, 0.5);
+  font-weight: 600;
+  font-family: '楷体', 'STKaiti', serif;
+}
+
+.orbHint {
+  margin-top: 16px;
+  font-size: 16px;
+  color: rgba(255, 230, 180, 0.65);
+  letter-spacing: 0.15em;
+  animation: orbHintBlink 1.8s ease-in-out infinite;
+}
+
+@keyframes orbFloat {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-8px) scale(1.02); }
+}
+
+@keyframes orbInnerSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes orbHighlight {
+  0%, 100% { opacity: 0.78; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(1.15); }
+}
+
+@keyframes orbAuraPulse {
+  0%, 100% { transform: translateX(-50%) scale(1); opacity: 0.85; }
+  50% { transform: translateX(-50%) scale(1.18); opacity: 1; }
+}
+
+@keyframes orbHintBlink {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 1; }
+}
+
+/* ============================================================
+   阶段 2：金光卡牌
+   ============================================================ */
+.cardStage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+/* 背景金色光柱（首次入场仪式） */
+.goldenRays {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1400px;
+  height: 1400px;
+  transform: translate(-50%, -50%);
+  background:
+    conic-gradient(
+      from 0deg at 50% 50%,
+      rgba(255, 220, 130, 0) 0deg,
+      rgba(255, 215, 130, 0.18) 8deg,
+      rgba(255, 220, 130, 0) 16deg,
+      rgba(255, 215, 130, 0.16) 30deg,
+      rgba(255, 220, 130, 0) 40deg,
+      rgba(255, 215, 130, 0.20) 60deg,
+      rgba(255, 220, 130, 0) 75deg,
+      rgba(255, 215, 130, 0.14) 100deg,
+      rgba(255, 220, 130, 0) 120deg,
+      rgba(255, 215, 130, 0.18) 150deg,
+      rgba(255, 220, 130, 0) 165deg,
+      rgba(255, 215, 130, 0.16) 200deg,
+      rgba(255, 220, 130, 0) 220deg,
+      rgba(255, 215, 130, 0.14) 260deg,
+      rgba(255, 220, 130, 0) 285deg,
+      rgba(255, 215, 130, 0.18) 320deg,
+      rgba(255, 220, 130, 0) 345deg,
+      rgba(255, 215, 130, 0) 360deg
+    );
+  filter: blur(2px);
+  animation: raysSpin 22s linear infinite;
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+@keyframes raysSpin {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* 卡牌容器（3:4 比例，框金光呼吸） */
+.cardWrap {
+  position: relative;
+  width: 480px;
+  height: 640px;
+  perspective: 1500px;
+  filter: drop-shadow(0 12px 40px rgba(255, 200, 100, 0.4));
+}
+
+/* 金色光环 1（紧贴卡牌） */
+.glowRing {
+  position: absolute;
+  inset: -8px;
+  border-radius: 14px;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 230, 150, 0.95) 0%,
+    rgba(255, 200, 90, 0.85) 25%,
+    rgba(255, 240, 180, 0.95) 50%,
+    rgba(255, 200, 90, 0.85) 75%,
+    rgba(255, 230, 150, 0.95) 100%
+  );
+  filter: blur(6px);
+  animation: ringPulse 2.4s ease-in-out infinite;
+  z-index: 0;
+}
+
+/* 金色光环 2（外圈散射） */
+.glowRingOuter {
+  position: absolute;
+  inset: -36px;
+  border-radius: 18px;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(255, 215, 130, 0.45) 0%,
+    rgba(255, 195, 100, 0.18) 40%,
+    transparent 75%
+  );
+  filter: blur(14px);
+  animation: ringPulseOuter 3.6s ease-in-out infinite;
+  z-index: 0;
+}
+
+@keyframes ringPulse {
+  0%, 100% { opacity: 0.85; filter: blur(6px); }
+  50% { opacity: 1; filter: blur(10px); }
+}
+
+@keyframes ringPulseOuter {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.06); }
+}
+
+/* 3D 翻转 */
+.flipContainer {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.7s cubic-bezier(0.6, 0.05, 0.28, 1);
+  cursor: pointer;
+  z-index: 1;
+}
+
+.flipContainer.isFlipped {
+  transform: rotateY(180deg);
+}
+
+.cardFace {
+  position: absolute;
+  inset: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  backface-visibility: hidden;
+  border: 3px solid #ffd65e;
+  background: linear-gradient(135deg, #1a1428 0%, #2a1f3a 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 230, 150, 0.4),
+    inset 0 0 30px rgba(255, 200, 100, 0.18);
+}
+
+.cardFaceFront {
+  /* 立绘正面 */
+}
+
+.cardFaceBack {
+  transform: rotateY(180deg);
+}
+
+.cardFullImg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* 金色边角装饰 */
+.corner {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  border: 2px solid #ffd65e;
+  pointer-events: none;
+  filter: drop-shadow(0 0 4px rgba(255, 215, 130, 0.7));
+}
+.cornerTL { top: 8px; left: 8px; border-right: none; border-bottom: none; }
+.cornerTR { top: 8px; right: 8px; border-left: none; border-bottom: none; }
+.cornerBL { bottom: 8px; left: 8px; border-right: none; border-top: none; }
+.cornerBR { bottom: 8px; right: 8px; border-left: none; border-top: none; }
+
+/* 立绘正面下方姓名条 */
+.cardFullMeta {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 18px 20px 16px;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.85) 0%,
+    rgba(0, 0, 0, 0.5) 60%,
+    transparent 100%
+  );
+}
+
+.cardFullName {
+  font-size: 36px;
+  font-weight: 700;
+  color: #ffe6a0;
+  text-shadow:
+    0 0 8px rgba(255, 200, 100, 0.7),
+    0 2px 4px rgba(0, 0, 0, 0.8);
+  letter-spacing: 0.1em;
+  font-family: '楷体', 'STKaiti', serif;
+}
+
+.cardFullTags {
+  margin-top: 6px;
+  font-size: 14px;
+}
+
+.rarityTag {
+  color: #ffd65e;
+  border-left: 3px solid #ffd65e;
+  padding-left: 8px;
+  letter-spacing: 0.1em;
+}
+
+.flipHint {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12px;
+  color: rgba(255, 230, 180, 0.55);
+  letter-spacing: 0.15em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+  animation: flipHintBlink 2s ease-in-out infinite;
+}
+
+@keyframes flipHintBlink {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+/* ============================================================
+   背面：技能详情看板
+   ============================================================ */
+.detailView {
+  position: absolute;
+  inset: 0;
+  padding: 22px 22px 18px;
+  overflow-y: auto;
+  color: #e8e2d0;
+  background: linear-gradient(
+    135deg,
+    rgba(28, 22, 42, 0.98) 0%,
+    rgba(38, 28, 56, 0.98) 100%
+  );
+  cursor: default;
+}
+
+.detailView::-webkit-scrollbar {
+  width: 5px;
+}
+.detailView::-webkit-scrollbar-thumb {
+  background: rgba(255, 215, 130, 0.4);
+  border-radius: 3px;
+}
+
+.detailHeader {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.detailPortrait {
+  width: 100px;
+  height: 130px;
+  border-radius: 6px;
+  background-size: cover;
+  background-position: center;
+  border: 2px solid #ffd65e;
+  flex-shrink: 0;
+  box-shadow: 0 0 12px rgba(255, 200, 100, 0.4);
+}
+
+.detailMeta {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.detailName {
+  font-size: 24px;
+  font-weight: 700;
+  color: #ffe6a0;
+  letter-spacing: 0.05em;
+}
+
+.detailRarity {
+  font-size: 13px;
+  color: #ffd65e;
+  letter-spacing: 0.08em;
+}
+
+.detailRealm {
+  font-size: 13px;
+  color: #b8a9d1;
+}
+
+.statsBlock {
+  margin-top: 6px;
+}
+
+.statsLabel {
+  font-size: 12px;
+  color: rgba(255, 230, 180, 0.55);
+  letter-spacing: 0.1em;
+  margin-bottom: 4px;
+}
+
+.detailStats {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: #d8d2c0;
+}
+
+.bonusTip {
+  color: #5be05b;
+  font-size: 11px;
+  margin-left: 2px;
+  font-style: normal;
+}
+
+.detailDivider {
+  height: 1px;
+  margin: 14px 0 12px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 215, 130, 0.5) 50%,
+    transparent 100%
+  );
+}
+
+.detailSection {
+  margin-bottom: 14px;
+}
+
+.sectionTitle {
+  font-size: 14px;
+  color: #ffd65e;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  margin: 0 0 8px;
+  padding-left: 8px;
+  border-left: 3px solid #ffd65e;
+}
+
+.skillRow {
+  background: rgba(255, 220, 130, 0.06);
+  border-left: 2px solid rgba(255, 215, 130, 0.4);
+  padding: 8px 10px;
+  border-radius: 0 4px 4px 0;
+  margin-bottom: 6px;
+}
+
+.skillName {
+  display: block;
+  font-size: 14px;
+  color: #ffe6a0;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.skillDesc {
+  display: block;
+  font-size: 12px;
+  color: #c8c0a8;
+  line-height: 1.6;
+}
+
+.skillNone {
+  font-size: 12px;
+  color: rgba(255, 230, 180, 0.4);
+  padding: 4px 0;
+}
+
+.skillLocked {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: rgba(255, 230, 180, 0.55);
+  padding: 6px 10px;
+  background: rgba(255, 215, 130, 0.04);
+  border-radius: 4px;
+  border-left: 2px solid rgba(255, 215, 130, 0.25);
+}
+
+.lockIcon {
+  font-size: 14px;
+}
+
+.counterInfo {
+  display: flex;
+  gap: 18px;
+  font-size: 12px;
+  flex-wrap: wrap;
+}
+
+.counterWin {
+  color: #6ed46e;
+}
+
+.counterLose {
+  color: #e07a7a;
+}
+
+.counterNeutral {
+  color: #b8a9d1;
+}
+
+/* ============================================================
+   底部「继续」按钮
+   ============================================================ */
+.continueBtn {
+  position: absolute;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12px 36px;
+  font-size: 18px;
+  letter-spacing: 0.15em;
+  color: #ffe6a0;
+  background: linear-gradient(
+    135deg,
+    rgba(80, 50, 20, 0.85) 0%,
+    rgba(120, 80, 30, 0.85) 50%,
+    rgba(80, 50, 20, 0.85) 100%
+  );
+  border: 2px solid #ffd65e;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: '楷体', 'STKaiti', serif;
+  box-shadow:
+    0 0 20px rgba(255, 200, 100, 0.5),
+    inset 0 0 8px rgba(255, 230, 150, 0.25);
+  transition: all 0.25s ease;
+  z-index: 5;
+}
+
+.continueBtn:hover {
+  transform: translateX(-50%) scale(1.05);
+  box-shadow:
+    0 0 30px rgba(255, 200, 100, 0.85),
+    inset 0 0 12px rgba(255, 230, 150, 0.4);
+  color: #fff5d0;
+}
+
+.flipTip {
+  position: absolute;
+  bottom: 36px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 13px;
+  color: rgba(255, 230, 180, 0.45);
+  letter-spacing: 0.12em;
+  pointer-events: none;
+  z-index: 5;
+}

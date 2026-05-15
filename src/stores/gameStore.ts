@@ -185,6 +185,12 @@ interface GameState {
    */
   aiRecruitState: Record<string, { gems: number; ownedCardIds: string[] }>;
 
+  /**
+   * 「仙缘初见」开场卡牌领取仪式是否已展示过（首次进入第二章前触发，仅一次）。
+   * 老存档（已过第一章）默认视为已展示，避免回看时再触发。
+   */
+  seenFirstHeroReveal: boolean;
+
   setHero: (id: HeroId, name: string) => void;
   setChapter: (ch: number) => void;
   /** 设置第二章子段标识（'a' / 'b' / ''）。仅在 chapter===2 时有意义。 */
@@ -281,6 +287,8 @@ interface GameState {
 
   /** 写入 S6 招募结束后 AI 道友的灵石与已抽卡快照（跨轮继承用）。传入 null 或空对象清空。 */
   setAiRecruitState: (state: Record<string, { gems: number; ownedCardIds: string[] }> | null) => void;
+  /** 标记「仙缘初见」开场卡牌仪式已观看过（避免下次再触发） */
+  markFirstHeroRevealSeen: () => void;
 
   loadFromSave: (s: SaveSlot) => void;
   reset: () => void;
@@ -326,6 +334,7 @@ const initial = {
   s7dAiLineups: null as Record<string, { heroId: HeroId; faction: 'A' | 'B'; deployedCards: string[]; starterCards: string[] }> | null,
   s7dFinalResult: null as S7DFinalResult | null,
   aiRecruitState: {} as Record<string, { gems: number; ownedCardIds: string[] }>,
+  seenFirstHeroReveal: false,
 };
 
 /** 境界提升统一消耗灵石数 */
@@ -577,6 +586,8 @@ export const useGameStore = create<GameState>((set, get) => ({
     aiRecruitState: state && typeof state === 'object' && !Array.isArray(state) ? { ...state } : {},
   }),
 
+  markFirstHeroRevealSeen: () => set({ seenFirstHeroReveal: true }),
+
   loadFromSave: (s) =>
     set({
       heroId: s.heroId,
@@ -641,6 +652,12 @@ export const useGameStore = create<GameState>((set, get) => ({
         if (v && typeof v === 'object' && !Array.isArray(v)) return { ...v };
         return {};
       })(),
+      seenFirstHeroReveal: (() => {
+        const v = (s as any).seenFirstHeroReveal;
+        if (typeof v === 'boolean') return v;
+        // 老存档兼容：已经过了第一章的视为已观看，避免回看再触发
+        return (typeof s.chapter === 'number' && s.chapter >= 2);
+      })(),
     }),
   reset: () => set(initial),
 }));
@@ -683,6 +700,7 @@ export const SaveSystem = {
       swingAssignment: s.swingAssignment,
       s7dFinalResult: s.s7dFinalResult,
       aiRecruitState: s.aiRecruitState,
+      seenFirstHeroReveal: s.seenFirstHeroReveal,
     };
     localStorage.setItem(`${SAVE_KEY_PREFIX}${slot}`, JSON.stringify(data));
   },

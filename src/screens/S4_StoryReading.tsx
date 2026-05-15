@@ -12,6 +12,7 @@ import { useGameStore, SaveSystem, CHAPTER_PREREQ_DESC, getRealmAfterUps } from 
 import { useAudioStore } from '@/stores/audioStore';
 import { HEROES_S1S2_ORDER, TYPE_TOKEN } from '@/data/heroConstants';
 import type { HeroId, CultivationType } from '@/types/game';
+import { HeroRevealCutscene } from './HeroRevealCutscene';
 import styles from './S4_StoryReading.module.css';
 
 /** 稀有度颜色 */
@@ -69,6 +70,8 @@ export const S4_StoryReading: React.FC = () => {
   const cardBonuses = useGameStore((s) => s.cardBonuses);
   const addCard = useGameStore((s) => s.addCard);
   const playBgm = useAudioStore((s) => s.playBgm);
+  const seenFirstHeroReveal = useGameStore((s) => s.seenFirstHeroReveal);
+  const markFirstHeroRevealSeen = useGameStore((s) => s.markFirstHeroRevealSeen);
 
   const [simplified, setSimplified] = useState(false);
   /** ch5 末尾：绑定卡奖励弹窗显示状态（已领取后关闭并跳转 /s8?round=3） */
@@ -78,6 +81,8 @@ export const S4_StoryReading: React.FC = () => {
   const [detailCardId, setDetailCardId] = useState<string | null>(null);
   const [cardFlipped, setCardFlipped] = useState(false);
   const [chapterEndMsg, setChapterEndMsg] = useState<string | null>(null);
+  /** 「仙缘初见」开场过场：第一章末尾→第二章开始之间触发，仅一次 */
+  const [showHeroReveal, setShowHeroReveal] = useState(false);
   const { story, error, loading, reload } = useStory(heroId, chapter, storySubChapter);
   /** S7D 决战最终结果：ch6 会根据此字段决定渲染哪一段 endings */
   const s7dFinalResult = useGameStore((s) => s.s7dFinalResult);
@@ -207,6 +212,12 @@ export const S4_StoryReading: React.FC = () => {
       // 校验下一章是否可进入
       const nextCh = chapter + 1;
       if (canEnterChapter(nextCh)) {
+        // ★ 第一章读完进入第二章 → 在切章前先触发"仙缘初见"开场仪式（仅首次）
+        if (chapter === 1 && nextCh === 2 && !seenFirstHeroReveal && heroId) {
+          setShowHeroReveal(true);
+          // 真正的章节推进延后到 onClose 中完成
+          return;
+        }
         setChapter(nextCh);
         // 第一章读完进入第二章 → 自动定位到前篇（ch2a · 山门初见）
         if (nextCh === 2) {
@@ -223,7 +234,7 @@ export const S4_StoryReading: React.FC = () => {
         );
       }
     }
-  }, [story, activeSegments, segmentIndex, setSegmentIndex, chapter, storySubChapter, setChapter, setStorySubChapter, navigate, markStoryDone, canEnterChapter]);
+  }, [story, activeSegments, segmentIndex, setSegmentIndex, chapter, storySubChapter, setChapter, setStorySubChapter, navigate, markStoryDone, canEnterChapter, seenFirstHeroReveal, heroId]);
 
   const goPrev = useCallback(() => {
     if (segmentIndex > 0) {
@@ -805,6 +816,26 @@ export const S4_StoryReading: React.FC = () => {
               setShowBoundReward(false);
               SaveSystem.save(1);
               navigate('/s8?round=3');
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* ★ 第一章末尾 → 第二章开始 之间的"仙缘初见"开场过场（仅一次） */}
+      <AnimatePresence>
+        {showHeroReveal && heroId && (
+          <HeroRevealCutscene
+            heroId={heroId}
+            onClose={() => {
+              // 关闭过场 → 真正推进到第二章
+              setShowHeroReveal(false);
+              markFirstHeroRevealSeen();
+              setChapter(2);
+              setStorySubChapter('a');
+              setSegmentIndex(0);
+              setPageKey((k) => k + 1);
+              setChapterEndMsg(null);
+              SaveSystem.save(1);
             }}
           />
         )}
