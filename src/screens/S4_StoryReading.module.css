@@ -165,21 +165,27 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 18px;
+  gap: 24px;
 }
 
-/* 标题左右金石装饰符号 */
+/* 标题左右短金线装饰（古籍排版：—— 标题 ——） */
 .chapterTitle::before,
 .chapterTitle::after {
   content: '';
-  width: 28px;
-  height: 28px;
-  background:
-    radial-gradient(circle at 50% 50%, #c8a14b 0%, #c8a14b 28%, transparent 30%),
-    radial-gradient(circle at 50% 50%, transparent 38%, #8b6b2e 39%, #8b6b2e 44%, transparent 46%),
-    radial-gradient(circle at 50% 50%, transparent 54%, rgba(200, 161, 75, 0.5) 55%, rgba(200, 161, 75, 0.5) 60%, transparent 62%);
-  filter: drop-shadow(0 1px 1px rgba(139, 107, 46, 0.3));
+  width: 56px;
+  height: 2px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(200, 161, 75, 0.25) 12%,
+    var(--color-gold) 45%,
+    var(--color-gold-light) 55%,
+    var(--color-gold) 70%,
+    rgba(200, 161, 75, 0.25) 88%,
+    transparent 100%);
+  border-radius: 1px;
   flex-shrink: 0;
+  align-self: center;
+  margin-top: 4px; /* 视觉对齐汉字中线 */
 }
 
 /* 金色分隔线（双线 + 中央铜钱） */
