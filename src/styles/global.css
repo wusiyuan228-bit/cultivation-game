@@ -45,8 +45,12 @@ img {
 /*
  * 等比缩放画布：固定 1920×1080，由 App.tsx JS 计算 scale
  * 内部所有元素用 px 定位，整体由 transform:scale 缩放
+ *
+ * 🔧 2026-05-15：补 position: relative，作为内部 absolute 定位元素的统一参照
+ *   （如 CommonHud / aimBar / leaveEarlyBtn 等之前误用 fixed 的常驻控件）。
  */
 .app-stage {
+  position: relative;
   width: 1920px;
   height: 1080px;
   overflow: hidden;

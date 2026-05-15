@@ -2,9 +2,15 @@
  * CommonHud - 通用右下角HUD
  * 复刻 S4_StoryReading 右下角灵石+角色按钮的 UI 规范，作为全局常驻 UI 的一部分。
  * 所有非抽卡界面默认挂载，从而和 BackButton/MusicToggle 一起构成"4件套"常驻控件。
+ *
+ * 🔧 2026-05-15 自适应修复：
+ *   原 position:fixed 是相对浏览器视口定位，在大屏（如 2K/4K）下会跑到画布右侧黑色留白区，
+ *   小屏下又不随 .app-stage 等比缩放，与 BackButton/MusicToggle 视觉比例失衡。
+ *   改为 position:absolute 后，HUD 位于 .app-stage(1920×1080) 内部，
+ *   随整体 transform:scale 一起缩放，永远贴合画布右下角。
  */
 .hud {
-  position: fixed;
+  position: absolute;
   right: 32px;
   bottom: 32px;
   display: flex;

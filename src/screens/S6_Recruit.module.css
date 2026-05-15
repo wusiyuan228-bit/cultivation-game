@@ -187,9 +187,11 @@
   box-shadow: 0 6px 20px rgba(200, 168, 80, 0.6);
 }
 
-/* 玩家已离场后的"提前离场"按钮，浮于屏幕正中央 */
+/* 玩家已离场后的"提前离场"按钮，浮于屏幕正中央
+ * 🔧 2026-05-15：fixed → absolute，跟随 .app-stage 缩放，避免大屏跑到画布外居中
+ */
 .leaveEarlyBtn {
-  position: fixed;
+  position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);

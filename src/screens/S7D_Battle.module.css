@@ -1446,7 +1446,7 @@
  * ========================================================================== */
 
 .aimBar {
-  position: fixed;
+  position: absolute;
   top: 18px;
   left: 50%;
   transform: translateX(-50%);

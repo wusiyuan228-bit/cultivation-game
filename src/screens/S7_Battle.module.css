@@ -1249,7 +1249,10 @@
   text-align: center;
 }
 
-/* === 角色hover跟随提示（固定定位） === */
+/* === 角色hover跟随提示（固定定位 - 跟随鼠标光标，使用浏览器视口坐标系） ===
+ * 注意：mousePos 来自 e.clientX/Y（浏览器视口坐标），所以这里必须保持 fixed
+ * 否则提示框会偏离鼠标位置。tooltip 不参与画布缩放是合理的（小字会超过画布）。
+ */
 .hoverTip {
   position: fixed;
   background: rgba(15,12,8,.96);
@@ -1642,7 +1645,7 @@
   50% { filter: brightness(1.35); }
 }
 .aimBar {
-  position: fixed;
+  position: absolute;
   top: 70px;
   left: 50%;
   transform: translateX(-50%);
