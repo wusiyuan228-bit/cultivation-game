@@ -1,8 +1,9 @@
 /* ============================================================
    仙缘初见 · 开场卡牌领取过场（专属样式）
    - overlay 由 createPortal 挂到 document.body，不受 .app-stage transform 影响
-   - 背面（技能详情）使用 S4_StoryReading.module.css 的 detailView 样式
-   - 本文件只负责：遮罩、光球、金光光效、卡牌入场、底部按钮、右上翻面按钮
+   - 反面（技能详情）使用 S4_StoryReading.module.css 的 detailView 样式
+   - 翻面按钮使用 S4 的 .flipBtn 样式（与已收集卡牌完全一致），本文件不再自定义
+   - 本文件只负责：遮罩、光球、金光光板、卡牌容器尺寸、底部继续按钮
    ============================================================ */
 
 .overlay {
@@ -146,25 +147,28 @@
 }
 
 /* ============================================================
-   阶段 2：金光卡牌
+   阶段 2：金光卡牌容器
+   - cardStage 全屏 fixed，内部 flex 居中
+   - 这样 cardWrap 与 continueBtn 都基于同一个全屏坐标系居中
    ============================================================ */
 .cardStage {
-  position: relative;
+  position: fixed;       /* 与 overlay 同坐标系，覆盖整个 viewport */
+  inset: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 100%;
-  height: 100%;
+  width: 100vw;
+  height: 100vh;
 }
 
-/* —— 卡牌后方 · 主光晕：明显的金黄色径向光（贴近卡牌就很亮） —— */
+/* —— 卡牌后方：主光晕 + 外散光（位置不参与布局） —— */
 .goldenHalo {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 1100px;
-  height: 1100px;
+  width: min(1100px, 90vw);
+  height: min(1100px, 90vw);
   transform: translate(-50%, -50%);
   background: radial-gradient(
     circle at center,
@@ -181,13 +185,12 @@
   z-index: 0;
 }
 
-/* —— 卡牌后方 · 外散金光（更大更柔，呼吸） —— */
 .goldenRays {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 1700px;
-  height: 1700px;
+  width: min(1700px, 140vw);
+  height: min(1700px, 140vw);
   transform: translate(-50%, -50%);
   background: radial-gradient(
     circle at center,
@@ -212,16 +215,24 @@
   50%      { opacity: 0.95; transform: translate(-50%, -50%) scale(1.10); }
 }
 
-/* —— 卡牌容器：3:4 与 S4 详情 modal 同尺寸（640×854） —— */
+/* —— 卡牌容器：自适应窗口尺寸，3:4 等比 ——
+   宽度取窗口宽与高的较小值约束（卡片不超过视口）
+   - 高度 = min(80vh, 1066px)
+   - 宽度 = 高度 * 0.75（保持 3:4）
+   - 同时不超过 50vw
+*/
 .cardWrap {
   position: relative;
-  width: 640px;
-  height: 854px;
+  /* 高度自适应：最大 80% 视口高、不超过 1066px（与 854*1.25 同量级） */
+  height: min(80vh, 854px);
+  /* 宽度按 3:4 比例 = 高度 * 0.75，但同时不超过 90vw 防极窄屏溢出 */
+  width: min(60vh, calc(min(80vh, 854px) * 0.75), 90vw);
+  /* aspect-ratio 让浏览器再校正一遍，避免计算偏差 */
+  aspect-ratio: 3 / 4;
   perspective: 2000px;
-  z-index: 1;
+  z-index: 2;
 
-  /* 紧贴卡牌的金色光晕：用多层 box-shadow 实现"越靠近卡牌越亮、向外柔和衰减"，
-     同时配合背景两层径向光板，效果是浓郁金光，不是灰色雾。*/
+  /* 紧贴卡牌的金色光晕 —— 多层 drop-shadow 模拟"靠卡近浓、向外淡"的效果 */
   filter:
     drop-shadow(0 0 24px rgba(255, 220, 140, 0.85))
     drop-shadow(0 0 60px rgba(255, 195, 90, 0.55))
@@ -245,84 +256,33 @@
 }
 
 /* ============================================================
-   右上角翻面按钮（独立于卡牌，可无限翻转）
-   ============================================================ */
-.flipBtnTop {
-  position: absolute;
-  top: -16px;
-  right: -16px;
-  z-index: 20;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  border: 2px solid #ffd65e;
-  border-radius: 22px;
-  background: linear-gradient(
-    135deg,
-    rgba(60, 40, 20, 0.95) 0%,
-    rgba(90, 60, 30, 0.95) 50%,
-    rgba(60, 40, 20, 0.95) 100%
-  );
-  color: #ffe6a0;
-  font-family: '楷体', 'STKaiti', serif;
-  font-size: 14px;
-  letter-spacing: 0.1em;
-  cursor: pointer;
-  box-shadow:
-    0 0 14px rgba(255, 200, 100, 0.6),
-    inset 0 0 6px rgba(255, 230, 150, 0.3);
-  transition: all 0.25s ease;
-  user-select: none;
-}
-
-.flipBtnTop:hover {
-  transform: scale(1.08) rotate(8deg);
-  box-shadow:
-    0 0 22px rgba(255, 200, 100, 0.9),
-    inset 0 0 10px rgba(255, 230, 150, 0.5);
-  color: #fff5d0;
-}
-
-.flipBtnIcon {
-  font-size: 18px;
-  display: inline-block;
-  animation: flipBtnSpin 4s linear infinite;
-}
-.flipBtnText {
-  font-size: 13px;
-  white-space: nowrap;
-}
-@keyframes flipBtnSpin {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
-}
-
-/* ============================================================
-   底部「继续」按钮 —— fixed 屏幕水平居中
-   （portal 已挂到 body，fixed 不再受 stage scale 影响）
+   底部「继续」按钮
+   位置规则：
+   - cardStage 是全屏 flex 列布局，按钮跟在 cardWrap 后
+   - 用 absolute 钉到 cardStage 底部 + left:50% 水平居中
+   - 这样按钮就在屏幕水平中心、卡牌正下方，与 cardWrap 不再嵌套
    ============================================================ */
 .continueBtn {
-  position: fixed;
-  bottom: 80px;
+  position: absolute;
+  bottom: clamp(24px, 5vh, 80px);
   left: 50%;
   transform: translateX(-50%);
-  padding: 12px 36px;
-  font-size: 18px;
+  padding: clamp(8px, 1.4vh, 14px) clamp(20px, 3vw, 42px);
+  font-size: clamp(14px, 1.4vw, 18px);
   letter-spacing: 0.15em;
   color: #ffe6a0;
   background: linear-gradient(
     135deg,
-    rgba(80, 50, 20, 0.85) 0%,
-    rgba(120, 80, 30, 0.85) 50%,
-    rgba(80, 50, 20, 0.85) 100%
+    rgba(80, 50, 20, 0.92) 0%,
+    rgba(120, 80, 30, 0.92) 50%,
+    rgba(80, 50, 20, 0.92) 100%
   );
   border: 2px solid #ffd65e;
   border-radius: 6px;
   cursor: pointer;
   font-family: '楷体', 'STKaiti', serif;
   box-shadow:
-    0 0 20px rgba(255, 200, 100, 0.5),
+    0 0 20px rgba(255, 200, 100, 0.55),
     inset 0 0 8px rgba(255, 230, 150, 0.25);
   transition: all 0.25s ease;
   z-index: 5;

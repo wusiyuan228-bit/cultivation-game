@@ -3,19 +3,20 @@
  *
  * 三段动画：
  *   1) 透明光球居中浮现，文字"仙缘初见"提示玩家点击
- *   2) 点击光球 → 光球碎裂消失，主角立绘卡（3:4，与"已收集卡牌"详情页同尺寸）
+ *   2) 点击光球 → 主角立绘卡（3:4，与"已收集卡牌"详情页同尺寸）
  *      由小到大放大出现，金色光晕环绕（首次入场专属）
- *   3) 右上角"⟳ 看技能/看立绘"按钮可无限翻转：
- *       - 正面 = 立绘大图（与 S4 已收集卡牌「翻面看立绘」一致）
- *       - 反面 = 技能详情看板（直接复用 S4_StoryReading.module.css 的 detailView 样式）
- *      点击下方按钮 → onClose，由父组件继续后续流程（如跳第二章）
+ *   3) 卡牌可翻面：
+ *       - 整卡任意位置点击翻面（与 S4 / CollectionModal 行为一致）
+ *       - 右上角小圆按钮 ⟳（与已收集卡牌完全相同样式：42×42，圆形，单图标）
+ *      正面 = 立绘大图  / 反面 = 技能详情看板（直接复用 S4 detailView 样式）
+ *      点击下方按钮 → onClose（触发跳转第二章）
  *
  * 关键工程点：
- *   - 整个组件通过 createPortal 挂到 document.body
- *     → 绕过 .app-stage 的 transform: scale，避免 fixed 定位在 transform 祖先下退化
- *     → 解决"卡牌偏右、按钮偏右"的根因
- *   - 技能详情面 className 全部使用 S4_StoryReading.module.css 中已有的样式 token
- *     → 与「已收集卡牌→详情页」视觉完全一致（用户要求直接复用，不新创样式）
+ *   - createPortal 到 document.body，绕开 .app-stage 的 transform: scale
+ *   - 「继续」按钮放在 cardStage 内（与 cardWrap 平级），不要嵌套在 cardWrap 里，
+ *     否则 motion 给 cardWrap 加的 transform 会把 fixed 元素的定位坐标系改成 cardWrap
+ *     → 这是上次截图中按钮叠在卡牌右下角的根因
+ *   - 卡牌尺寸用 min(640px, 70vh*0.75, 56vw)，随窗口自适应
  */
 
 import React, { useState } from 'react';
@@ -28,7 +29,7 @@ import type { HeroId, CultivationType } from '@/types/game';
 import s4Styles from './S4_StoryReading.module.css';
 import styles from './HeroRevealCutscene.module.css';
 
-const RARITY_COLOR = '#ffd65e'; // 主角统一 SSR 金色
+const RARITY_COLOR = '#ffd65e';
 const RARITY_LABEL = 'SSR';
 
 const COUNTER_MAP: Record<CultivationType, { beats: string; beatenBy: string } | null> = {
@@ -42,7 +43,6 @@ const COUNTER_MAP: Record<CultivationType, { beats: string; beatenBy: string } |
 
 interface Props {
   heroId: HeroId;
-  /** 关闭并继续后续流程（如跳第二章） */
   onClose: () => void;
 }
 
@@ -50,7 +50,7 @@ type Stage = 'orb' | 'card';
 
 export const HeroRevealCutscene: React.FC<Props> = ({ heroId, onClose }) => {
   const [stage, setStage] = useState<Stage>('orb');
-  const [flipped, setFlipped] = useState(false); // false = 立绘正面，true = 技能详情看板
+  const [flipped, setFlipped] = useState(false);
 
   const hero = getHeroById(heroId);
   const cardBonuses = useGameStore((s) => s.cardBonuses);
@@ -68,6 +68,8 @@ export const HeroRevealCutscene: React.FC<Props> = ({ heroId, onClose }) => {
   const totalMndBonus = bonus.mnd + knowledgeBonus;
   const totalHpBonus = bonus.hp;
   const currentRealm = getRealmAfterUps(hero.realm, bonus.realmUps);
+
+  const toggleFlip = () => setFlipped((f) => !f);
 
   const node = (
     <motion.div
@@ -100,7 +102,7 @@ export const HeroRevealCutscene: React.FC<Props> = ({ heroId, onClose }) => {
           </motion.div>
         )}
 
-        {/* ============= 阶段 2：金光卡牌（含 3D 翻转）============= */}
+        {/* ============= 阶段 2：金光卡牌 ============= */}
         {stage === 'card' && (
           <motion.div
             key="card"
@@ -110,40 +112,34 @@ export const HeroRevealCutscene: React.FC<Props> = ({ heroId, onClose }) => {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
           >
-            {/* 卡牌后方：金色径向光板（明显可见的金光，非灰雾） */}
+            {/* 卡牌后方金色光板（不参与布局） */}
             <div className={styles.goldenHalo} />
             <div className={styles.goldenRays} />
 
-            {/* 卡牌容器 —— 由小到大放大入场（尺寸与 S4 详情 modal 一致：640×854） */}
+            {/* 卡牌（自适应尺寸 + motion 入场动画） */}
             <motion.div
               className={styles.cardWrap}
               initial={{ scale: 0.05, opacity: 0, rotateZ: -15 }}
               animate={{ scale: 1, opacity: 1, rotateZ: 0 }}
-              transition={{
-                duration: 0.9,
-                ease: [0.16, 1, 0.3, 1],
-              }}
+              transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
             >
-              {/* 右上角翻面按钮（独立于卡牌，可无限翻转） */}
-              <button
-                type="button"
-                className={styles.flipBtnTop}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setFlipped((f) => !f);
-                }}
-                title={flipped ? '查看立绘' : '查看技能详情'}
-                aria-label="翻转卡牌"
-              >
-                <span className={styles.flipBtnIcon}>⟳</span>
-                <span className={styles.flipBtnText}>{flipped ? '看立绘' : '看技能'}</span>
-              </button>
-
-              {/* 复用 S4 的 detailModal 翻转骨架 */}
+              {/* —— 翻面骨架：整卡可点翻面（与 CollectionModal 一致） —— */}
               <div
                 className={`${s4Styles.flipContainer} ${flipped ? s4Styles.isFlipped : ''}`}
+                onClick={toggleFlip}
               >
-                {/* ===== 正面：立绘大图（首次入场默认面，与 S4 反面立绘同样式） ===== */}
+                {/* 右上角小圆按钮（与已收集卡牌一模一样：42×42 圆形，单图标） */}
+                <button
+                  type="button"
+                  className={s4Styles.flipBtn}
+                  onClick={(e) => { e.stopPropagation(); toggleFlip(); }}
+                  title={flipped ? '翻面查看立绘' : '翻面查看技能详情'}
+                  aria-label="翻转卡牌"
+                >
+                  ⟳
+                </button>
+
+                {/* ===== 正面：立绘大图（默认显示，对应 cardFaceFront） ===== */}
                 <div
                   className={`${s4Styles.cardFace} ${s4Styles.cardFaceBack}`}
                   style={{ borderColor: RARITY_COLOR, transform: 'rotateY(0deg)' }}
@@ -161,15 +157,12 @@ export const HeroRevealCutscene: React.FC<Props> = ({ heroId, onClose }) => {
                   </div>
                 </div>
 
-                {/* ===== 反面：技能详情看板（与 S4 已收集卡牌详情页完全一致） ===== */}
+                {/* ===== 反面：技能详情看板（与已收集卡牌详情页同款） ===== */}
                 <div
                   className={`${s4Styles.cardFace} ${s4Styles.cardFaceFront}`}
                   style={{ borderColor: RARITY_COLOR, transform: 'rotateY(180deg)' }}
                 >
-                  <div
-                    className={s4Styles.detailView}
-                    onClick={(e) => e.stopPropagation()}
-                  >
+                  <div className={s4Styles.detailView}>
                     <div className={s4Styles.detailHeader}>
                       <div
                         className={s4Styles.detailPortrait}
@@ -190,25 +183,25 @@ export const HeroRevealCutscene: React.FC<Props> = ({ heroId, onClose }) => {
                             <span>
                               生命 {displayHp}
                               {totalHpBonus > 0 && (
-                                <em
-                                  style={{ color: '#5be05b', fontSize: 12, marginLeft: 2, fontStyle: 'normal' }}
-                                >(+{totalHpBonus})</em>
+                                <em style={{ color: '#5be05b', fontSize: 12, marginLeft: 2, fontStyle: 'normal' }}>
+                                  (+{totalHpBonus})
+                                </em>
                               )}
                             </span>
                             <span>
                               修为 {displayAtk}
                               {totalAtkBonus > 0 && (
-                                <em
-                                  style={{ color: '#5be05b', fontSize: 12, marginLeft: 2, fontStyle: 'normal' }}
-                                >(+{totalAtkBonus})</em>
+                                <em style={{ color: '#5be05b', fontSize: 12, marginLeft: 2, fontStyle: 'normal' }}>
+                                  (+{totalAtkBonus})
+                                </em>
                               )}
                             </span>
                             <span>
                               心境 {displayMnd}
                               {totalMndBonus > 0 && (
-                                <em
-                                  style={{ color: '#5be05b', fontSize: 12, marginLeft: 2, fontStyle: 'normal' }}
-                                >(+{totalMndBonus})</em>
+                                <em style={{ color: '#5be05b', fontSize: 12, marginLeft: 2, fontStyle: 'normal' }}>
+                                  (+{totalMndBonus})
+                                </em>
                               )}
                             </span>
                           </div>
@@ -218,7 +211,6 @@ export const HeroRevealCutscene: React.FC<Props> = ({ heroId, onClose }) => {
 
                     <div className={s4Styles.detailDivider} />
 
-                    {/* 招募技能 */}
                     <div className={s4Styles.detailSection}>
                       <h3 className={s4Styles.sectionTitle}>招募技能</h3>
                       {hero.battle_card.skills.run_skill ? (
@@ -231,7 +223,6 @@ export const HeroRevealCutscene: React.FC<Props> = ({ heroId, onClose }) => {
                       )}
                     </div>
 
-                    {/* 战斗技能（chapter<3 阶段统一显示"战斗环节揭晓"） */}
                     <div className={s4Styles.detailSection}>
                       <h3 className={s4Styles.sectionTitle}>战斗技能</h3>
                       <div className={s4Styles.awakeningHidden}>
@@ -240,7 +231,6 @@ export const HeroRevealCutscene: React.FC<Props> = ({ heroId, onClose }) => {
                       </div>
                     </div>
 
-                    {/* 觉醒技能（如有） */}
                     {hero.awakening && (
                       <div className={s4Styles.detailSection}>
                         <h3 className={s4Styles.sectionTitle}>觉醒技能</h3>
@@ -253,7 +243,6 @@ export const HeroRevealCutscene: React.FC<Props> = ({ heroId, onClose }) => {
 
                     <div className={s4Styles.detailDivider} />
 
-                    {/* 克制关系 */}
                     <div className={s4Styles.detailSection}>
                       <h3 className={s4Styles.sectionTitle}>克制关系</h3>
                       <div className={s4Styles.counterInfo}>
@@ -278,16 +267,19 @@ export const HeroRevealCutscene: React.FC<Props> = ({ heroId, onClose }) => {
               </div>
             </motion.div>
 
-            {/* 底部继续按钮 → 触发 onClose（fixed 屏幕居中，因 portal 已绕开 stage scale） */}
+            {/*
+              底部「继续」按钮：
+              ⚠️ 必须放在 cardStage 内、cardWrap 外（同级而非嵌套）
+              ⚠️ 否则 cardWrap 上的 motion transform 会把 fixed 定位坐标系
+                  改成相对 cardWrap，按钮就会叠到卡牌内部 —— 这正是上次的根因
+            */}
             <motion.button
+              type="button"
               className={styles.continueBtn}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 1.0, duration: 0.4 }}
-              onClick={(e) => {
-                e.stopPropagation();
-                onClose();
-              }}
+              onClick={(e) => { e.stopPropagation(); onClose(); }}
             >
               ✦ 携此仙缘，前往第二章 ✦
             </motion.button>
@@ -297,7 +289,5 @@ export const HeroRevealCutscene: React.FC<Props> = ({ heroId, onClose }) => {
     </motion.div>
   );
 
-  // 关键：portal 到 body，绕开 .app-stage 的 transform: scale，
-  // 否则 fixed/vw 等会被 transform 祖先吃掉，导致内容偏离屏幕中心。
   return createPortal(node, document.body);
 };
