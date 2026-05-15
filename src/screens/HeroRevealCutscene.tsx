@@ -19,7 +19,7 @@
  *   - 卡牌尺寸用 min(640px, 70vh*0.75, 56vw)，随窗口自适应
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { getHeroById } from '@/hooks/useConfig';
@@ -32,6 +32,14 @@ import styles from './HeroRevealCutscene.module.css';
 const RARITY_COLOR = '#ffd65e';
 const RARITY_LABEL = 'SSR';
 
+/** 卡牌设计稿原始尺寸（与 S4 已收集卡牌详情页一致） */
+const CARD_DESIGN_W = 640;
+const CARD_DESIGN_H = 854;
+/** 底部按钮预留空间（按钮高度 + 间距） */
+const BTN_RESERVE_BOTTOM = 110;
+/** 卡牌四周边距（避免贴屏） */
+const SIDE_MARGIN = 16;
+
 const COUNTER_MAP: Record<CultivationType, { beats: string; beatenBy: string } | null> = {
   剑修: { beats: '妖修', beatenBy: '法修' },
   法修: { beats: '剑修', beatenBy: '灵修' },
@@ -40,6 +48,21 @@ const COUNTER_MAP: Record<CultivationType, { beats: string; beatenBy: string } |
   妖修: { beats: '体修', beatenBy: '剑修' },
   丹修: null,
 };
+
+/**
+ * 计算卡牌的等比缩放系数：
+ * - 宽度方向：(viewport_w - 2*SIDE_MARGIN) / CARD_DESIGN_W
+ * - 高度方向：(viewport_h - BTN_RESERVE_BOTTOM - SIDE_MARGIN) / CARD_DESIGN_H
+ * - 取两者最小值，并裁切到 [0.25, 1] 范围
+ */
+function calcScale(): number {
+  if (typeof window === 'undefined') return 1;
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  const sw = (w - SIDE_MARGIN * 2) / CARD_DESIGN_W;
+  const sh = (h - BTN_RESERVE_BOTTOM - SIDE_MARGIN) / CARD_DESIGN_H;
+  return Math.max(0.25, Math.min(1, sw, sh));
+}
 
 interface Props {
   heroId: HeroId;
@@ -51,6 +74,20 @@ type Stage = 'orb' | 'card';
 export const HeroRevealCutscene: React.FC<Props> = ({ heroId, onClose }) => {
   const [stage, setStage] = useState<Stage>('orb');
   const [flipped, setFlipped] = useState(false);
+  const [scale, setScale] = useState<number>(() => calcScale());
+
+  useEffect(() => {
+    const onResize = () => setScale(calcScale());
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  /** 按钮 bottom = 视口高 - (中心 + 卡牌缩放后高/2) - 间距 → 简化：按钮顶部紧贴卡底下方 24px */
+  const cardScaledH = CARD_DESIGN_H * scale;
+  const buttonBottom = Math.max(
+    16,
+    (typeof window !== 'undefined' ? window.innerHeight : 1080) / 2 - cardScaledH / 2 - 56,
+  );
 
   const hero = getHeroById(heroId);
   const cardBonuses = useGameStore((s) => s.cardBonuses);
@@ -116,13 +153,20 @@ export const HeroRevealCutscene: React.FC<Props> = ({ heroId, onClose }) => {
             <div className={styles.goldenHalo} />
             <div className={styles.goldenRays} />
 
-            {/* 卡牌（自适应尺寸 + motion 入场动画） */}
-            <motion.div
-              className={styles.cardWrap}
-              initial={{ scale: 0.05, opacity: 0, rotateZ: -15 }}
-              animate={{ scale: 1, opacity: 1, rotateZ: 0 }}
-              transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+            {/* 卡牌（cardScaler 包裹，整体 transform: scale 等比缩放） */}
+            <div
+              className={styles.cardScaler}
+              style={{
+                width: CARD_DESIGN_W * scale,
+                height: CARD_DESIGN_H * scale,
+              }}
             >
+              <motion.div
+                className={styles.cardWrap}
+                initial={{ scale: 0.05 * scale, opacity: 0, rotateZ: -15 }}
+                animate={{ scale: scale, opacity: 1, rotateZ: 0 }}
+                transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+              >
               {/* —— 翻面骨架：整卡可点翻面（与 CollectionModal 一致） —— */}
               <div
                 className={`${s4Styles.flipContainer} ${flipped ? s4Styles.isFlipped : ''}`}
@@ -265,17 +309,20 @@ export const HeroRevealCutscene: React.FC<Props> = ({ heroId, onClose }) => {
                   </div>
                 </div>
               </div>
-            </motion.div>
+              </motion.div>
+            </div>
 
             {/*
               底部「继续」按钮：
               ⚠️ 必须放在 cardStage 内、cardWrap 外（同级而非嵌套）
               ⚠️ 否则 cardWrap 上的 motion transform 会把 fixed 定位坐标系
                   改成相对 cardWrap，按钮就会叠到卡牌内部 —— 这正是上次的根因
+              bottom 由 buttonBottom 动态算出，确保在卡牌正下方且不重叠
             */}
             <motion.button
               type="button"
               className={styles.continueBtn}
+              style={{ bottom: buttonBottom }}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 1.0, duration: 0.4 }}
