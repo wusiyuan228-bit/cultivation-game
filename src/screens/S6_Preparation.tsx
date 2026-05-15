@@ -156,6 +156,11 @@ export const S6_Preparation: React.FC = () => {
   }, [navigate, recruitDone]);
 
   const handleNextRound = useCallback(() => {
+    // 强制：本回合必须先招募过道友才能进入下一回合
+    if (!useGameStore.getState().recruitDone) {
+      showToast('bad', '请先招募道友，再进入下一回合');
+      return;
+    }
     const ch = useGameStore.getState().chapter;
     // 当前 chapter 的玩法环节收尾
     markPhaseDone(ch);
@@ -174,7 +179,7 @@ export const S6_Preparation: React.FC = () => {
       setChapter(ch + 1);
     }
     navigate('/story');
-  }, [markPhaseDone, canEnterChapter, setChapter, navigate]);
+  }, [markPhaseDone, canEnterChapter, setChapter, navigate, showToast]);
 
   if (!hero) return null;
 
@@ -263,27 +268,33 @@ export const S6_Preparation: React.FC = () => {
           </motion.button>
         )}
 
-        {/* ③ 进入下一回合 */}
+        {/* ③ 进入下一回合（必须先招募过道友） */}
         <motion.button
           type="button"
-          className={`${styles.card} ${styles.cardNext}`}
+          className={`${styles.card} ${styles.cardNext} ${!recruitDone ? styles.cardDim : ''}`}
           onClick={handleNextRound}
-          whileHover={{ y: -6 }}
-          whileTap={{ scale: 0.97 }}
+          whileHover={recruitDone ? { y: -6 } : undefined}
+          whileTap={recruitDone ? { scale: 0.97 } : undefined}
         >
           <div className={styles.cardIcon}>🌙</div>
           <div className={styles.cardName}>进入下一回合</div>
           <div className={styles.cardDesc}>
             <div>保留剩余灵石</div>
-            <div className={styles.costLine}>踏入新篇章</div>
+            <div className={styles.costLine}>
+              {recruitDone ? '踏入新篇章' : '请先招募道友'}
+            </div>
           </div>
-          <div className={styles.cardFoot}></div>
+          <div className={styles.cardFoot}>
+            {!recruitDone && '⚠ 本回合尚未招募'}
+          </div>
         </motion.button>
       </div>
 
       {/* 底部提示 */}
       <div className={styles.hint}>
-        ①可反复选择，③ 将正式离开筹备阶段
+        {recruitDone
+          ? '①可反复选择，③ 将正式离开筹备阶段'
+          : '本回合需先「招募道友」，再「进入下一回合」'}
       </div>
 
       {/* Toast */}
