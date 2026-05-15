@@ -38,10 +38,14 @@ const RARITY_LABEL = 'SSR';
 /** 卡牌设计稿原始尺寸（在 S4 已收集卡牌 640×854 基础上等比缩小到 580×774） */
 const CARD_DESIGN_W = 580;
 const CARD_DESIGN_H = 774;
-/** 底部预留空间（呼吸边距，避免卡牌贴屏） */
-const BTN_RESERVE_BOTTOM = 24;
-/** 卡牌四周边距（避免贴屏） */
-const SIDE_MARGIN = 16;
+/**
+ * 卡牌相对视口的最大占比（核心自适应参数）：
+ *   - 高度最多占视口 78%（顶部+底部各留 ~11%）
+ *   - 宽度最多占视口 58%（窄屏/竖屏时由宽度兜底）
+ *   两者取最小值 → 永远等比缩放，永远不会贴屏
+ */
+const MAX_HEIGHT_RATIO = 0.78;
+const MAX_WIDTH_RATIO = 0.58;
 
 const COUNTER_MAP: Record<CultivationType, { beats: string; beatenBy: string } | null> = {
   剑修: { beats: '妖修', beatenBy: '法修' },
@@ -54,17 +58,19 @@ const COUNTER_MAP: Record<CultivationType, { beats: string; beatenBy: string } |
 
 /**
  * 计算卡牌的等比缩放系数：
- * - 宽度方向：(viewport_w - 2*SIDE_MARGIN) / CARD_DESIGN_W
- * - 高度方向：(viewport_h - BTN_RESERVE_BOTTOM - SIDE_MARGIN) / CARD_DESIGN_H
- * - 取两者最小值，并裁切到 [0.25, 1] 范围
+ * - 卡牌高度 = viewport_h * MAX_HEIGHT_RATIO  → 缩放比 sh
+ * - 卡牌宽度 = viewport_w * MAX_WIDTH_RATIO   → 缩放比 sw
+ * - 两者取最小值（保证两个方向都不超出比例）
+ * - 不再硬性 cap 到 1：在大屏上允许放大到 >1，在小屏上自然缩到 <1
+ *   这样卡牌永远占据视口的固定比例，四周留白稳定
  */
 function calcScale(): number {
   if (typeof window === 'undefined') return 1;
   const w = window.innerWidth;
   const h = window.innerHeight;
-  const sw = (w - SIDE_MARGIN * 2) / CARD_DESIGN_W;
-  const sh = (h - BTN_RESERVE_BOTTOM - SIDE_MARGIN) / CARD_DESIGN_H;
-  return Math.max(0.25, Math.min(1, sw, sh));
+  const sw = (w * MAX_WIDTH_RATIO) / CARD_DESIGN_W;
+  const sh = (h * MAX_HEIGHT_RATIO) / CARD_DESIGN_H;
+  return Math.max(0.2, Math.min(sw, sh));
 }
 
 interface Props {
