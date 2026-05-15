@@ -19,6 +19,8 @@ export const MENTORSHIP_OPTIONS: MentorshipOption[] = [
     bonus: '修为 +1 · 灵石 ×5',
     suitableFor: '适合战斗向玩家',
     accent: '#b8502f', // 体修·赤铜
+    masterPortrait: asset('images/stage/s5_master_yudi.jpg'),
+    masterQuote: '习武不是逞凶斗狠，是为护身边人。看清楚自己的拳，再来寻我。',
   },
   {
     id: 'danyao',
@@ -29,6 +31,8 @@ export const MENTORSHIP_OPTIONS: MentorshipOption[] = [
     bonus: '心境 +1 · 灵石 ×5',
     suitableFor: '适合社交/辅助向玩家',
     accent: '#c88b2f', // 丹修·丹橙
+    masterPortrait: asset('images/stage/s5_master_danyao.jpg'),
+    masterQuote: '心若不静，万卷皆为废纸。我教的是看天，看地，看自己。',
   },
   {
     id: 'caiyao',
@@ -39,6 +43,8 @@ export const MENTORSHIP_OPTIONS: MentorshipOption[] = [
     bonus: '灵石 ×10',
     suitableFor: '适合抽卡向玩家',
     accent: '#7ba85f', // 灵修·青绿
+    masterPortrait: asset('images/stage/s5_master_caiyao.jpg'),
+    masterQuote: '炼丹三分火候七分耐性。世人都想一步登天，可我这炉子，等得起的人才进得来。',
   },
 ];
 

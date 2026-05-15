@@ -177,6 +177,10 @@ export interface MentorshipOption {
   bonus: string;             // 附加效果文本
   suitableFor: string;       // 适合哪类玩家
   accent: string;            // 视觉主色
+  /** 师父立绘图（半身像 jpg），缺省时使用色块印章 fallback */
+  masterPortrait?: string;
+  /** 师父招徒台词（选中卡时浮现） */
+  masterQuote?: string;
 }
 
 /** S5b 理综考核题目 */
