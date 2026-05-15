@@ -267,11 +267,12 @@
 
 /* ============================================================
    底部「继续」按钮
-   - cardStage 内 absolute 钉底部 + left:50% 水平居中
-   - 通过组件层 inline style 把 bottom 调整到卡牌底部下方 24~32px
+   - position: fixed，直接钉在 viewport 上（不受 cardStage flex 影响）
+   - left:50% + translateX(-50%) 真正水平居中
+   - bottom 由组件层 inline style 动态计算
    ============================================================ */
 .continueBtn {
-  position: absolute;
+  position: fixed;
   /* bottom 由组件层根据卡牌实际大小精确定位（确保不与卡牌重叠） */
   left: 50%;
   transform: translateX(-50%);

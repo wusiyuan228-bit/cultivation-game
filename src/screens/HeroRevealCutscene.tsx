@@ -153,20 +153,21 @@ export const HeroRevealCutscene: React.FC<Props> = ({ heroId, onClose }) => {
             <div className={styles.goldenHalo} />
             <div className={styles.goldenRays} />
 
-            {/* 卡牌（cardScaler 包裹，整体 transform: scale 等比缩放） */}
-            <div
-              className={styles.cardScaler}
+            {/* 卡牌（直接 absolute 钉在 cardStage 中心 + transform: scale 等比缩放） */}
+            <motion.div
+              className={styles.cardWrap}
+              initial={{ scale: 0.05 * scale, opacity: 0 }}
+              animate={{ scale: scale, opacity: 1 }}
+              transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
               style={{
-                width: CARD_DESIGN_W * scale,
-                height: CARD_DESIGN_H * scale,
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                /* x:-50%, y:-50% 由 motion 加在 transform 末尾 */
+                x: '-50%',
+                y: '-50%',
               }}
             >
-              <motion.div
-                className={styles.cardWrap}
-                initial={{ scale: 0.05 * scale, opacity: 0, rotateZ: -15 }}
-                animate={{ scale: scale, opacity: 1, rotateZ: 0 }}
-                transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
-              >
               {/* —— 翻面骨架：整卡可点翻面（与 CollectionModal 一致） —— */}
               <div
                 className={`${s4Styles.flipContainer} ${flipped ? s4Styles.isFlipped : ''}`}
@@ -309,22 +310,20 @@ export const HeroRevealCutscene: React.FC<Props> = ({ heroId, onClose }) => {
                   </div>
                 </div>
               </div>
-              </motion.div>
-            </div>
+            </motion.div>
 
             {/*
               底部「继续」按钮：
-              ⚠️ 必须放在 cardStage 内、cardWrap 外（同级而非嵌套）
-              ⚠️ 否则 cardWrap 上的 motion transform 会把 fixed 定位坐标系
-                  改成相对 cardWrap，按钮就会叠到卡牌内部 —— 这正是上次的根因
-              bottom 由 buttonBottom 动态算出，确保在卡牌正下方且不重叠
+              - position: fixed，钉在视口正中央水平、底部 vh 偏移
+              - left:50% + translateX(-50%) 真正居中（不依赖父级 flex）
+              - bottom 由 buttonBottom 动态计算，确保在卡牌正下方且不重叠
             */}
             <motion.button
               type="button"
               className={styles.continueBtn}
               style={{ bottom: buttonBottom }}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
               transition={{ delay: 1.0, duration: 0.4 }}
               onClick={(e) => { e.stopPropagation(); onClose(); }}
             >
