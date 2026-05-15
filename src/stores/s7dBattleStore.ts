@@ -81,6 +81,12 @@ import {
 import type { Modifier } from '@/systems/battle/types';
 // 🔧 2026-05-12：S7D 对齐 S7B 的 onPositionChange 派发
 import { SkillRegistry } from '@/systems/battle/skillRegistry';
+// 🔧 2026-05-15：S7D 接入功能瓦片结算（spring/atk_boost/mnd_boost/miasma）
+//   过去 S7D 完全没有实现地块停留结算逻辑，是个长期遗留 bug。本次补齐。
+import {
+  recordTerrainOnTurnEnd,
+  applyS7DTerrainEffectOnTurnStart,
+} from '@/utils/s7dTerrainEffect';
 
 // ==========================================================================
 // Store 接口
@@ -757,6 +763,8 @@ export const useS7DBattleStore = create<S7DBattleStore>((set, get) => ({
         // 🔧 2026-05-13：触发 turn-start cleanup（next_turn → this_turn）
         const silentCleanupEngine = { emit: () => {} } as any;
         cleanupOnTurnStart(globalModStore, firstActorId, silentCleanupEngine);
+        // 🔧 2026-05-15：开局首个 actor 也走一次地块结算流程（lastTerrain=null 时是 no-op）
+        applyS7DTerrainEffectOnTurnStart(fresh, firstActorId);
       }
     }
     console.log(
@@ -983,6 +991,10 @@ export const useS7DBattleStore = create<S7DBattleStore>((set, get) => ({
       dispatchS7DTurnHook(get, set, prevActorId, 'end');
       // 清理上一个 actor 的 this_turn modifier
       cleanupOnTurnEnd(globalModStore, prevActorId, silentCleanupEngine);
+      // 🔧 2026-05-15：上一个 actor 行动结束 → 记录其当前格地块（用于下回合开始判停留）
+      if (before) {
+        recordTerrainOnTurnEnd(before, prevActorId);
+      }
     }
 
     const ret = mutate(get, set, (s) => advanceActor(s));
@@ -994,12 +1006,32 @@ export const useS7DBattleStore = create<S7DBattleStore>((set, get) => ({
         dispatchS7DTurnHook(get, set, newActorId, 'start');
         // 触发 turn-start cleanup（next_turn → this_turn）
         cleanupOnTurnStart(globalModStore, newActorId, silentCleanupEngine);
+        // 🔧 2026-05-15：结算地块停留效果 ——
+        //   若该 actor 上回合结束时记录的 lastTerrain 与当前格地块一致，则触发 +/- 修为/心境/气血。
+        //   走 mutate 通道：内部 reconcileDeadUnits 会兜底处理魔瘴地致死场景（killUnit + 补位）。
+        mutate(get, set, (s) => {
+          applyS7DTerrainEffectOnTurnStart(s, newActorId);
+        });
       }
     }
     return ret ?? 'blocked';
   },
 
   advanceSubRound: () => {
+    // 🔧 2026-05-15：小轮次切换前，把"刚结束行动的最后一个 actor"的地块也记录下来。
+    //   这是因为 advanceActor 在 sub_round_end 时不会再次走"切到下一个"分支，
+    //   导致最后一个 actor 的 lastTerrain 没机会被刷新。这里补一刀。
+    const beforeSub = get().state;
+    if (beforeSub) {
+      // 找最后一个已 acted 的项 —— 即本小轮次最后行动的人
+      for (let i = beforeSub.actionQueue.length - 1; i >= 0; i--) {
+        const item = beforeSub.actionQueue[i];
+        if (item.acted) {
+          recordTerrainOnTurnEnd(beforeSub, item.instanceId);
+          break;
+        }
+      }
+    }
     const ret = mutate(get, set, (s) => advanceSubRound(s));
     // 🔧 2026-05-11 修复：进入新小轮次/新大回合后，为队首 actor 派发 turn_start
     if (ret === 'started') {
@@ -1011,6 +1043,10 @@ export const useS7DBattleStore = create<S7DBattleStore>((set, get) => ({
           // 🔧 2026-05-13：触发 turn-start cleanup（next_turn → this_turn）
           const silentCleanupEngine = { emit: () => {} } as any;
           cleanupOnTurnStart(globalModStore, firstActorId, silentCleanupEngine);
+          // 🔧 2026-05-15：新小轮次/新大回合的队首 actor 也要结算地块停留
+          mutate(get, set, (s) => {
+            applyS7DTerrainEffectOnTurnStart(s, firstActorId);
+          });
         }
       }
     }
