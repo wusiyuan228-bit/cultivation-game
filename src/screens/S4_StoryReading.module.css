@@ -18,11 +18,15 @@
   z-index: 0;
 }
 
-/* 半透明暗色遮罩——让书卷内容更突出 */
+/* 背景蒙版——四角深、中心透，让远山背景透出来同时聚焦书卷 */
 .bgVeil {
   position: absolute;
   inset: 0;
-  background: rgba(10, 10, 16, 0.45);
+  background:
+    radial-gradient(ellipse 70% 60% at center,
+      rgba(10, 10, 16, 0.18) 0%,
+      rgba(10, 10, 16, 0.42) 60%,
+      rgba(8, 8, 14, 0.62) 100%);
   z-index: 1;
 }
 
@@ -38,55 +42,113 @@
   z-index: 2;
 }
 
-/* 卷轴木柱 */
+/* 卷轴木柱（深木轴杆，更细更精致） */
 .rod {
-  width: 30px;
+  width: 26px;
   height: 100%;
-  background: linear-gradient(180deg, #6b4a2e 0%, #3a2210 30%, #5c3d20 50%, #3a2210 70%, #6b4a2e 100%);
-  border-radius: 4px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.7), inset 2px 0 4px rgba(255, 255, 255, 0.08);
+  background:
+    linear-gradient(90deg,
+      rgba(255, 235, 200, 0.18) 0%,
+      transparent 18%,
+      transparent 82%,
+      rgba(0, 0, 0, 0.35) 100%),
+    linear-gradient(180deg, #5a3b1f 0%, #2e1a08 50%, #5a3b1f 100%);
+  border-radius: 3px;
+  box-shadow:
+    0 8px 22px rgba(0, 0, 0, 0.75),
+    inset 1px 0 2px rgba(255, 220, 170, 0.15);
   position: relative;
   flex-shrink: 0;
 }
 
-/* 卷轴上下端头 */
+/* 卷轴上下端头：玉色轴帽 + 金边 */
 .rod::before,
 .rod::after {
   content: '';
   position: absolute;
-  left: -5px;
-  right: -5px;
-  height: 18px;
-  background: linear-gradient(180deg, #8b6b3e 0%, #5c3d20 50%, #3a2515 100%);
-  border: 1px solid #2a1a0a;
-  border-radius: 3px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+  left: -10px;
+  right: -10px;
+  height: 26px;
+  background:
+    radial-gradient(ellipse at 30% 30%, rgba(255, 255, 255, 0.55) 0%, transparent 35%),
+    linear-gradient(180deg, #d8e6d4 0%, #8fb59a 45%, #5a8868 100%);
+  border: 1.5px solid #c8a14b;
+  border-radius: 6px;
+  box-shadow:
+    0 3px 10px rgba(0, 0, 0, 0.6),
+    inset 0 1px 2px rgba(255, 255, 255, 0.5),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.25);
 }
 
-.rod::before { top: -9px; }
-.rod::after { bottom: -9px; }
+.rod::before { top: -13px; }
+.rod::after { bottom: -13px; }
 
-/* 书卷纸面 */
+/* 卷轴流苏（仅在右侧轴下方，红色穗子） */
+.rod[data-side="right"]::after {
+  background:
+    radial-gradient(ellipse at 30% 30%, rgba(255, 255, 255, 0.55) 0%, transparent 35%),
+    linear-gradient(180deg, #d8e6d4 0%, #8fb59a 45%, #5a8868 100%);
+}
+
+/* 书卷纸面（宣纸感：暖米黄 + 四角焦痕做旧） */
 .paper {
   flex: 1;
-  background: linear-gradient(
-    180deg,
-    #faf5e8 0%,
-    var(--color-paper) 8%,
-    var(--color-paper) 92%,
-    #ebe0c7 100%
-  );
+  background:
+    radial-gradient(ellipse 220px 160px at 0% 0%, rgba(139, 90, 43, 0.16), transparent 70%),
+    radial-gradient(ellipse 220px 160px at 100% 0%, rgba(139, 90, 43, 0.13), transparent 70%),
+    radial-gradient(ellipse 240px 180px at 0% 100%, rgba(139, 90, 43, 0.18), transparent 70%),
+    radial-gradient(ellipse 240px 180px at 100% 100%, rgba(139, 90, 43, 0.15), transparent 70%),
+    radial-gradient(ellipse 600px 400px at 50% 50%, rgba(255, 250, 230, 0.55), transparent 70%),
+    linear-gradient(
+      180deg,
+      #faf5e8 0%,
+      var(--color-paper) 8%,
+      var(--color-paper) 92%,
+      #ebe0c7 100%
+    );
   border-top: 1px solid var(--color-paper-edge);
   border-bottom: 1px solid var(--color-paper-edge);
   box-shadow:
-    inset 0 0 30px rgba(139, 107, 46, 0.12),
-    inset 0 2px 8px rgba(0, 0, 0, 0.05),
-    0 8px 28px rgba(0, 0, 0, 0.5);
+    inset 0 0 50px rgba(139, 107, 46, 0.18),
+    inset 0 2px 10px rgba(0, 0, 0, 0.06),
+    0 12px 36px rgba(0, 0, 0, 0.55);
   padding: 48px 72px 32px;
   position: relative;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+}
+
+/* 宣纸纤维肌理（SVG 噪点叠层） */
+.paper::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.45  0 0 0 0 0.32  0 0 0 0 0.15  0 0 0 0.55 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.9'/></svg>");
+  opacity: 0.22;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* 书卷边缘细金线装饰（上下） */
+.paper::after {
+  content: '';
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  top: 18px;
+  bottom: 18px;
+  border-top: 1px solid rgba(200, 161, 75, 0.35);
+  border-bottom: 1px solid rgba(200, 161, 75, 0.35);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* 让 paper 内的真实内容压在伪元素之上 */
+.paper > * {
+  position: relative;
+  z-index: 1;
 }
 
 /* ==================== 章节标题 ==================== */
@@ -97,17 +159,84 @@
   color: var(--color-ink-deep);
   letter-spacing: 8px;
   text-align: center;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
   line-height: 1.4;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
 }
 
-/* 金色分隔线 */
+/* 标题左右金石装饰符号 */
+.chapterTitle::before,
+.chapterTitle::after {
+  content: '';
+  width: 28px;
+  height: 28px;
+  background:
+    radial-gradient(circle at 50% 50%, #c8a14b 0%, #c8a14b 28%, transparent 30%),
+    radial-gradient(circle at 50% 50%, transparent 38%, #8b6b2e 39%, #8b6b2e 44%, transparent 46%),
+    radial-gradient(circle at 50% 50%, transparent 54%, rgba(200, 161, 75, 0.5) 55%, rgba(200, 161, 75, 0.5) 60%, transparent 62%);
+  filter: drop-shadow(0 1px 1px rgba(139, 107, 46, 0.3));
+  flex-shrink: 0;
+}
+
+/* 金色分隔线（双线 + 中央铜钱） */
 .divider {
-  width: 400px;
-  height: 2px;
-  background: linear-gradient(90deg, transparent 0%, var(--color-gold) 30%, var(--color-gold-light) 50%, var(--color-gold) 70%, transparent 100%);
-  margin: 0 auto 20px;
-  opacity: 0.8;
+  position: relative;
+  width: 460px;
+  height: 18px;
+  margin: 0 auto 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(200, 161, 75, 0.35) 15%,
+    var(--color-gold) 35%,
+    var(--color-gold-light) 50%,
+    var(--color-gold) 65%,
+    rgba(200, 161, 75, 0.35) 85%,
+    transparent 100%);
+}
+
+.divider::before { top: 4px; }
+.divider::after { bottom: 4px; opacity: 0.55; }
+
+/* 中央铜钱 */
+.divider > .coin,
+.dividerCoin {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 50%, transparent 0%, transparent 22%, #c8a14b 24%, #e8c878 50%, #8b6b2e 100%);
+  box-shadow:
+    0 0 6px rgba(200, 161, 75, 0.6),
+    inset 0 1px 1px rgba(255, 255, 255, 0.4);
+  position: relative;
+  z-index: 2;
+}
+.dividerCoin::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  transform: translate(-50%, -50%);
+  background: #f5efe0;
+  border: 0.5px solid #8b6b2e;
 }
 
 /* ===== 章节结束提示 ===== */
@@ -314,33 +443,57 @@
 }
 
 .pageBtn {
-  width: 140px;
-  height: 48px;
-  background: linear-gradient(180deg, #f5edd6 0%, #e8dcc0 100%);
-  border: 2px solid var(--color-gold-dark);
-  border-radius: var(--radius-sm);
+  position: relative;
+  width: 132px;
+  height: 56px;
+  /* 竹简书签：上窄下尖的梯形 */
+  clip-path: polygon(8% 0%, 92% 0%, 100% 50%, 92% 100%, 8% 100%, 0% 50%);
+  background:
+    linear-gradient(180deg, rgba(255, 250, 230, 0.4) 0%, transparent 30%),
+    linear-gradient(180deg, #efe2c2 0%, #d8c89c 50%, #c4b079 100%);
+  border: none;
   font-family: var(--font-title);
   font-weight: 700;
-  font-size: 20px;
-  color: var(--color-ink-deep);
-  letter-spacing: 4px;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
-  transition: transform var(--tr-base), filter var(--tr-base), box-shadow var(--tr-base);
+  font-size: 22px;
+  color: #3a2510;
+  letter-spacing: 6px;
+  text-shadow: 0 1px 0 rgba(255, 250, 230, 0.6);
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.55)) drop-shadow(0 0 0.5px #8b6b2e);
+  transition: transform var(--tr-base), filter var(--tr-base);
+  cursor: pointer;
+  /* 让伪元素装饰能溢出梯形之外 */
 }
 
+/* 书签上下两端的红色绳结 */
+.pageBtn::before,
+.pageBtn::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  transform: translateX(-50%);
+  background: radial-gradient(circle at 40% 35%, #ff6464 0%, #b03030 60%, #6a1818 100%);
+  border-radius: 50%;
+  box-shadow: 0 0 3px rgba(176, 48, 48, 0.6);
+  pointer-events: none;
+}
+.pageBtn::before { top: -3px; }
+.pageBtn::after { bottom: -3px; }
+
 .pageBtn:not(:disabled):hover {
-  transform: translateY(-2px);
-  filter: brightness(1.08);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+  transform: translateY(-3px);
+  filter: drop-shadow(0 8px 14px rgba(176, 48, 48, 0.45)) drop-shadow(0 0 0.5px #c8a14b) brightness(1.06);
 }
 
 .pageBtn:not(:disabled):active {
-  transform: translateY(0);
+  transform: translateY(-1px);
 }
 
 .pageBtn:disabled {
-  opacity: 0.35;
+  opacity: 0.32;
   cursor: not-allowed;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.4)) grayscale(0.4);
 }
 
 .pageIndicator {

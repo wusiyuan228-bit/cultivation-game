@@ -320,7 +320,7 @@ export const S4_StoryReading: React.FC = () => {
           ) : chapterEndMsg ? (
             <div className={styles.chapterEndBox}>
               <h1 className={styles.chapterTitle}>{chapterTitle}</h1>
-              <div className={styles.divider} />
+              <div className={styles.divider}><span className={styles.dividerCoin} /></div>
               <div className={styles.chapterEndText}>{chapterEndMsg}</div>
               <div className={styles.chapterEndHint}>请完成后续流程环节，剧情将自动继续。</div>
             </div>
@@ -328,7 +328,7 @@ export const S4_StoryReading: React.FC = () => {
             <>
               {/* 章节标题：楷体居中大字深墨色 */}
               <h1 className={styles.chapterTitle}>{chapterTitle}</h1>
-              <div className={styles.divider} />
+              <div className={styles.divider}><span className={styles.dividerCoin} /></div>
 
 
               <AnimatePresence mode="wait">
@@ -382,13 +382,13 @@ export const S4_StoryReading: React.FC = () => {
             onClick={goPrev}
             disabled={segmentIndex === 0}
           >
-            ← 上一页
+            上頁
           </button>
           <span className={styles.pageIndicator}>
             {activeSegments ? `${segmentIndex + 1} / ${activeSegments.length}` : '—'}
           </span>
           <button className={styles.pageBtn} onClick={goNext}>
-            下一页 →
+            下頁
           </button>
         </div>
 
