@@ -1093,11 +1093,41 @@ export const useS7DBattleStore = create<S7DBattleStore>((set, get) => ({
 
   useBattleSkill: (casterId, targetIds) => {
     const ret = mutate(get, set, (s) => castSkillAndApply(s, casterId, 'battle', targetIds));
+    // 🔧 2026-05-15 BUG #YUNYUN-WIPE-BLACKSCREEN 修复：
+    //   云韵【风之极·陨杀】等"一波清场型"绝技把对方阵营 field 单位全清后，
+    //   useUltimate/useBattleSkill 既没有 checkWin 也没有 cleanup，导致：
+    //     ① 战斗已分胜负但 winner 仍为 null（UI 继续按行动中渲染）
+    //     ② globalModStore 中的 this_attack modifier 永久残留（参考案例 3）
+    //     ③ 后续 advanceActor 可能取到 grave 尸体作为 currentActor 触发渲染崩溃
+    //   修复方法：技能成功后立即 checkWin + 清理 this_attack modifier。
+    if (ret) {
+      __postSkillCleanupAndCheckWin(get, set);
+    }
     return ret ?? false;
   },
 
   useUltimate: (casterId, targetIds, pickedPosition) => {
+    // 🔧 2026-05-15 BUG #YUNYUN-WIPE-BLACKSCREEN 诊断 log（生产可保留，仅 console.log）
+    const _stateBefore = get().state;
+    const _aliveBefore = _stateBefore
+      ? Object.values(_stateBefore.units).filter((u) => u.zone === 'field' && u.hp > 0).length
+      : 0;
     const ret = mutate(get, set, (s) => castSkillAndApply(s, casterId, 'ultimate', targetIds, pickedPosition));
+    // 🔧 2026-05-15 BUG #YUNYUN-WIPE-BLACKSCREEN —— 详见上方 useBattleSkill 注释
+    if (ret) {
+      const _stateAfter = get().state;
+      const _aliveAfter = _stateAfter
+        ? Object.values(_stateAfter.units).filter((u) => u.zone === 'field' && u.hp > 0).length
+        : 0;
+      const _killed = _aliveBefore - _aliveAfter;
+      if (_killed >= 3 || _stateAfter?.reinforceQueue.length! >= 3) {
+        console.log(
+          '[s7dBattleStore.useUltimate] 一波多杀场景：',
+          `本次绝技击杀 ${_killed} 人，当前 reinforceQueue=${_stateAfter?.reinforceQueue.length}，phase=${_stateAfter?.phase}`,
+        );
+      }
+      __postSkillCleanupAndCheckWin(get, set);
+    }
     return ret ?? false;
   },
 
@@ -1402,7 +1432,42 @@ export const useS7DBattleStore = create<S7DBattleStore>((set, get) => ({
 }));
 
 // ==========================================================================
-// 辅助工具：供外部直接读取整份 state（常用于渲染选择器）
+// 🔧 2026-05-15 BUG #YUNYUN-WIPE-BLACKSCREEN
+// 技能（战技/绝技）成功后的统一收尾：
+//   1. 清理 this_attack 类 modifier（避免 globalModStore 永久残留）
+//   2. 立即检查胜负（避免一波清场后 winner 仍为 null 导致 UI 继续渲染崩溃）
+//   3. 防御性兜底：把 hp<=0 仍残留 field 的尸体回收（reconcileDeadUnits 已在 mutate
+//      尾部跑过，这里再调一次以应对绝技 followUpAttack 等链式触发）
+// 触发场景示例：
+//   - 云韵【风之极·陨杀】1 骰主+4 固定复制对方阵营全部死亡
+//   - 寒立【万剑归宗】绝技 followUp 普攻一连击杀敌方多人
+//   - 任何"主动技 → killUnit 多个 → reinforceQueue 大量入队"的连锁场景
+// ==========================================================================
+function __postSkillCleanupAndCheckWin(
+  get: () => S7DBattleStore,
+  set: (partial: Partial<S7DBattleStore>) => void,
+): void {
+  // 第一步：清理 this_attack modifier（绝技内部走 followUpAttack 后可能挂了又没消费的）
+  const silentCleanupEngine = {
+    emit: () => {},
+  } as any;
+  try {
+    cleanupAfterAttack(globalModStore, silentCleanupEngine);
+  } catch (e) {
+    console.error('[s7dBattleStore.postSkill] cleanupAfterAttack threw:', e);
+  }
+
+  // 第二步：立即检查胜负
+  mutate(get, set, (s) => {
+    if (s.winner) return; // 已分胜负，不重复
+    const result = checkWinCondition(s);
+    if (result) {
+      console.log('[s7dBattleStore.postSkill] 技能后胜负判定:', result);
+      setWinner(s, result.winner, result.reason);
+    }
+  });
+}
+
 // ==========================================================================
 
 export function useS7DBattleState<T>(selector: (s: S7DBattleState | null) => T): T {

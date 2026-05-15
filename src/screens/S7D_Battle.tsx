@@ -3197,4 +3197,88 @@ const ZonePeekModal: React.FC<ZonePeekModalProps> = ({ zone, units, onClose }) =
   );
 };
 
-export default S7D_Battle;
+// ==========================================================================
+// 🔧 2026-05-15 BUG #YUNYUN-WIPE-BLACKSCREEN
+// 简易 ErrorBoundary：避免渲染期任何未捕获异常导致整页黑屏。
+// 出现错误时显示黄色提示条 + 错误概要，并把详情打到 console（含 React 栈）。
+// ==========================================================================
+class S7DBattleErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { error: Error | null }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { error: null };
+  }
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
+    // eslint-disable-next-line no-console
+    console.error('[S7D_Battle][ErrorBoundary] 捕获到渲染异常：', error, info);
+  }
+  render() {
+    if (this.state.error) {
+      return (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: '#1a0e08',
+            color: '#ffe9b8',
+            fontFamily: 'monospace',
+            padding: 32,
+            overflow: 'auto',
+            zIndex: 99999,
+          }}
+        >
+          <h2 style={{ color: '#ff8e6a' }}>⚠️ 战场渲染异常</h2>
+          <p style={{ marginTop: 12 }}>
+            页面避免了完全黑屏，请按 <kbd>F12</kbd> 打开控制台查看完整堆栈（已自动 console.error 输出）。
+          </p>
+          <pre
+            style={{
+              marginTop: 16,
+              background: '#000',
+              padding: 12,
+              borderRadius: 6,
+              maxHeight: '40vh',
+              overflow: 'auto',
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-all',
+              color: '#ffd1a8',
+              fontSize: 12,
+            }}
+          >
+            {String(this.state.error?.stack ?? this.state.error?.message ?? this.state.error)}
+          </pre>
+          <button
+            onClick={() => {
+              this.setState({ error: null });
+            }}
+            style={{
+              marginTop: 16,
+              padding: '8px 20px',
+              background: '#7a4a1a',
+              color: '#ffe9b8',
+              border: '1px solid #c89060',
+              borderRadius: 4,
+              cursor: 'pointer',
+            }}
+          >
+            尝试恢复渲染
+          </button>
+        </div>
+      );
+    }
+    return this.props.children as any;
+  }
+}
+
+const S7D_BattleWithBoundary: React.FC = () => (
+  <S7DBattleErrorBoundary>
+    <S7D_Battle />
+  </S7DBattleErrorBoundary>
+);
+
+export default S7D_BattleWithBoundary;
