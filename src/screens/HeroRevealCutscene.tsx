@@ -121,9 +121,23 @@ export const HeroRevealCutscene: React.FC<Props> = ({ heroId, onClose }) => {
               <div className={styles.glowRing} />
               <div className={styles.glowRingOuter} />
 
+              {/* 右上角翻面按钮：始终可点击，独立于卡牌 onClick */}
+              <button
+                type="button"
+                className={styles.flipBtn}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setFlipped((f) => !f);
+                }}
+                title={flipped ? '查看立绘' : '查看技能详情'}
+                aria-label="翻转卡牌"
+              >
+                <span className={styles.flipBtnIcon}>⟳</span>
+                <span className={styles.flipBtnText}>{flipped ? '看立绘' : '看技能'}</span>
+              </button>
+
               <div
                 className={`${styles.flipContainer} ${flipped ? styles.isFlipped : ''}`}
-                onClick={() => setFlipped((f) => !f)}
               >
                 {/* ===== 正面：立绘大图（首次入场默认面） ===== */}
                 <div className={`${styles.cardFace} ${styles.cardFaceFront}`}>
@@ -143,7 +157,6 @@ export const HeroRevealCutscene: React.FC<Props> = ({ heroId, onClose }) => {
                       <span className={styles.rarityTag}>SSR · {hero.type}</span>
                     </div>
                   </div>
-                  <div className={styles.flipHint}>点击卡牌 · 查看技能详情</div>
                 </div>
 
                 {/* ===== 反面：技能详情看板 ===== */}

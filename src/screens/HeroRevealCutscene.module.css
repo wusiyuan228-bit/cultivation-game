@@ -220,48 +220,51 @@
   filter: drop-shadow(0 12px 40px rgba(255, 200, 100, 0.4));
 }
 
-/* 金色光环 1（紧贴卡牌） */
+/* 金色光环 1（紧贴卡牌）—— 径向晕染，越靠近越亮，无硬边 */
 .glowRing {
   position: absolute;
-  inset: -8px;
-  border-radius: 14px;
-  background: linear-gradient(
-    135deg,
-    rgba(255, 230, 150, 0.95) 0%,
-    rgba(255, 200, 90, 0.85) 25%,
-    rgba(255, 240, 180, 0.95) 50%,
-    rgba(255, 200, 90, 0.85) 75%,
-    rgba(255, 230, 150, 0.95) 100%
+  inset: -40px;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse 55% 50% at center,
+    rgba(255, 240, 180, 0.85) 0%,
+    rgba(255, 215, 130, 0.55) 35%,
+    rgba(255, 195, 100, 0.25) 60%,
+    rgba(255, 180, 80, 0.08) 80%,
+    transparent 100%
   );
-  filter: blur(6px);
+  filter: blur(22px);
   animation: ringPulse 2.4s ease-in-out infinite;
   z-index: 0;
+  pointer-events: none;
 }
 
-/* 金色光环 2（外圈散射） */
+/* 金色光环 2（外圈散射）—— 更大更柔，整体呼吸 */
 .glowRingOuter {
   position: absolute;
-  inset: -36px;
-  border-radius: 18px;
+  inset: -120px;
+  border-radius: 50%;
   background: radial-gradient(
-    ellipse at center,
-    rgba(255, 215, 130, 0.45) 0%,
-    rgba(255, 195, 100, 0.18) 40%,
-    transparent 75%
+    ellipse 50% 48% at center,
+    rgba(255, 220, 140, 0.45) 0%,
+    rgba(255, 200, 100, 0.22) 35%,
+    rgba(255, 180, 80, 0.08) 65%,
+    transparent 90%
   );
-  filter: blur(14px);
+  filter: blur(40px);
   animation: ringPulseOuter 3.6s ease-in-out infinite;
   z-index: 0;
+  pointer-events: none;
 }
 
 @keyframes ringPulse {
-  0%, 100% { opacity: 0.85; filter: blur(6px); }
-  50% { opacity: 1; filter: blur(10px); }
+  0%, 100% { opacity: 0.85; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.04); }
 }
 
 @keyframes ringPulseOuter {
-  0%, 100% { opacity: 0.6; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.06); }
+  0%, 100% { opacity: 0.55; transform: scale(1); }
+  50% { opacity: 0.95; transform: scale(1.08); }
 }
 
 /* 3D 翻转 */
@@ -562,12 +565,12 @@
 }
 
 /* ============================================================
-   底部「继续」按钮
+   底部「继续」按钮 —— fixed 强制屏幕水平居中（与卡牌同一铅垂线）
    ============================================================ */
 .continueBtn {
-  position: absolute;
+  position: fixed;
   bottom: 80px;
-  left: 50%;
+  left: 50vw;
   transform: translateX(-50%);
   padding: 12px 36px;
   font-size: 18px;
@@ -588,6 +591,7 @@
     inset 0 0 8px rgba(255, 230, 150, 0.25);
   transition: all 0.25s ease;
   z-index: 5;
+  white-space: nowrap;
 }
 
 .continueBtn:hover {
@@ -596,4 +600,60 @@
     0 0 30px rgba(255, 200, 100, 0.85),
     inset 0 0 12px rgba(255, 230, 150, 0.4);
   color: #fff5d0;
+}
+
+/* ============================================================
+   右上角翻面按钮（始终可点，独立于卡牌 onClick）
+   ============================================================ */
+.flipBtn {
+  position: absolute;
+  top: -14px;
+  right: -14px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 2px solid #ffd65e;
+  border-radius: 22px;
+  background: linear-gradient(
+    135deg,
+    rgba(60, 40, 20, 0.95) 0%,
+    rgba(90, 60, 30, 0.95) 50%,
+    rgba(60, 40, 20, 0.95) 100%
+  );
+  color: #ffe6a0;
+  font-family: '楷体', 'STKaiti', serif;
+  font-size: 14px;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  box-shadow:
+    0 0 14px rgba(255, 200, 100, 0.6),
+    inset 0 0 6px rgba(255, 230, 150, 0.3);
+  transition: all 0.25s ease;
+  user-select: none;
+}
+
+.flipBtn:hover {
+  transform: scale(1.08) rotate(8deg);
+  box-shadow:
+    0 0 22px rgba(255, 200, 100, 0.9),
+    inset 0 0 10px rgba(255, 230, 150, 0.5);
+  color: #fff5d0;
+}
+
+.flipBtnIcon {
+  font-size: 18px;
+  display: inline-block;
+  animation: flipBtnSpin 4s linear infinite;
+}
+
+.flipBtnText {
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+@keyframes flipBtnSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
