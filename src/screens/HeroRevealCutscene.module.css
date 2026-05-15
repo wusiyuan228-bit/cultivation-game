@@ -3,10 +3,10 @@
    ============================================================ */
 
 .overlay {
-  position: absolute;
+  position: fixed;
   inset: 0;
-  width: 100%;
-  height: 100%;
+  width: 100vw;
+  height: 100vh;
   background: radial-gradient(
     ellipse at center,
     rgba(20, 18, 38, 0.82) 0%,
@@ -161,52 +161,61 @@
   height: 100%;
 }
 
-/* 背景金色光柱（首次入场仪式） */
+/* 背景径向光晕（首次入场仪式）—— 越靠近卡牌越明显，向外迅速衰减 */
 .goldenRays {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 1400px;
-  height: 1400px;
+  width: 1600px;
+  height: 1600px;
   transform: translate(-50%, -50%);
   background:
-    conic-gradient(
-      from 0deg at 50% 50%,
-      rgba(255, 220, 130, 0) 0deg,
-      rgba(255, 215, 130, 0.18) 8deg,
-      rgba(255, 220, 130, 0) 16deg,
-      rgba(255, 215, 130, 0.16) 30deg,
-      rgba(255, 220, 130, 0) 40deg,
-      rgba(255, 215, 130, 0.20) 60deg,
-      rgba(255, 220, 130, 0) 75deg,
-      rgba(255, 215, 130, 0.14) 100deg,
-      rgba(255, 220, 130, 0) 120deg,
-      rgba(255, 215, 130, 0.18) 150deg,
-      rgba(255, 220, 130, 0) 165deg,
-      rgba(255, 215, 130, 0.16) 200deg,
-      rgba(255, 220, 130, 0) 220deg,
-      rgba(255, 215, 130, 0.14) 260deg,
-      rgba(255, 220, 130, 0) 285deg,
-      rgba(255, 215, 130, 0.18) 320deg,
-      rgba(255, 220, 130, 0) 345deg,
-      rgba(255, 215, 130, 0) 360deg
+    radial-gradient(
+      ellipse 360px 460px at center,
+      rgba(255, 235, 170, 0.55) 0%,
+      rgba(255, 215, 130, 0.42) 18%,
+      rgba(255, 200, 100, 0.28) 32%,
+      rgba(255, 190, 90, 0.16) 50%,
+      rgba(255, 180, 80, 0.08) 65%,
+      rgba(255, 170, 70, 0.03) 80%,
+      transparent 100%
     );
-  filter: blur(2px);
-  animation: raysSpin 22s linear infinite;
-  opacity: 0.85;
+  filter: blur(8px);
+  animation: raysBreath 4s ease-in-out infinite;
   pointer-events: none;
 }
 
-@keyframes raysSpin {
-  from { transform: translate(-50%, -50%) rotate(0deg); }
-  to { transform: translate(-50%, -50%) rotate(360deg); }
+/* 第二层：更柔的外散光，配合呼吸 */
+.goldenRays::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at center,
+    rgba(255, 220, 140, 0.18) 0%,
+    rgba(255, 200, 100, 0.10) 30%,
+    rgba(255, 180, 80, 0.04) 55%,
+    transparent 80%
+  );
+  filter: blur(20px);
+  animation: raysBreathSlow 6s ease-in-out infinite;
+}
+
+@keyframes raysBreath {
+  0%, 100% { opacity: 0.85; transform: translate(-50%, -50%) scale(1); }
+  50% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
+}
+
+@keyframes raysBreathSlow {
+  0%, 100% { opacity: 0.7; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.12); }
 }
 
 /* 卡牌容器（3:4 比例，框金光呼吸） */
 .cardWrap {
   position: relative;
-  width: 480px;
-  height: 640px;
+  width: 580px;
+  height: 780px;
   perspective: 1500px;
   filter: drop-shadow(0 12px 40px rgba(255, 200, 100, 0.4));
 }
@@ -261,7 +270,7 @@
   width: 100%;
   height: 100%;
   transform-style: preserve-3d;
-  transition: transform 0.7s cubic-bezier(0.6, 0.05, 0.28, 1);
+  transition: transform 0.3s cubic-bezier(0.6, 0.05, 0.28, 1);
   cursor: pointer;
   z-index: 1;
 }
@@ -587,16 +596,4 @@
     0 0 30px rgba(255, 200, 100, 0.85),
     inset 0 0 12px rgba(255, 230, 150, 0.4);
   color: #fff5d0;
-}
-
-.flipTip {
-  position: absolute;
-  bottom: 36px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 13px;
-  color: rgba(255, 230, 180, 0.45);
-  letter-spacing: 0.12em;
-  pointer-events: none;
-  z-index: 5;
 }

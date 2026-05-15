@@ -148,10 +148,7 @@ export const HeroRevealCutscene: React.FC<Props> = ({ heroId, onClose }) => {
 
                 {/* ===== 反面：技能详情看板 ===== */}
                 <div className={`${styles.cardFace} ${styles.cardFaceBack}`}>
-                  <div
-                    className={styles.detailView}
-                    onClick={(e) => e.stopPropagation()}
-                  >
+                  <div className={styles.detailView}>
                     <div className={styles.detailHeader}>
                       <div
                         className={styles.detailPortrait}
@@ -265,8 +262,6 @@ export const HeroRevealCutscene: React.FC<Props> = ({ heroId, onClose }) => {
             >
               ✦ 携此仙缘，前往第二章 ✦
             </motion.button>
-
-            <div className={styles.flipTip}>点击卡牌可在立绘 / 技能详情间切换</div>
           </motion.div>
         )}
       </AnimatePresence>
