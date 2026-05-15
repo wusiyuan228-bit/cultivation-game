@@ -575,10 +575,13 @@ const dropReinforceTask = useS7DBattleStore((s) => s.dropReinforceTask);
         return;
       }
 
-      // ─── 风属斗技拦截：纳兰嫣然(玩家方)进攻 → 弹窗让玩家选位 ───
-      const isPlayerSide = attacker.faction === s.playerFaction;
+      // ─── 风属斗技拦截：仅人类玩家进攻时弹窗让玩家选位 ───
+      // 注意：不能用 faction === playerFaction 判断“玩家方”。S7D 里同阵营还有 AI 盟友，
+      // 若把 AI 盟友也当作玩家方，会导致 AI 攻击骰子弹窗关闭时额外推进一次回合，
+      // 从而把后续行动者（例如玄古）高亮一下后直接跳过。
+      const isHumanPlayerActor = attacker.ownerId === 'player';
       const hasFengShu = (attacker.registrySkills ?? []).includes('sr_nalanyanran.battle');
-      if (isPlayerSide && hasFengShu) {
+      if (isHumanPlayerActor && hasFengShu) {
         const candidates = useS7DBattleStore.getState().computeFengShuCandidates(attackerId, defenderId);
         if (candidates.length === 0) {
           logFn(`🌪 风属斗技无合法落点，${attacker.name} 放弃本次进攻`);
@@ -597,8 +600,8 @@ const dropReinforceTask = useS7DBattleStore((s) => s.dropReinforceTask);
       const outcome = performAttackFn(attackerId, defenderId);
       if (!outcome) return;
 
-      // 玩家方普攻 → 标记"骰子关闭后自动结束行动轮"
-      if (isPlayerSide) {
+      // 只有人类玩家普攻才标记“骰子关闭后自动结束行动轮”；AI 的回合由 AI 协程自己结束。
+      if (isHumanPlayerActor) {
         postAttackPlayerEndRef.current = true;
       }
 
