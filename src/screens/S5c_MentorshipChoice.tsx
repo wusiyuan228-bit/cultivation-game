@@ -453,19 +453,24 @@ export const S5c_MentorshipChoice: React.FC = () => {
             transition={{ duration: 0.3 }}
             style={{ ['--accent' as any]: confirmed.accent }}
           >
-            {/* 中央门派印记 */}
+            {/* 中央师父立绘（缺图回退色块印章） */}
             <motion.div
               className={styles.ceremonySeal}
-              style={{ background: confirmed.accent }}
+              style={{ borderColor: confirmed.accent, boxShadow: `0 0 60px ${confirmed.accent}, 0 0 120px ${confirmed.accent}80, inset 0 4px 12px rgba(255,255,255,0.4)` }}
               initial={{ y: -600, scale: 0.4, rotate: -180, opacity: 0 }}
-              animate={
-                ceremonyPhase === 'falling'
-                  ? { y: 0, scale: 1, rotate: 0, opacity: 1 }
-                  : { y: 0, scale: 1, rotate: 0, opacity: 1 }
-              }
+              animate={{ y: 0, scale: 1, rotate: 0, opacity: 1 }}
               transition={{ type: 'spring', stiffness: 220, damping: 18 }}
             >
-              <span>{confirmed.name[0]}</span>
+              {confirmed.masterPortrait && !portraitFailed[confirmed.id] ? (
+                <img
+                  className={styles.ceremonySealImg}
+                  src={confirmed.masterPortrait}
+                  alt={confirmed.master}
+                  onError={() => setPortraitFailed((p) => ({ ...p, [confirmed.id]: true }))}
+                />
+              ) : (
+                <span style={{ background: confirmed.accent, width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%' }}>{confirmed.name[0]}</span>
+              )}
             </motion.div>
 
             {/* 触地金光迸发 */}

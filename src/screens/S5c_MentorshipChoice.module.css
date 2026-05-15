@@ -518,15 +518,14 @@
   pointer-events: none;
 }
 
-/* ============ 师父招徒台词气泡（位于卡片下方·选中后浮现） ============ */
+/* ============ 师父招徒台词气泡（位于卡片右侧·选中后浮现） ============ */
 .quoteBubble {
   position: absolute;
-  top: 880px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 720px;
-  padding: 18px 28px 20px;
-  background: linear-gradient(180deg, rgba(20, 28, 44, 0.9) 0%, rgba(12, 18, 30, 0.95) 100%);
+  top: 360px;
+  right: 32px;
+  width: 320px;
+  padding: 16px 22px 18px;
+  background: linear-gradient(180deg, rgba(20, 28, 44, 0.92) 0%, rgba(12, 18, 30, 0.95) 100%);
   border: 1px solid var(--accent, var(--color-gold));
   border-left: 4px solid var(--accent, var(--color-gold));
   border-radius: 8px;
@@ -537,7 +536,7 @@
 
 .quoteHeader {
   font-family: var(--font-title);
-  font-size: 16px;
+  font-size: 14px;
   color: var(--color-gold-light);
   letter-spacing: 2px;
   margin-bottom: 8px;
@@ -546,7 +545,7 @@
 
 .quoteText {
   font-family: var(--font-body-kaiti);
-  font-size: 22px;
+  font-size: 18px;
   line-height: 1.6;
   color: var(--color-paper);
   letter-spacing: 1px;
@@ -651,18 +650,19 @@
 .ceremonyOverlay {
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at 50% 45%, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0.92) 70%);
+  background: radial-gradient(ellipse at 50% 45%, rgba(8, 12, 22, 0.96) 0%, rgba(0, 0, 0, 0.99) 70%);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   z-index: 200;
   overflow: hidden;
+  padding: 40px 0;
 }
 
 .ceremonySeal {
-  width: 220px;
-  height: 220px;
+  width: 240px;
+  height: 240px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -672,12 +672,22 @@
   font-weight: 800;
   color: #fff;
   text-shadow: 0 4px 12px rgba(0, 0, 0, 0.85);
-  border: 6px solid rgba(255, 255, 255, 0.45);
+  border: 6px solid var(--accent, rgba(255, 255, 255, 0.45));
   box-shadow: 0 0 60px var(--accent, rgba(200, 161, 75, 0.7)),
               0 0 120px var(--accent, rgba(200, 161, 75, 0.4)),
               inset 0 4px 12px rgba(255, 255, 255, 0.4);
   position: relative;
   z-index: 2;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.ceremonySealImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  filter: saturate(1.05) brightness(1.05);
 }
 
 .ceremonyBurst {
@@ -698,11 +708,11 @@
 }
 
 .ceremonyDeptName {
-  margin-top: 36px;
+  margin-top: 20px;
   font-family: var(--font-title);
-  font-size: 56px;
+  font-size: 48px;
   font-weight: 800;
-  letter-spacing: 24px;
+  letter-spacing: 20px;
   background: linear-gradient(180deg, #ffeb8a 0%, var(--accent) 50%, #8b6b2e 100%);
   -webkit-background-clip: text;
   background-clip: text;
@@ -712,9 +722,9 @@
 }
 
 .ceremonyRewards {
-  margin-top: 32px;
+  margin-top: 18px;
   display: flex;
-  gap: 32px;
+  gap: 24px;
   z-index: 3;
 }
 
@@ -722,9 +732,9 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
-  padding: 16px 28px;
-  min-width: 140px;
+  gap: 4px;
+  padding: 12px 22px;
+  min-width: 130px;
   background: rgba(10, 18, 32, 0.85);
   border: 2px solid var(--accent);
   border-radius: 10px;
@@ -755,9 +765,9 @@
 }
 
 .ceremonyQuote {
-  margin-top: 32px;
-  width: 760px;
-  padding: 22px 36px 24px;
+  margin-top: 22px;
+  width: 720px;
+  padding: 16px 32px 18px;
   background: linear-gradient(180deg, rgba(20, 28, 44, 0.92) 0%, rgba(12, 18, 30, 0.96) 100%);
   border: 1px solid var(--accent);
   border-left: 4px solid var(--accent);
@@ -769,20 +779,20 @@
 
 .ceremonyQuoteHeader {
   font-family: var(--font-title);
-  font-size: 16px;
+  font-size: 15px;
   color: var(--color-gold-light);
   letter-spacing: 3px;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   opacity: 0.9;
 }
 
 .ceremonyQuoteText {
   font-family: var(--font-body-kaiti);
-  font-size: 24px;
-  line-height: 1.7;
+  font-size: 20px;
+  line-height: 1.6;
   color: var(--color-paper);
   letter-spacing: 1px;
-  margin-bottom: 20px;
+  margin-bottom: 14px;
 }
 
 .ceremonyQuoteText::before {
