@@ -2356,6 +2356,8 @@ const TERRAIN_TILE_IMG: Partial<Record<string, string>> = {
   atk_boost: asset('images/map/tile_atk_boost.png'),
   mnd_boost: asset('images/map/tile_mnd_boost.png'),
   miasma: asset('images/map/tile_miasma.png'),
+  river: asset('images/map/tile_river.png'),
+  bridge: asset('images/map/tile_bridge.png'),
 };
 const TERRAIN_TEXT_LABEL: Partial<Record<string, string>> = {
   spring: '生+1',

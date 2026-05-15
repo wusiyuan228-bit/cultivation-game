@@ -4,6 +4,7 @@
  *   - 18×12 地图，单元格 96px（2026-05-12 由 70 调整，提升头像/地图清晰度，缩放后接近 S7B 观感）
  *   - 地图底图复用 /images/map/s7_battle_map.jpg
  *   - 功能瓦片复用 tile_spring/atk_boost/mnd_boost/miasma.png
+ *   - 结构瓦片新增 tile_river/bridge.png（2026-05 接入）
  *   - 水晶 / 出生点 暂用文字占位（待美术素材）
  *   - 棋子缩小为 66×66，只显示名字前 3 字 + 槽号 + HP 条
  */
@@ -381,13 +382,13 @@
   outline-color: rgba(255, 220, 130, 0.55) !important;
 }
 
-/* 结构性瓦片轻微染色（让背景层能透出，又能区分） */
+/* 结构性瓦片：贴图为主，色块仅作底色防漏 */
 .cell_river {
-  background: rgba(40, 100, 180, 0.28);
+  background: rgba(40, 100, 180, 0.12);
 }
 
 .cell_bridge {
-  background: rgba(138, 93, 46, 0.45);
+  background: rgba(138, 93, 46, 0.18);
   outline-color: rgba(200, 160, 100, 0.5);
 }
 
