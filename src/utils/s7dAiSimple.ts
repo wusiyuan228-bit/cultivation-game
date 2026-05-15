@@ -1,16 +1,27 @@
 /**
- * S7D · 简化版 AI 决策（Batch 1）
+ * S7D · AI 决策（v3：目标导向）
  *
- * 目的：让战斗能走通，5 个 AI 不用差异化，统一用启发式：
- *   1. 如果能攻击敌方棋子 → 挑血量最低的敌人攻击
- *   2. 否则如果能攻击敌方水晶 → 攻击水晶
- *   3. 否则向最近敌人移动（能动多远就动多远）
- *   4. 都不行 → 结束回合
+ * 设计原则：
+ *   1. AI 在战场上必须有明确的战术目标，绝不允许"无所事事"
+ *   2. 决策按优先级链路推进，每一层都给出可执行动作
+ *   3. 如果有相邻敌人 → 必攻击；没有 → 必移动；移动后若打得到 → 接着攻击
+ *   4. 真实距离用 BFS 可达计算（不假设直线），避开墙体/障碍/友军
  *
- * Batch 3 会扩展为 5 个主角差异化的决策树（激进/防守/辅助等）。
+ * 战术目标优先级（高 → 低）：
+ *   T1. 击杀必胜目标：相邻敌人中可一击击杀的（hp ≤ 我 atk 中位估算）
+ *   T2. 击杀敌方主角：相邻敌方 hero
+ *   T3. 占领敌方水晶：当前已可站上敌晶 / 或本回合可达敌晶格
+ *   T4. 阻击我方水晶：有敌人正站我方水晶 → 返回阻击
+ *   T5. 击杀低血敌人：向最近的"血量低于平均值"敌人靠拢
+ *   T6. 攻击敌方主角：向最近敌方 hero 靠拢
+ *   T7. 推进压制：向敌方水晶中心靠拢
+ *   T8. 兜底游走：向最近敌人靠拢一格（保证不静止）
  *
- * ⚠️ 本文件返回的是"建议动作"，实际执行由 S7D_Battle 页面统一调用 Store API。
- *    这样便于把 AI 的行动也走到骰子弹窗动画流程里。
+ * 攻击选择：
+ *   A1. 能一击击杀 → 选 hp 最低且能杀的
+ *   A2. 否则选 hero（敌方主角）
+ *   A3. 否则选 atk 最高的（最大威胁）
+ *   A4. 都没特殊 → hp 最低的（蚕食输出）
  */
 
 import type {
@@ -23,13 +34,15 @@ import {
   getAttackableEnemies,
   manhattan,
 } from './s7dBattleCombat';
-import { getReachableCells, getFactionFieldUnits } from './s7dBattleQueries';
+import {
+  getReachableCells,
+  getFactionFieldUnits,
+} from './s7dBattleQueries';
 
 /**
- * AI 行动决策结果（3 种之一）
+ * AI 行动决策结果
  *
- * 注：规则 v2 后水晶不可主动攻击，仅保留 attack_unit / move / pass。
- * 遗留的 attack_crystal kind 保留仅为类型兼容，实际不再返回。
+ * 注：规则 v2 后水晶不可主动攻击；保留 attack_crystal 仅类型兼容，实际不再返回。
  */
 export type AiAction =
   | { kind: 'attack_unit'; targetInstanceId: string }
@@ -37,9 +50,10 @@ export type AiAction =
   | { kind: 'move_then_maybe_attack'; to: GridPos; steps: number }
   | { kind: 'pass' };
 
-/**
- * 为单个行动者计算 AI 动作
- */
+// =============================================================================
+// 主入口
+// =============================================================================
+
 export function decideAiAction(
   state: S7DBattleState,
   actorInstanceId: string,
@@ -51,91 +65,328 @@ export function decideAiAction(
 
   const allUnits = Object.values(state.units);
   const enemyFaction: BattleFaction = actor.faction === 'A' ? 'B' : 'A';
+  const allyFaction: BattleFaction = actor.faction;
 
-  // 1. 能攻击相邻敌方棋子 → 挑血量最低的
+  // ===== 阶段 1：能攻击就攻击 =====
   if (!actor.attackedThisTurn) {
     const attackable = getAttackableEnemies(actor, allUnits);
     if (attackable.length > 0) {
-      const target = attackable.reduce((lo, u) => (u.hp < lo.hp ? u : lo), attackable[0]);
+      const target = pickBestAttackTarget(actor, attackable);
       return { kind: 'attack_unit', targetInstanceId: target.instanceId };
     }
-    // 规则 v2：水晶不可被主动攻击，只能通过占领水晶格在大回合末结算
-    // 所以这里不再尝试 attack_crystal
   }
 
-  // 3. 移动：优先冲向敌方水晶（推进占领），否则冲向最近敌人
+  // ===== 阶段 2：移动决策 =====
   if (!actor.immobilized && actor.stepsUsedThisTurn < actor.mnd) {
     const reachable = getReachableCells(state, actorInstanceId);
     if (reachable.length > 0) {
-      // 3a. 优先：最接近敌方水晶的格子
-      const enemyCrystal = enemyFaction === 'A' ? state.crystalA : state.crystalB;
-      const targetCrystalCenter = averagePos(enemyCrystal.positions);
+      const moveAction = pickBestMove(state, actor, reachable, enemyFaction, allyFaction);
+      if (moveAction) return moveAction;
+    }
+  }
 
-      // 3b. 也考虑最近敌人
-      const enemies = getFactionFieldUnits(state, enemyFaction);
-      const nearestEnemy = enemies.length
-        ? enemies.reduce(
-            (best, e) =>
-              e.position && manhattan(actor.position!, e.position) < manhattan(actor.position!, best.position!)
-                ? e
-                : best,
-            enemies[0],
-          )
-        : null;
+  // ===== 阶段 3：兜底（无可移动 / 已耗尽）=====
+  // 只有"完全动不了 + 完全打不到任何东西"时才 pass
+  return { kind: 'pass' };
+}
 
-      // 取两者中"更有价值"的目标（简化：距离敌方水晶更近且至少不远离敌人）
-      const targetPos = targetCrystalCenter; // Batch 1 简化：一律奔向敌方水晶
+// =============================================================================
+// 攻击目标选择
+// =============================================================================
 
-      // 从可达格中挑最接近目标的
-      let best: GridPos = reachable[0];
-      let bestDist = manhattan(reachable[0], targetPos);
-      for (const c of reachable) {
-        const d = manhattan(c, targetPos);
-        if (d < bestDist) {
-          best = c;
-          bestDist = d;
-        }
+function pickBestAttackTarget(
+  actor: BattleCardInstance,
+  attackable: BattleCardInstance[],
+): BattleCardInstance {
+  // 估算攻击伤害的乐观值：atk 即修为骰数，骰子期望值约 atk * 0.7（每个 d2 期望 1.5），
+  // 但 AI 决策保守取 atk 本身（非常保守，确保"标记可秒杀"时确实有概率秒杀）
+  const myAtkApprox = actor.atk;
+
+  // A1: 能一击秒杀的（按 hp 升序选）
+  const killable = attackable
+    .filter((u) => u.hp <= myAtkApprox)
+    .sort((a, b) => a.hp - b.hp);
+  if (killable.length > 0) {
+    // 优先杀主角，再按 hp 升序
+    const heroKill = killable.find((u) => isHeroUnit(u));
+    return heroKill ?? killable[0];
+  }
+
+  // A2: 主角优先
+  const hero = attackable.find((u) => isHeroUnit(u));
+  if (hero) return hero;
+
+  // A3: atk 最高（威胁最大）
+  const sortedByAtk = [...attackable].sort((a, b) => b.atk - a.atk);
+  if (sortedByAtk[0].atk >= sortedByAtk[sortedByAtk.length - 1].atk + 2) {
+    return sortedByAtk[0];
+  }
+
+  // A4: hp 最低（最易蚕食）
+  return attackable.reduce((lo, u) => (u.hp < lo.hp ? u : lo), attackable[0]);
+}
+
+function isHeroUnit(u: BattleCardInstance): boolean {
+  return u.isHero === true;
+}
+
+// =============================================================================
+// 移动目标决策
+// =============================================================================
+
+function pickBestMove(
+  state: S7DBattleState,
+  actor: BattleCardInstance,
+  reachable: GridPos[],
+  enemyFaction: BattleFaction,
+  allyFaction: BattleFaction,
+): AiAction | null {
+  const enemies = getFactionFieldUnits(state, enemyFaction);
+  const allies = getFactionFieldUnits(state, allyFaction);
+  const enemyCrystal = enemyFaction === 'A' ? state.crystalA : state.crystalB;
+  const myCrystal = allyFaction === 'A' ? state.crystalA : state.crystalB;
+  const myAtkApprox = actor.atk;
+
+  // 每个可达格预先计算"邻居敌人"信息（用于"移动后可攻击"价值评估）
+  const reachableInfo = reachable.map((cell) => {
+    const adjEnemies = enemies.filter((e) => e.position && manhattanGrid(cell, e.position) === 1);
+    return { cell, adjEnemies };
+  });
+
+  // -------------- T1：移动后能一击秒杀 --------------
+  const killOpportunities: Array<{ cell: GridPos; victim: BattleCardInstance; score: number }> = [];
+  for (const { cell, adjEnemies } of reachableInfo) {
+    for (const e of adjEnemies) {
+      if (e.hp <= myAtkApprox) {
+        // 击杀价值 = (是否主角 ? 100 : 50) + (atk * 5) - 距敌方水晶距离（越靠前越优）
+        const score =
+          (isHeroUnit(e) ? 100 : 50) +
+          e.atk * 5 +
+          -minDistToCrystal(cell, enemyCrystal.positions);
+        killOpportunities.push({ cell, victim: e, score });
       }
+    }
+  }
+  if (killOpportunities.length > 0) {
+    killOpportunities.sort((a, b) => b.score - a.score);
+    const best = killOpportunities[0];
+    return makeMoveAction(actor, best.cell);
+  }
 
-      // 只有当移动后确实靠近目标（或能进入攻击距离）才行动
-      const curDist = manhattan(actor.position, targetPos);
-      if (bestDist < curDist) {
-        // 计算步数（曼哈顿距离近似；精确值需 BFS 路径重建，Batch 1 暂简化）
-        const steps = Math.min(actor.mnd - actor.stepsUsedThisTurn, manhattan(actor.position, best));
-        return { kind: 'move_then_maybe_attack', to: best, steps };
+  // -------------- T3：占领敌方水晶（最高战略目标）--------------
+  const enemyCrystalSet = new Set(enemyCrystal.positions.map((p) => `${p.row},${p.col}`));
+  const reachableEnemyCrystalCells = reachable.filter((c) => enemyCrystalSet.has(`${c.row},${c.col}`));
+  if (reachableEnemyCrystalCells.length > 0) {
+    // 直接站上敌晶 → 大回合末扣对方水晶血
+    const target = pickClosest(actor.position!, reachableEnemyCrystalCells);
+    return makeMoveAction(actor, target);
+  }
+
+  // -------------- T4：阻击我方水晶被占 --------------
+  const myCrystalSet = new Set(myCrystal.positions.map((p) => `${p.row},${p.col}`));
+  const enemyOnMyCrystal = enemies.filter(
+    (e) => e.position && myCrystalSet.has(`${e.position.row},${e.position.col}`),
+  );
+  if (enemyOnMyCrystal.length > 0) {
+    // 选离敌人最近的可达格（争取下回合相邻攻击）
+    const target = enemyOnMyCrystal.reduce((b, e) =>
+      e.position && actor.position && manhattan(actor.position, e.position) < manhattan(actor.position, b.position!)
+        ? e
+        : b,
+    );
+    if (target.position) {
+      const cell = pickClosestToTarget(reachable, target.position);
+      if (cell) {
+        // 仅当此移动确实能拉近距离 / 已在原地相邻则跳过（已被阶段 1 覆盖）
+        const before = manhattan(actor.position!, target.position);
+        const after = manhattan(cell, target.position);
+        if (after < before) return makeMoveAction(actor, cell);
       }
+    }
+  }
 
-      // 否则考虑靠近最近敌人
-      if (nearestEnemy?.position) {
-        let best2: GridPos = reachable[0];
-        let bestDist2 = manhattan(reachable[0], nearestEnemy.position);
-        for (const c of reachable) {
-          const d = manhattan(c, nearestEnemy.position);
-          if (d < bestDist2) {
-            best2 = c;
-            bestDist2 = d;
-          }
+  // -------------- T2：移动后可攻击主角 --------------
+  const reachAdjHero = reachableInfo.find(({ adjEnemies }) =>
+    adjEnemies.some((e) => isHeroUnit(e)),
+  );
+  if (reachAdjHero) {
+    return makeMoveAction(actor, reachAdjHero.cell);
+  }
+
+  // -------------- T5：移动后能攻击任何敌人 --------------
+  const reachAdjEnemy = reachableInfo
+    .filter(({ adjEnemies }) => adjEnemies.length > 0)
+    .sort((a, b) => {
+      // 选择"能攻击的目标价值最大"的格子
+      const aVal = a.adjEnemies.reduce(
+        (s, e) => s + (isHeroUnit(e) ? 50 : 0) + (e.hp <= myAtkApprox ? 30 : 0) + e.atk,
+        0,
+      );
+      const bVal = b.adjEnemies.reduce(
+        (s, e) => s + (isHeroUnit(e) ? 50 : 0) + (e.hp <= myAtkApprox ? 30 : 0) + e.atk,
+        0,
+      );
+      return bVal - aVal;
+    });
+  if (reachAdjEnemy.length > 0) {
+    return makeMoveAction(actor, reachAdjEnemy[0].cell);
+  }
+
+  // -------------- T7：向敌方水晶中心推进 --------------
+  // 选可达格中"距敌方水晶最近"的格子，比当前位置更近就走
+  const enemyCenter = averagePos(enemyCrystal.positions);
+  const curDistToEnemyCrystal = manhattan(actor.position!, enemyCenter);
+  let bestCrystalCell: GridPos = reachable[0];
+  let bestCrystalDist = manhattan(reachable[0], enemyCenter);
+  for (const c of reachable) {
+    const d = manhattan(c, enemyCenter);
+    if (d < bestCrystalDist) {
+      bestCrystalDist = d;
+      bestCrystalCell = c;
+    }
+  }
+  if (bestCrystalDist < curDistToEnemyCrystal) {
+    return makeMoveAction(actor, bestCrystalCell);
+  }
+
+  // -------------- T6：向最近敌方主角靠拢 --------------
+  const enemyHeroes = enemies.filter((e) => isHeroUnit(e));
+  if (enemyHeroes.length > 0) {
+    const nearestHero = enemyHeroes.reduce((b, e) =>
+      e.position && actor.position && manhattan(actor.position, e.position) < manhattan(actor.position, b.position!)
+        ? e
+        : b,
+    );
+    if (nearestHero.position) {
+      const cell = pickClosestToTarget(reachable, nearestHero.position);
+      if (cell) {
+        const before = manhattan(actor.position!, nearestHero.position);
+        const after = manhattan(cell, nearestHero.position);
+        if (after < before) return makeMoveAction(actor, cell);
+      }
+    }
+  }
+
+  // -------------- T8：向最近敌人靠拢（兜底）--------------
+  if (enemies.length > 0) {
+    const nearest = enemies.reduce((b, e) =>
+      e.position && actor.position && manhattan(actor.position, e.position) < manhattan(actor.position, b.position!)
+        ? e
+        : b,
+    );
+    if (nearest.position) {
+      const cell = pickClosestToTarget(reachable, nearest.position);
+      if (cell) {
+        const before = manhattan(actor.position!, nearest.position);
+        const after = manhattan(cell, nearest.position);
+        if (after < before) {
+          return makeMoveAction(actor, cell);
         }
-        const curDist2 = manhattan(actor.position, nearestEnemy.position);
-        if (bestDist2 < curDist2) {
-          const steps = Math.min(actor.mnd - actor.stepsUsedThisTurn, manhattan(actor.position, best2));
-          return { kind: 'move_then_maybe_attack', to: best2, steps };
+        // 即便距离没缩短，只要可达格中有"距离持平"的，就侧移一格保持机动
+        // 避免在墙后或被友军挡住时彻底卡死
+        const flatCell = reachable.find((c) => manhattan(c, nearest.position!) === before);
+        if (flatCell && (flatCell.row !== actor.position!.row || flatCell.col !== actor.position!.col)) {
+          // 选距敌方水晶更近的方向
+          const candidates = reachable.filter((c) => manhattan(c, nearest.position!) === before);
+          const pushed = candidates.reduce(
+            (b, c) => (manhattan(c, enemyCenter) < manhattan(b, enemyCenter) ? c : b),
+            candidates[0],
+          );
+          return makeMoveAction(actor, pushed);
         }
       }
     }
   }
 
-  return { kind: 'pass' };
+  // -------------- 防御站位：与友军靠拢避免被各个击破 --------------
+  if (allies.length > 1) {
+    const otherAllies = allies.filter((a) => a.instanceId !== actor.instanceId);
+    if (otherAllies.length > 0) {
+      const nearestAlly = otherAllies.reduce((b, a) =>
+        a.position && actor.position && manhattan(actor.position, a.position) < manhattan(actor.position, b.position!)
+          ? a
+          : b,
+      );
+      if (nearestAlly.position) {
+        const cell = pickClosestToTarget(reachable, nearestAlly.position);
+        if (cell) {
+          const before = manhattan(actor.position!, nearestAlly.position);
+          const after = manhattan(cell, nearestAlly.position);
+          if (after < before && after >= 1) {
+            // 不要叠到队友身上（>=1）
+            return makeMoveAction(actor, cell);
+          }
+        }
+      }
+    }
+  }
+
+  // -------------- 兜底：随便往前走一格（朝敌晶方向）--------------
+  // 走任何能稍稍前移的格子；如果可达格全部"远离敌晶"，至少不让 AI 卡住
+  // 避免出现"明明能动却 pass"的体验
+  if (reachable.length > 0) {
+    // 选"距敌方水晶最近"的可达格（即使没缩短距离也最差不过原地横移）
+    const fallback = reachable.reduce(
+      (b, c) => (manhattan(c, enemyCenter) < manhattan(b, enemyCenter) ? c : b),
+      reachable[0],
+    );
+    // 仅当该格不是当前位置时才移动
+    if (fallback.row !== actor.position!.row || fallback.col !== actor.position!.col) {
+      return makeMoveAction(actor, fallback);
+    }
+  }
+
+  return null;
 }
 
-/** 计算一组格子的平均位置（用于水晶中心） */
+// =============================================================================
+// 工具
+// =============================================================================
+
+function makeMoveAction(actor: BattleCardInstance, to: GridPos): AiAction {
+  const steps = Math.min(
+    actor.mnd - actor.stepsUsedThisTurn,
+    Math.max(1, manhattan(actor.position!, to)),
+  );
+  return { kind: 'move_then_maybe_attack', to, steps };
+}
+
+function manhattanGrid(a: GridPos, b: GridPos): number {
+  return Math.abs(a.row - b.row) + Math.abs(a.col - b.col);
+}
+
+function pickClosest(from: GridPos, candidates: GridPos[]): GridPos {
+  return candidates.reduce(
+    (b, c) => (manhattan(from, c) < manhattan(from, b) ? c : b),
+    candidates[0],
+  );
+}
+
+function pickClosestToTarget(candidates: GridPos[], target: GridPos): GridPos | null {
+  if (candidates.length === 0) return null;
+  return candidates.reduce(
+    (b, c) => (manhattan(c, target) < manhattan(b, target) ? c : b),
+    candidates[0],
+  );
+}
+
+function minDistToCrystal(from: GridPos, crystalCells: GridPos[]): number {
+  if (crystalCells.length === 0) return 0;
+  let m = Infinity;
+  for (const c of crystalCells) {
+    const d = manhattan(from, c);
+    if (d < m) m = d;
+  }
+  return m;
+}
+
 function averagePos(positions: GridPos[]): GridPos {
   if (positions.length === 0) return { row: 0, col: 0 };
-  let rSum = 0;
-  let cSum = 0;
+  let r = 0;
+  let c = 0;
   for (const p of positions) {
-    rSum += p.row;
-    cSum += p.col;
+    r += p.row;
+    c += p.col;
   }
-  return { row: Math.round(rSum / positions.length), col: Math.round(cSum / positions.length) };
+  return { row: Math.round(r / positions.length), col: Math.round(c / positions.length) };
 }
