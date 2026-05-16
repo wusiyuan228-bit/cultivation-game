@@ -1139,6 +1139,21 @@ export const useS7DBattleStore = create<S7DBattleStore>((set, get) => ({
       // 🎬 2026-05-17：派发"绝技释放"事件，供 UI 层显示 UltimateCastOverlay 全屏特效
       set({ lastUltimateCast: { unitId: casterId, ts: Date.now() } });
       __postSkillCleanupAndCheckWin(get, set);
+
+      // 🪦 2026-05-17：施法者主动退场处理
+      //   小舞儿/岱牧百/子妍/隐月/留眉/玫渡纱/鸿蝶/缘瑶/腾华原/黎慕婉 等
+      //   "主动退场型"绝技释放后会让自己 zone='grave'。此时该角色已无法继续行动，
+      //   需要立即推进 actor 队列，否则 currentActor 会停在已 grave 的尸体上，
+      //   玩家手动点"结束行动"才能继续，且容易造成误以为还能行动的混乱。
+      const stateAfterFinal = get().state;
+      const casterFinal = stateAfterFinal?.units[casterId];
+      if (casterFinal && casterFinal.zone === 'grave' && stateAfterFinal && !stateAfterFinal.winner) {
+        try {
+          get().advanceActor();
+        } catch (e) {
+          console.error('[s7dBattleStore.useUltimate] advanceActor on self-sacrifice threw:', e);
+        }
+      }
     }
     return ret ?? false;
   },

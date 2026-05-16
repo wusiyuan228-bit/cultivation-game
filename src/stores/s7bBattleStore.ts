@@ -1996,6 +1996,43 @@ export const useS7BBattleStore = create<BattleState>((set, get) => ({
     // 绝技击杀最后一个敌方时立刻结束战斗
     get().checkBattleEnd();
 
+    // ═══ 阶段 E · 主动退场后清理（2026-05-17 新增）═══
+    // 若施法者因绝技自爆/献祭而 dead（八段摔/裂光波/龙凤变/月魂/千梦/石化/
+    // 蝶舞/毕逆/聚魂幡/轻身 等"主动退场型"绝技），需要：
+    //   1. 清除 selectedUnitId（防止其灰色头像保留选中态 → 仍可走移动/普攻）
+    //   2. 标记 acted=true 让 actionQueue 跳过它（即便 acted 之前已 false）
+    //   3. 推进回合（与普攻死亡处理保持一致）
+    {
+      const finalUnits = get().units;
+      const casterFinal = finalUnits.find((x) => x.id === unitId);
+      const sel = get().selectedUnitId;
+      let needAdvance = false;
+      if (casterFinal && casterFinal.dead) {
+        if (sel === unitId) {
+          set({ selectedUnitId: null, phase: 'select_unit', moveRange: [], attackRange: [] });
+        }
+        // 标记 acted 让 actor 推进逻辑跳过
+        if (!casterFinal.acted) {
+          const us = finalUnits.map((x) => (x.id === unitId ? { ...x, acted: true } : x));
+          set({ units: us });
+          needAdvance = true;
+        }
+      }
+      // 即便施法者未 dead，若 selectedUnit 由于其他原因（如自我夺取/重定向）变 dead 也清理
+      if (sel && sel !== unitId) {
+        const selUnit = finalUnits.find((x) => x.id === sel);
+        if (selUnit?.dead) {
+          set({ selectedUnitId: null, phase: 'select_unit', moveRange: [], attackRange: [] });
+        }
+      }
+      if (needAdvance) {
+        // 推进当前行动者（与 endUnitTurn 保持一致；若已是最后一个会自动进入下回合）
+        if (!get().battleOver) {
+          get().endUnitTurn(unitId);
+        }
+      }
+    }
+
     return true;
   },
 

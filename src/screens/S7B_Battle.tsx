@@ -1042,8 +1042,8 @@ export const S7B_Battle: React.FC = () => {
     () => (selectedUnit ? Math.max(0, selectedUnit.mnd - selectedUnit.stepsUsedThisTurn) : 0),
     [selectedUnit],
   );
-  const canMove = !!selectedUnit && remainingSteps > 0 && !selectedUnit.attackedThisTurn && !selectedUnit.immobilized;
-  const canAttack = !!selectedUnit && !selectedUnit.attackedThisTurn;
+  const canMove = !!selectedUnit && !selectedUnit.dead && remainingSteps > 0 && !selectedUnit.attackedThisTurn && !selectedUnit.immobilized;
+  const canAttack = !!selectedUnit && !selectedUnit.dead && !selectedUnit.attackedThisTurn;
 
   // ====== 当前"轮到行动"的任意一方角色（按心境降序、未行动、存活） ======
   const currentActorId = useMemo(() => {
@@ -2223,8 +2223,8 @@ export const S7B_Battle: React.FC = () => {
         );
       })()}
 
-      {/* 底部操作面板 */}
-      {selectedUnit && !battle.battleOver && (
+      {/* 底部操作面板（已退场单位不显示，避免灰色头像被点中后还能放技能） */}
+      {selectedUnit && !selectedUnit.dead && !battle.battleOver && (
         <div className={styles.actionPanel}>
           {/* 技能（非被动技 → 渲染按钮；被动技 → 不渲染，靠左下角信息面板提示） */}
           {selectedUnit.battleSkill && (() => {
