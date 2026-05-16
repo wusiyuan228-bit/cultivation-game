@@ -1,14 +1,13 @@
 /**
- * UltimateCastOverlay — 绝技释放屏幕特效（v2 · 2026-05-17）
+ * UltimateCastOverlay — 绝技释放屏幕特效（v3 · 2026-05-17）
  *
- * v2 改动：
- *   ① 改用 getCachedCardFull —— 完整卡牌立绘（不是头像）
- *   ② 立绘在上 / 横幅在下，垂直分离，永不重叠
- *   ③ 容器 absolute / 1920×1080 px，跟随 .app-stage 等比缩放
+ * v3 改动：
+ *   ① 把 [绝技标签 + 立绘 + 横幅] 封装为单个内部组件 CastCard
+ *   ② overlay 用 flex 居中（参照 HeroRevealCutscene 的仙缘卡居中方案）
+ *   ③ 立绘宽度 380px（用户要求）
+ *   ④ 整张 CastCard 一起做滑入/淡出动画，内部相对位置永远固定
  *
  * 总时长：1000ms
- *
- * 由 S7/S7B/S7D 战斗主屏订阅 lastSkillEvent.skillType === 'ultimate' 后挂载本组件。
  */
 import { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -17,32 +16,19 @@ import { getHeroTheme } from '@/data/heroThemeColors';
 import styles from './UltimateCastOverlay.module.css';
 
 export interface UltimateCastEvent {
-  /** 唯一标识，用于触发新一次 AnimatePresence */
   ts: number;
-  /** 释放绝技的单位 id */
   unitId: string;
-  /** 释放者 heroId（用于色调与立绘获取） */
   heroId?: string;
-  /** 释放者显示名 */
   heroName: string;
-  /** 绝技名 */
   ultimateName: string;
-  /** 立绘兜底字段（当 heroId 拿不到完整立绘时使用） */
   portrait?: string;
 }
 
 interface Props {
   event: UltimateCastEvent | null;
-  /** 总时长，默认 1000ms */
   durationMs?: number;
 }
 
-/**
- * 取角色完整立绘 url：
- *   1. 优先 getCachedCardFull(heroId) —— 已收集卡翻面看到的完整立绘
- *   2. 回退 getCachedImage(heroId)   —— 头像
- *   3. 回退传入的 portrait（可能是 url 或 cache key）
- */
 function resolveFullPortrait(heroId: string | undefined, portrait: string | undefined): string {
   if (heroId) {
     const full = getCachedCardFull(heroId);
@@ -55,11 +41,67 @@ function resolveFullPortrait(heroId: string | undefined, portrait: string | unde
   return getCachedImage(portrait) || '';
 }
 
-/** 8 颗粒子的初始角度（环形分布） */
 const PARTICLE_COUNT = 8;
 
+/**
+ * 内部组件：演出卡 —— 绝技标签 + 立绘 + 横幅 三件套
+ * 作为 overlay 的唯一 flex 子项，自动屏幕正中
+ */
+function CastCard({
+  event,
+  portraitUrl,
+  durationS,
+  particleEmoji,
+}: {
+  event: UltimateCastEvent;
+  portraitUrl: string;
+  durationS: number;
+  particleEmoji: string;
+}) {
+  return (
+    <motion.div
+      className={styles.castCard}
+      initial={{ opacity: 0, y: 60, scale: 0.88 }}
+      animate={{
+        opacity: [0, 1, 1, 0],
+        y: [60, 0, 0, -16],
+        scale: [0.88, 1, 1, 1.04],
+      }}
+      transition={{
+        duration: durationS,
+        times: [0, 0.3, 0.78, 1],
+        ease: [0.16, 1, 0.3, 1],
+      }}
+    >
+      {/* 顶部"绝 技"小标签 */}
+      <div className={styles.tag}>绝 技</div>
+
+      {/* 中部立绘 */}
+      {portraitUrl ? (
+        <div
+          className={styles.portrait}
+          style={{ backgroundImage: `url(${portraitUrl})` }}
+        />
+      ) : (
+        <div className={styles.portraitFallback}>
+          {event.heroName?.[0] ?? '?'}
+        </div>
+      )}
+
+      {/* 底部横幅：角色名 · 绝技名 */}
+      <div className={styles.banner}>
+        <div className={styles.bannerInner}>
+          <span className={styles.heroName}>{event.heroName}</span>
+          <span className={styles.divider}>·</span>
+          <span className={styles.skillName}>{event.ultimateName}</span>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 export function UltimateCastOverlay({ event, durationMs = 1000 }: Props) {
-  const D = durationMs / 1000; // framer-motion 用秒
+  const D = durationMs / 1000;
 
   const theme = useMemo(() => getHeroTheme(event?.heroId), [event?.heroId]);
   const portraitUrl = useMemo(
@@ -87,7 +129,7 @@ export function UltimateCastOverlay({ event, durationMs = 1000 }: Props) {
           exit={{ opacity: 0 }}
           transition={{ duration: D * 0.15 }}
         >
-          {/* Layer 0 · 暗化 + 径向色 */}
+          {/* 背景层 —— 全部 absolute 不参与 flex 居中 */}
           <motion.div
             className={styles.backdrop}
             initial={{ opacity: 0, scale: 1.15 }}
@@ -95,8 +137,6 @@ export function UltimateCastOverlay({ event, durationMs = 1000 }: Props) {
             exit={{ opacity: 0 }}
             transition={{ duration: D * 0.25, ease: 'easeOut' }}
           />
-
-          {/* Layer 1 · 内层亮闪（呼吸感） */}
           <motion.div
             className={styles.flash}
             initial={{ opacity: 0, scale: 1.4 }}
@@ -107,8 +147,6 @@ export function UltimateCastOverlay({ event, durationMs = 1000 }: Props) {
               ease: 'easeOut',
             }}
           />
-
-          {/* Layer 1.5 · 斜向扫光条 */}
           <motion.div
             className={styles.sweep}
             initial={{ x: '-100%' }}
@@ -116,7 +154,7 @@ export function UltimateCastOverlay({ event, durationMs = 1000 }: Props) {
             transition={{ duration: D * 0.7, ease: 'easeOut', delay: D * 0.1 }}
           />
 
-          {/* Layer 1 · 粒子（8 颗 emoji 环形汇聚再扩散） */}
+          {/* 粒子层 —— 整层 absolute，不参与 flex 居中（避免影响 castCard 排版） */}
           <div className={styles.particles}>
             {Array.from({ length: PARTICLE_COUNT }).map((_, i) => {
               const angle = (i / PARTICLE_COUNT) * Math.PI * 2;
@@ -152,63 +190,13 @@ export function UltimateCastOverlay({ event, durationMs = 1000 }: Props) {
             })}
           </div>
 
-          {/* "绝 技" 小标签（立绘上方） */}
-          <motion.div
-            className={styles.tag}
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: [0, 1, 1, 0], y: [-10, 0, 0, -10] }}
-            transition={{ duration: D, times: [0, 0.25, 0.75, 1], ease: 'easeOut' }}
-          >
-            绝 技
-          </motion.div>
-
-          {/* Layer 2 · 角色完整立绘（居中偏上，独占顶部空间） */}
-          <motion.div
-            className={styles.portraitWrap}
-            initial={{ opacity: 0, y: 80, scale: 0.85 }}
-            animate={{
-              opacity: [0, 1, 1, 0],
-              y: [80, 0, 0, -20],
-              scale: [0.85, 1, 1, 1.04],
-            }}
-            transition={{
-              duration: D,
-              times: [0, 0.3, 0.78, 1],
-              ease: [0.16, 1, 0.3, 1],
-            }}
-          >
-            {portraitUrl ? (
-              <div
-                className={styles.portrait}
-                style={{ backgroundImage: `url(${portraitUrl})` }}
-              />
-            ) : (
-              <div className={styles.portraitFallback}>
-                {event.heroName?.[0] ?? '?'}
-              </div>
-            )}
-          </motion.div>
-
-          {/* Layer 3 · 文字横幅（立绘下方，绝不重叠） */}
-          <motion.div
-            className={styles.banner}
-            initial={{ opacity: 0, scaleX: 0 }}
-            animate={{
-              opacity: [0, 1, 1, 0],
-              scaleX: [0, 1, 1, 1],
-            }}
-            transition={{
-              duration: D,
-              times: [0, 0.4, 0.82, 1],
-              ease: 'easeOut',
-            }}
-          >
-            <div className={styles.bannerInner}>
-              <span className={styles.heroName}>{event.heroName}</span>
-              <span className={styles.divider}>·</span>
-              <span className={styles.skillName}>{event.ultimateName}</span>
-            </div>
-          </motion.div>
+          {/* ★ 核心：演出卡 —— overlay 的唯一 flex 子项，自动正中 */}
+          <CastCard
+            event={event}
+            portraitUrl={portraitUrl}
+            durationS={D}
+            particleEmoji={theme.particle}
+          />
         </motion.div>
       )}
     </AnimatePresence>
