@@ -51,6 +51,8 @@ import {
 import { SkillRegistry } from '@/systems/battle/skillRegistry';
 import { ReviveAllocateModal } from '@/components/battle/ReviveAllocateModal';
 import { TurnStartChoiceModal } from '@/components/battle/TurnStartChoiceModal';
+import { XiulianAmountModal, type XiulianPendingInfo } from '@/components/battle/XiulianAmountModal';
+import { encodeXiulianTargets } from '@/systems/battle/skills/situnan_xiulian';
 import styles from './S7_Battle.module.css';
 
 /* ======== 地图格子尺寸常量 ======== */
@@ -393,6 +395,9 @@ export const S7_Battle: React.FC = () => {
     skillSlot?: 'ultimate' | 'battle';
   } | null>(null);
 
+  /* === 天逆珠·修炼 X 值选择弹窗（2026-05-16 新增） === */
+  const [pendingXiulian, setPendingXiulian] = useState<XiulianPendingInfo | null>(null);
+
   /* === 地图拖动 & 缩放 —— 直接操作DOM，绕过React重渲染 === */
   const mapAreaRef = useRef<HTMLDivElement>(null);
   const mapViewportRef = useRef<HTMLDivElement>(null);
@@ -731,6 +736,32 @@ export const S7_Battle: React.FC = () => {
         battle.addLog('⚠️ 非法目标：不在技能可选择范围内', 'system');
         return;
       }
+
+      // ★ 2026-05-16：天逆珠·修炼专属拦截（与 S7B 对称）
+      if (cur.regSkillId === 'bssr_situnan.battle' && cur.skillSlot === 'battle') {
+        const caster = battle.units.find((u) => u.id === cur.casterId);
+        const target = battle.units.find((u) => u.id === targetId);
+        if (!caster || !target) {
+          battle.addLog('⚠️ 天逆珠·修炼：单位不存在', 'system');
+          setUltimateTargeting(null);
+          return;
+        }
+        if (caster.hp < 2) {
+          battle.addLog('⚠️ 天逆珠·修炼：司图楠当前气血过低（需 ≥2）', 'system');
+          setUltimateTargeting(null);
+          return;
+        }
+        setPendingXiulian({
+          casterId: caster.id,
+          casterName: caster.name,
+          casterHp: caster.hp,
+          targetId: target.id,
+          targetName: target.name,
+        });
+        setUltimateTargeting(null);
+        return;
+      }
+
       // ★ 2026-05-10：根据 skillSlot 走不同路径（默认 ultimate）
       const ok =
         cur.skillSlot === 'battle'
@@ -1820,6 +1851,30 @@ export const S7_Battle: React.FC = () => {
           battle.confirmTurnEndChoice(targetId, stat)
         }
         onCancel={() => battle.cancelTurnEndChoice()}
+      />
+
+      {/* ─── 司图楠 · 天逆珠·修炼 · X 值选择（2026-05-16）─── */}
+      <XiulianAmountModal
+        pending={pendingXiulian}
+        onConfirm={(X) => {
+          if (!pendingXiulian) return;
+          const { casterId, targetId } = pendingXiulian;
+          const ok = battle.performBattleSkillActive(
+            casterId,
+            encodeXiulianTargets(targetId, X),
+          );
+          setPendingXiulian(null);
+          if (ok) {
+            setTimeout(() => {
+              useBattleStore.getState().calcMoveRange(casterId);
+              useBattleStore.getState().calcAttackRange(casterId);
+            }, 0);
+          }
+        }}
+        onCancel={() => {
+          battle.addLog('🎯 取消天逆珠·修炼', 'system');
+          setPendingXiulian(null);
+        }}
       />
     </div>
   );

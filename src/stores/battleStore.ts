@@ -1552,6 +1552,46 @@ export const useBattleStore = create<BattleState>((set, get) => ({
       us[si] = { ...us[si], row: us[ti].row, col: us[ti].col, battleSkillUsed: true };
       us[ti] = { ...us[ti], row: sRow, col: sCol };
       set({ units: us });
+    } else if (regId === 'bssr_situnan.battle') {
+      // 天逆珠·修炼（与 s7bBattleStore 同款逻辑，仅 set 字段差异）
+      const payload = (result as any).payload as { X: number; targetId: string } | undefined;
+      if (!payload || !payload.X || !payload.targetId) {
+        get().addLog('⚠️ 天逆珠·修炼：参数解析失败', 'system');
+        return false;
+      }
+      const X = payload.X;
+      const cur = get().units;
+      const ci = cur.findIndex((x) => x.id === unitId);
+      const ti = cur.findIndex((x) => x.id === payload.targetId);
+      if (ci < 0 || ti < 0) return false;
+      const caster = cur[ci];
+      if (X >= caster.hp) {
+        get().addLog('⚠️ 天逆珠·修炼：消耗气血不能 ≥ 当前气血', 'system');
+        return false;
+      }
+      const target = cur[ti];
+      if (target.dead || target.isEnemy !== caster.isEnemy || target.id === caster.id) {
+        get().addLog('⚠️ 天逆珠·修炼：目标无效', 'system');
+        return false;
+      }
+      const us = [...cur];
+      const newCasterHp = Math.max(1, caster.hp - X);
+      us[ci] = { ...caster, hp: newCasterHp };
+      const mndGain = Math.min(X, 2);
+      const newTargetMaxHp = target.maxHp + X;
+      us[ti] = {
+        ...target,
+        atk: target.atk + X,
+        mnd: target.mnd + mndGain,
+        maxHp: newTargetMaxHp,
+        hp: Math.min(newTargetMaxHp, target.hp + X),
+      };
+      // 注意：不设 battleSkillUsed=true（每回合一次而非每场一次）
+      set({ units: us, skillUsedThisTurn: true });
+      get().addLog(
+        `✨ 司图楠消耗 ${X} 气血为 ${target.name} 灌注：修为 ${target.atk}→${target.atk + X} · 心境 ${target.mnd}→${target.mnd + mndGain} · 生命 ${target.maxHp}→${newTargetMaxHp}`,
+        'skill',
+      );
     } else {
       const us = [...get().units];
       const si = us.findIndex((x) => x.id === unitId);

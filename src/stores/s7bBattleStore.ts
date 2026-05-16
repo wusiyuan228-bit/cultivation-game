@@ -2061,6 +2061,54 @@ export const useS7BBattleStore = create<BattleState>((set, get) => ({
       us[si] = { ...us[si], row: us[ti].row, col: us[ti].col, battleSkillUsed: true };
       us[ti] = { ...us[ti], row: sRow, col: sCol };
       set({ units: us, skillUsedThisTurn: true, lastSkillEvent: { unitId, skillType: 'battle', ts: Date.now() } });
+    } else if (regId === 'bssr_situnan.battle') {
+      // 天逆珠·修炼：从 result.payload 取出 X / targetId，执行扣血 + 加属性
+      // payload 是技能层 activeCast 返回的非标字段（详见 situnan_xiulian.ts 注释）
+      const payload = (result as any).payload as { X: number; targetId: string; casterId: string } | undefined;
+      if (!payload || !payload.X || !payload.targetId) {
+        get().addLog('⚠️ 天逆珠·修炼：参数解析失败', 'system');
+        return false;
+      }
+      const X = payload.X;
+      const targetId = payload.targetId;
+      const cur = get().units;
+      const ci = cur.findIndex((x) => x.id === unitId);
+      const ti = cur.findIndex((x) => x.id === targetId);
+      if (ci < 0 || ti < 0) return false;
+
+      // 安全约束：X 不能 ≥ 司图楠当前气血（必须留 ≥1 血）
+      const caster = cur[ci];
+      if (X >= caster.hp) {
+        get().addLog('⚠️ 天逆珠·修炼：消耗气血不能 ≥ 当前气血（需保留至少 1 血）', 'system');
+        return false;
+      }
+      const target = cur[ti];
+      if (target.dead || target.isEnemy !== caster.isEnemy || target.id === caster.id) {
+        get().addLog('⚠️ 天逆珠·修炼：目标无效', 'system');
+        return false;
+      }
+
+      const us = [...cur];
+      // 司图楠：扣 X 点当前气血（不动 maxHp，临时损耗）
+      const newCasterHp = Math.max(1, caster.hp - X);
+      us[ci] = { ...caster, hp: newCasterHp };
+      // 友军：修为+X、心境+min(X,2)、生命(maxHp 上限)+X，hp 也补满到新上限
+      const mndGain = Math.min(X, 2);
+      const newTargetMaxHp = target.maxHp + X;
+      us[ti] = {
+        ...target,
+        atk: target.atk + X,
+        mnd: target.mnd + mndGain,
+        maxHp: newTargetMaxHp,
+        hp: Math.min(newTargetMaxHp, target.hp + X), // 当前血也回 X，但不超新上限
+      };
+      // 注意：不设 battleSkillUsed=true（每回合一次而非每场一次），但 skillUsedThisTurn=true 会触发回合内冷却
+      set({ units: us, skillUsedThisTurn: true, lastSkillEvent: { unitId, skillType: 'battle', ts: Date.now() } });
+      // 追加一条人话战报
+      get().addLog(
+        `✨ 司图楠消耗 ${X} 气血为 ${target.name} 灌注：修为 ${target.atk}→${target.atk + X} · 心境 ${target.mnd}→${target.mnd + mndGain} · 生命 ${target.maxHp}→${newTargetMaxHp}`,
+        'skill',
+      );
     } else {
       // 通用兜底：仅标记 battleSkillUsed
       const us = [...get().units];
