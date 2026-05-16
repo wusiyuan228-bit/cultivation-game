@@ -656,19 +656,36 @@ export function checkAndTriggerAwakening(state: S7DBattleState): void {
     const b = bp.base;
     const a = bp.awakened;
 
-    // 差值法(同 S7B)
-    const atkDelta = a.atk - b.atk;
-    const mndDelta = a.mnd - b.mnd;
-    const hpCapDelta = a.hpCap - b.hpCap;
-    const newMaxHp = u.hpMax + hpCapDelta;
+    // —— 按觉醒语义分支（2026-05-16 引入 absolute）——
+    // 'increment'（默认 5 位主角）：差值法保留战中永久增益/debuff
+    // 'absolute'（小舞儿涅槃）：直接采用觉醒蓝图数值，清除所有战中永久修正
+    const semantic = bp.awakenSemantic ?? 'increment';
+    let newMaxHp: number;
+    let newHp: number;
+    let newAtk: number;
+    let newMnd: number;
+    if (semantic === 'absolute') {
+      newMaxHp = a.hpCap;
+      newHp = a.hp;
+      newAtk = a.atk;
+      newMnd = a.mnd;
+    } else {
+      const atkDelta = a.atk - b.atk;
+      const mndDelta = a.mnd - b.mnd;
+      const hpCapDelta = a.hpCap - b.hpCap;
+      newMaxHp = u.hpMax + hpCapDelta;
+      newHp = newMaxHp; // 觉醒重置满血
+      newAtk = u.atk + atkDelta;
+      newMnd = u.mnd + mndDelta;
+    }
     const wasDead = u.hp <= 0 || u.zone === 'grave';
 
     u.name = a.name;
     u.type = a.type as BattleCardInstance['type'];
     u.hpMax = newMaxHp;
-    u.hp = newMaxHp; // 觉醒重置满血
-    u.atk = u.atk + atkDelta;
-    u.mnd = u.mnd + mndDelta;
+    u.hp = newHp;
+    u.atk = newAtk;
+    u.mnd = newMnd;
     u.portrait = a.portrait ?? u.portrait;
     u.registrySkills = [...a.skills];
     u.awakened = true;

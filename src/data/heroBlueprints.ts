@@ -21,11 +21,21 @@ import type { CultivationType } from '@/types/game';
 
 export type HeroIpTag = 'douluo' | 'doupo' | 'xianni';
 
+/**
+ * 觉醒语义（2026-05-16 新增）
+ *  - 'increment'（默认）：差值法叠加，保留战中永久增益/debuff —— 适合"提升型"觉醒（5 位主角）
+ *  - 'absolute'：直接采用 awakened 蓝图数值，**清除所有战中永久增益/debuff** —— 适合"重置型"觉醒
+ *    典型场景：小舞儿涅槃复生，三维归 1，是与过去切割的全新形态。
+ */
+export type AwakenSemantic = 'increment' | 'absolute';
+
 export interface HeroBlueprint {
   heroId: string;
   name: string;
   ipTag: HeroIpTag;
   awakenTrigger: AwakenTriggerKind;
+  /** 觉醒语义：缺省视为 'increment'（差值法） */
+  awakenSemantic?: AwakenSemantic;
   base: UnitBlueprint;
   awakened: UnitBlueprint;
   /** 关联方标识（例如 "小舞儿" 觉醒会导致 "塘散" 也触发） */
@@ -69,6 +79,8 @@ export const HERO_BLUEPRINTS: Record<string, HeroBlueprint> = {
     name: '小舞儿',
     ipTag: 'douluo',
     awakenTrigger: 'self_hp_to_1',
+    // 涅槃复生：三维归 1，与过去切割 → 不保留战中永久增益/debuff
+    awakenSemantic: 'absolute',
     base: {
       name: '小舞儿',
       type: '妖修' as CultivationType,

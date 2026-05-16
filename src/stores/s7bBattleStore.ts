@@ -2588,16 +2588,37 @@ export const useS7BBattleStore = create<BattleState>((set, get) => ({
       const wasDead = prev.dead;
       const oldName = prev.name;
 
-      // —— 差值法（Q-C3 · A 方案）——
-      // prev.atk/mnd/hp/maxHp 已包含：卡牌基线 + 境界+拜师增益 + 战中永久修正（如十万年魂骨献祭+5、万毒淬体-1）
-      // 觉醒仅替换"卡牌基线"那一层，用差值法 = new = old + (awakened - base)，永久增益自然保留
-      const atkDelta = a.atk - b.atk;
-      const mndDelta = a.mnd - b.mnd;
-      const hpCapDelta = a.hpCap - b.hpCap;
-      const newMaxHp = prev.maxHp + hpCapDelta;          // 上限抬升，保留永久增益
-      const newHp = newMaxHp;                            // 策略①：觉醒重置满血（但基于含增益的新上限）
-      const newAtk = prev.atk + atkDelta;                // 保留战中永久增益/debuff
-      const newMnd = prev.mnd + mndDelta;
+      // —— 按觉醒语义分支（Q-C3 · A 方案 / 2026-05-16 引入 absolute）——
+      //
+      // 'increment'（默认 5 位主角）：差值法 = new = old + (awakened - base)，永久增益自然保留
+      // 'absolute'（小舞儿涅槃复生）：直接采用觉醒蓝图数值，**清除战中永久增益/debuff**
+      //   prev.atk/mnd/maxHp 已包含：卡牌基线 + 境界+拜师增益 + 战中永久修正（噬焰-N、十万年魂骨+5 等）
+      //   absolute 模式视作"重生"，与过去一刀两断
+      const semantic = bp.awakenSemantic ?? 'increment';
+      let newMaxHp: number;
+      let newHp: number;
+      let newAtk: number;
+      let newMnd: number;
+      if (semantic === 'absolute') {
+        newMaxHp = a.hpCap;
+        newHp = a.hp;
+        newAtk = a.atk;
+        newMnd = a.mnd;
+        // absolute 模式：清除挂在该单位身上的所有临时 modifier（光环/buff/debuff）
+        // 涅槃复生 = 与过去切割，过去的所有数值修正一并清零
+        const allMods = globalModStore.listFor(prev.id);
+        for (const m of allMods) {
+          globalModStore.detach(m.id);
+        }
+      } else {
+        const atkDelta = a.atk - b.atk;
+        const mndDelta = a.mnd - b.mnd;
+        const hpCapDelta = a.hpCap - b.hpCap;
+        newMaxHp = prev.maxHp + hpCapDelta;          // 上限抬升，保留永久增益
+        newHp = newMaxHp;                            // 策略①：觉醒重置满血（基于含增益的新上限）
+        newAtk = prev.atk + atkDelta;                // 保留战中永久增益/debuff
+        newMnd = prev.mnd + mndDelta;
+      }
 
       // 原子替换：保留 id/row/col/owner/acted 等上下文字段
       updated[idx] = {

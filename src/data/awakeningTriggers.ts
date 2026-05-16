@@ -39,10 +39,17 @@ export const AWAKEN_TRIGGERS: Record<AwakenTriggerKind, AwakenTriggerFn> = {
     return !xiaowu.isAlive;
   },
 
-  /** 小舞儿：自身气血降至1（hp.current === 1）且未退场 */
+  /**
+   * 小舞儿：自身气血 ≤ 1（含被秒杀时 hp=0 的情况）
+   *
+   * 2026-05-16 修复：
+   *   - 旧逻辑 `hp.current === 1 && isAlive` 在被一击秒杀（hp 从 N → 0）时无法触发
+   *   - 新逻辑 `hp.current <= 1`：精确匹配"濒死/已死"瞬间
+   *   - isAlive 限制移除：契约 Q25-B 允许已退场觉醒（"复活到手牌区"）
+   *     已经觉醒过的会被外层 `awakened` 标志位过滤，不会重复触发
+   */
   self_hp_to_1: (self, _engine) => {
-    if (!self.isAlive) return false;
-    return self.hp.current === 1;
+    return self.hp.current <= 1;
   },
 
   /**

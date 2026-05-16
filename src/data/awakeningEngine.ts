@@ -47,34 +47,48 @@ export function performAwakeningOnEngineUnit(
   const oldName = unit.name;
   const oldForm = unit.form;
 
-  // —— 差值法替换数值（Q-C3 · A 方案）——
+  // —— 按觉醒语义分支（Q-C3 · A 方案 / 2026-05-16 引入 absolute）——
   //
-  // 单位当前属性 = base（卡牌原始） + permanent_bonus（境界/拜师/战中永久增益） + temp_modifiers（临时 buff）
-  // 觉醒只替换"卡牌原始"那一层，其他两层完全保留。
-  // 数学上等价于：new.current = old.current + (awakened.base - base.base)
+  // 'increment'（默认）：差值法叠加，保留战中永久增益/debuff
+  //   单位当前属性 = base + permanent_bonus + temp_modifiers
+  //   觉醒只替换"卡牌原始"那一层 → new.current = old.current + (awakened.base - base.base)
   //
-  // 注：当前所有永久增益皆为"加法型"（境界+1、拜师+X、十万年魂骨+5、万毒淬体-1 等）。
-  // 未来若引入"倍率型"增益（如 ×1.2），需改为结构化存 baseStats/permanentBonus/tempMods
-  // 并在此处按 bonus*ratio 重算——当前 A 方案对所有加法场景数学严格等价。
-  const atkDelta = awakenedData.atk - baseData.atk;
-  const mndDelta = awakenedData.mnd - baseData.mnd;
-  const hpDelta  = awakenedData.hp  - baseData.hp;
-  const hpCapDelta = awakenedData.hpCap - baseData.hpCap;
+  // 'absolute'（小舞儿涅槃）：直接采用觉醒蓝图数值，**清除战中永久增益/debuff**
+  //   适合"重置型"觉醒（三维归 1，与过去切割的全新形态）
+  const semantic = bp.awakenSemantic ?? 'increment';
 
   unit.name = awakenedData.name;
   unit.type = awakenedData.type;
-  // atk / mnd：差值法保留永久增益（含 unit.xxx.current 里的战中永久修正）
-  unit.atk.base    = awakenedData.atk;                 // 卡牌基线替换
-  unit.atk.initial = awakenedData.atk;                 // 入场基线同步为新形态
-  unit.atk.current = unit.atk.current + atkDelta;      // 当前值 = 旧当前 + 形态差
-  unit.mnd.base    = awakenedData.mnd;
-  unit.mnd.initial = awakenedData.mnd;
-  unit.mnd.current = unit.mnd.current + mndDelta;
-  // hp / hpCap：hpCap 抬升"形态差"保留上限增益；hp 策略①重置为新 hpCap（觉醒满血仪式感）
-  unit.hp.base    = awakenedData.hp;
-  unit.hp.initial = awakenedData.hp;
-  unit.hpCap      = unit.hpCap + hpCapDelta;
-  unit.hp.current = unit.hpCap;                         // 重置满血（但保留上限增益）
+  if (semantic === 'absolute') {
+    // 重置型：忽略 prev.current/prev.hpCap 的所有累积修正
+    unit.atk.base    = awakenedData.atk;
+    unit.atk.initial = awakenedData.atk;
+    unit.atk.current = awakenedData.atk;
+    unit.mnd.base    = awakenedData.mnd;
+    unit.mnd.initial = awakenedData.mnd;
+    unit.mnd.current = awakenedData.mnd;
+    unit.hp.base    = awakenedData.hp;
+    unit.hp.initial = awakenedData.hp;
+    unit.hpCap      = awakenedData.hpCap;
+    unit.hp.current = awakenedData.hp;
+  } else {
+    // 增量型：差值法保留永久增益（含 unit.xxx.current 里的战中永久修正）
+    const atkDelta = awakenedData.atk - baseData.atk;
+    const mndDelta = awakenedData.mnd - baseData.mnd;
+    const hpCapDelta = awakenedData.hpCap - baseData.hpCap;
+
+    unit.atk.base    = awakenedData.atk;                 // 卡牌基线替换
+    unit.atk.initial = awakenedData.atk;                 // 入场基线同步为新形态
+    unit.atk.current = unit.atk.current + atkDelta;      // 当前值 = 旧当前 + 形态差
+    unit.mnd.base    = awakenedData.mnd;
+    unit.mnd.initial = awakenedData.mnd;
+    unit.mnd.current = unit.mnd.current + mndDelta;
+    // hp / hpCap：hpCap 抬升"形态差"保留上限增益；hp 策略①重置为新 hpCap（觉醒满血仪式感）
+    unit.hp.base    = awakenedData.hp;
+    unit.hp.initial = awakenedData.hp;
+    unit.hpCap      = unit.hpCap + hpCapDelta;
+    unit.hp.current = unit.hpCap;                         // 重置满血（但保留上限增益）
+  }
   unit.skills = [...awakenedData.skills];
   unit.form = 'awakened';
   unit.awakened = true;
