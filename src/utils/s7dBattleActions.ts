@@ -383,8 +383,29 @@ export function deployFromHand(
     }
   }
   // ② 还没接手到——扫描 currentActorIdx 之前的 skipped 项；
-  //    若找到，则把该项移到 currentActorIdx 处插入，让其在下次 advanceActor 时立即被命中。
+  //
+  // 🔧 2026-05-16 修复 #SITUNAN-ULT-NO-ATTACK：
+  //    场景：司图楠在 R3-S1 自己的行动轮发动绝技【天逆珠·夺元】击杀敌方周毅。
+  //    周毅按 mind 降序排在司图楠之前，即周毅项的 i < currentActorIdx（指向司图楠）。
+  //    旧实现：把寒立项 splice 到 currentActorIdx 位置 + currentActorIdx -= 1，
+  //           等价于把当前 active actor 从司图楠改成了寒立 → 司图楠的回合被剥夺，
+  //           UI 上表现为"绝技用完后无法普攻、无法移动" —— 行动权直接转给敌方。
+  //    新实现：把寒立项**插到 currentActorIdx 之后**（即当前 actor 之后），
+  //           保持当前 actor 不变。当前 actor 完成本轮行动后，advanceActor 自然推进到
+  //           寒立的项（在本小轮次内仍能行动 → 满足"补位不跳过轮次"）。
+  //
+  //    特殊情况：如果 currentActorIdx 指向的是已完成行动者或刚死的人（无 active actor），
+  //    保留原"抢前"逻辑——这是补位接手已结束 actor 留下的轮次的合法路径。
   if (!inherited) {
+    const cur = state.actionQueue[state.currentActorIdx];
+    const curUnit = cur ? state.units[cur.instanceId] : null;
+    const hasActiveCurrentActor =
+      !!cur &&
+      !cur.acted &&
+      !cur.skipped &&
+      !!curUnit &&
+      curUnit.zone === 'field' &&
+      curUnit.hp > 0;
     for (let i = 0; i < state.currentActorIdx; i++) {
       const item = state.actionQueue[i];
       if (
@@ -395,18 +416,31 @@ export function deployFromHand(
       ) {
         item.instanceId = instanceId;
         item.skipped = false;
-        // 移到 currentActorIdx 之前的位置（即"插队"到当前指针处的下一个待行动项）
+        // 先把项从原位置取出
         const [moved] = state.actionQueue.splice(i, 1);
-        state.actionQueue.splice(state.currentActorIdx, 0, moved);
-        // splice 删了 i (i < currentActorIdx)，currentActorIdx 应 -1，然后再 +0 因为新插在 currentActorIdx
-        // 但实际我们希望该项立刻轮到，所以让 currentActorIdx 指向它
+        // 此时 currentActorIdx 自动 -1（因为 i < currentActorIdx）
         state.currentActorIdx -= 1;
-        appendLog(
-          state,
-          'text',
-          `↪ ${unit.name} 接手该轮次行动权（补位不跳过轮次 · 后插队）`,
-          { targetIds: [instanceId] },
-        );
+        if (hasActiveCurrentActor) {
+          // 路径 A：当前 actor 仍在行动 → 插到当前 actor 之后（不抢轮）
+          state.actionQueue.splice(state.currentActorIdx + 1, 0, moved);
+          // currentActorIdx 不再变化：仍指向当前 actor
+          appendLog(
+            state,
+            'text',
+            `↪ ${unit.name} 接手该轮次行动权（补位不跳过轮次 · 排在当前行动者之后）`,
+            { targetIds: [instanceId] },
+          );
+        } else {
+          // 路径 B：当前 actor 已无效（已行动 / 已死亡 / 已 skip）。
+          //   把 moved 插到 currentActorIdx+1，advanceActor 推进时（先 +1）即命中 moved。
+          state.actionQueue.splice(state.currentActorIdx + 1, 0, moved);
+          appendLog(
+            state,
+            'text',
+            `↪ ${unit.name} 接手该轮次行动权（补位不跳过轮次 · 后插队）`,
+            { targetIds: [instanceId] },
+          );
+        }
         inherited = true;
         break;
       }
