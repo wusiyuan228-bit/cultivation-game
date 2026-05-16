@@ -2,7 +2,7 @@
  * S7D · 战场地块（功能瓦片）结算
  *
  * 规则（与 S7/S7B 保持一致）：
- *   - 💚 spring    生命泉  · 停留至下回合开始 → 气血 +1（不破当前 hpMax；满血则写"已满"战报）
+ *   - 💚 spring    生命泉  · 停留至下回合开始 → 气血 +1（**可突破角色当前 hpMax，但不超过全局上限 HP_CAP=15**；同步抬升 hpMax）
  *   - ⚔️ atk_boost 修为台  · 停留至下回合开始 → 修为 +1（永久，常规上限 ATK_CAP=15）
  *   - 🧘 mnd_boost 心境坛  · 停留至下回合开始 → 心境 +1（永久，常规上限 MND_CAP=15）
  *   - 🔥 miasma    魔瘴地  · 停留至下回合开始 → 气血 -1
@@ -25,7 +25,7 @@ import {
   isMiasma,
   type S7DTileType,
 } from '@/data/s7dMap';
-import { ATK_CAP, MND_CAP } from '@/constants/statCap';
+import { ATK_CAP, HP_CAP, MND_CAP } from '@/constants/statCap';
 import { appendLog } from './s7dBattleActions';
 
 /**
@@ -107,23 +107,29 @@ export function applyS7DTerrainEffectOnTurnStart(
   let triggered = false;
   switch (currentTerrain) {
     case 'spring': {
-      // 注：策划设定 → 生命泉满血时也参与结算（写战报告知玩家"已满"），
-      //     但加血后必须夹紧到当前 hpMax，不破角色当前的气血上限。
+      // 注：策划设定 → 生命泉 +1 可突破角色当前 hpMax，但不超过全局上限 HP_CAP=15。
+      //     例：hp=9/hpMax=9 → hp=10/hpMax=10（同步抬升 hpMax，使后续治疗仍可填满到 10）。
+      //     若 hp 已达 HP_CAP=15，则提示已达全局上限，不再增长。
       const before = u.hp;
-      const after = Math.min(u.hp + 1, u.hpMax);
+      const beforeMax = u.hpMax;
+      const after = Math.min(u.hp + 1, HP_CAP);
       u.hp = after;
       if (after > before) {
+        // 抬升后若超过当前 hpMax，则同步抬高 hpMax（永久上抬，体现"突破角色当前血量上限"语义）
+        if (after > u.hpMax) {
+          u.hpMax = after;
+        }
         appendLog(
           state,
           'heal',
-          `💚 ${u.name} 停留在生命泉，气血 +1（${before}→${after}/${u.hpMax}）`,
+          `💚 ${u.name} 停留在生命泉，气血 +1（${before}/${beforeMax} → ${after}/${u.hpMax}）`,
           { targetIds: [instanceId], payload: { terrain: 'spring' } },
         );
       } else {
         appendLog(
           state,
           'text',
-          `💚 ${u.name} 停留在生命泉，但气血已满（${before}/${u.hpMax}），无法再回复`,
+          `💚 ${u.name} 停留在生命泉，但气血已达全局上限（${before}/${HP_CAP}），无法再回复`,
           { targetIds: [instanceId], payload: { terrain: 'spring', capped: true } },
         );
       }
