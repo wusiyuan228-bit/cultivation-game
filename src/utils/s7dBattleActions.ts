@@ -341,11 +341,21 @@ export function deployFromHand(
     { actorId: ownerId, targetIds: [instanceId], payload: { slot, to } },
   );
 
-  // ✅ 规则 v2：补位不跳过轮次
+  // ✅ 规则 v2：补位不跳过轮次（2026-05-16 修复 Bug 1）
   // 扫描 actionQueue：若存在同 owner+slot 且已被 killUnit 标记为 skipped 的项，
   // 则把 instanceId 替换为新卡，取消 skipped，让新卡接手该行动权。
-  // 注意：只接手当前或之后的项（currentActorIdx 及以后），已过去的不补。
-  for (let i = state.currentActorIdx; i < state.actionQueue.length; i++) {
+  //
+  // 🐛 老 bug：原本 `for (let i = state.currentActorIdx; ...)` 只扫描 currentActorIdx 之后，
+  //     但当死者按 mindFrozen 排序在攻击者之前（例如 wanglin/player 同 mind=6，按字典序
+  //     wanglin 在 player 之前；但 tangsan/xiaoyan mind=4 排在最后），如果 tangsan 反击杀
+  //     掉 player slot1，此时 currentActorIdx 已经超过 player 项，接手循环就找不到了 →
+  //     新补位卡入场后整轮次再无行动机会。
+  //
+  // 修复方案：先扫描 [currentActorIdx, end)，找不到再扫描 [0, currentActorIdx)。
+  // 已过去的 skipped 项虽然在 currentActorIdx 之前，但只要 acted=false 就允许接手——
+  // 由 advanceActor 推进到 actionQueue 末尾时仍能轮到（队列重排：把它移到 currentActorIdx 当前位置）。
+  let inherited = false;
+  const tryInherit = (i: number): boolean => {
     const item = state.actionQueue[i];
     if (
       item.ownerId === ownerId &&
@@ -361,8 +371,66 @@ export function deployFromHand(
         `↪ ${unit.name} 接手该轮次行动权（补位不跳过轮次）`,
         { targetIds: [instanceId] },
       );
+      return true;
+    }
+    return false;
+  };
+  // ① 先扫描当前指针及之后
+  for (let i = state.currentActorIdx; i < state.actionQueue.length; i++) {
+    if (tryInherit(i)) {
+      inherited = true;
       break;
     }
+  }
+  // ② 还没接手到——扫描 currentActorIdx 之前的 skipped 项；
+  //    若找到，则把该项移到 currentActorIdx 处插入，让其在下次 advanceActor 时立即被命中。
+  if (!inherited) {
+    for (let i = 0; i < state.currentActorIdx; i++) {
+      const item = state.actionQueue[i];
+      if (
+        item.ownerId === ownerId &&
+        item.fieldSlot === slot &&
+        item.skipped &&
+        !item.acted
+      ) {
+        item.instanceId = instanceId;
+        item.skipped = false;
+        // 移到 currentActorIdx 之前的位置（即"插队"到当前指针处的下一个待行动项）
+        const [moved] = state.actionQueue.splice(i, 1);
+        state.actionQueue.splice(state.currentActorIdx, 0, moved);
+        // splice 删了 i (i < currentActorIdx)，currentActorIdx 应 -1，然后再 +0 因为新插在 currentActorIdx
+        // 但实际我们希望该项立刻轮到，所以让 currentActorIdx 指向它
+        state.currentActorIdx -= 1;
+        appendLog(
+          state,
+          'text',
+          `↪ ${unit.name} 接手该轮次行动权（补位不跳过轮次 · 后插队）`,
+          { targetIds: [instanceId] },
+        );
+        inherited = true;
+        break;
+      }
+    }
+  }
+  // ③ 如果还是没接手到——说明 actionQueue 中本来就没有这个 owner+slot 的项
+  //    （比如 buildActionQueue 时该槽位为空被跳过）。
+  //    这种情况下追加一项到队尾，让新卡仍能在本小轮次行动。
+  if (!inherited) {
+    const newItem = {
+      instanceId,
+      ownerId,
+      mindFrozen: player.mindFrozen,
+      fieldSlot: slot,
+      acted: false,
+      skipped: false,
+    };
+    state.actionQueue.push(newItem);
+    appendLog(
+      state,
+      'text',
+      `↪ ${unit.name} 加入本轮次行动队列（追加）`,
+      { targetIds: [instanceId] },
+    );
   }
 
   // 从 reinforceQueue 中移除已完成的任务
@@ -463,6 +531,8 @@ export function advanceSubRound(
     state.actionQueue = buildActionQueue(state.players, state.units, 2);
     state.currentActorIdx = 0;
     state.phase = 'sub_round_action';
+    // 🛡️ 2026-05-16 兜底：场上活着的 slot=2 单位若漏入队列，强制补入并 console.warn
+    auditAndFixActionQueue(state, 2);
     appendLog(
       state,
       'sub_round_start',
@@ -498,6 +568,8 @@ export function advanceSubRound(
   state.actionQueue = buildActionQueue(state.players, state.units, 1);
   state.currentActorIdx = 0;
   state.phase = 'sub_round_action';
+  // 🛡️ 2026-05-16 兜底：场上活着的 slot=1 单位若漏入队列，强制补入并 console.warn
+  auditAndFixActionQueue(state, 1);
   appendLog(
     state,
     'round_start',
@@ -524,6 +596,106 @@ function resetTurnFlagsForQueue(state: S7DBattleState): void {
     unit.stepsUsedThisTurn = 0;
     unit.skillUsedThisTurn = false;
   }
+}
+
+// ==========================================================================
+// 行动队列完整性兜底（2026-05-16 新增）
+// ==========================================================================
+
+/**
+ * 兜底自检：扫描场上所有活着的 fieldSlot=slot 单位，
+ * 确保它们都在 actionQueue 中。若有遗漏：
+ *   1. 输出 console.warn 帮助 dump 根因
+ *   2. 强制把遗漏单位补入队列（按 mindFrozen 顺序插入）
+ *   3. 写一条 'text' 战报，方便日志可见
+ *
+ * 历史 bug 回顾：
+ *   - R10.S2 战斗日志 (s7d_1778872926210) 显示玩家从 R6.S2 起整队跳过；
+ *     云韵 R8.S1 入场后到 R10 之间从未行动一次。
+ *   - 经排查 R10.S2 当前快照 fieldSlots/units 状态完全正常，
+ *     但 R10.S1 队列里却没有云韵——疑似某次 sub_round 切换时，
+ *     player.fieldSlots.slot1 / unit.zone 在 buildActionQueue 调用瞬间不一致。
+ *   - 加这个兜底后即便瞬间不一致，下一秒 audit 也会把它补回去；
+ *     同时 console.warn 让我们能精确锁定根因。
+ */
+function auditAndFixActionQueue(
+  state: S7DBattleState,
+  slot: 1 | 2,
+): void {
+  // 收集"应该在队列中"的所有 instanceId
+  const expectedIds = new Set<string>();
+  for (const p of state.players) {
+    if (!p.alive) continue;
+    const slotInstanceId = slot === 1 ? p.fieldSlots.slot1 : p.fieldSlots.slot2;
+    if (!slotInstanceId) continue;
+    const unit = state.units[slotInstanceId];
+    if (!unit || unit.zone !== 'field' || unit.hp <= 0) continue;
+    expectedIds.add(slotInstanceId);
+  }
+  // 收集队列中实际存在的 instanceId
+  const queuedIds = new Set<string>(state.actionQueue.map((it) => it.instanceId));
+  // 找出遗漏项
+  const missing: string[] = [];
+  expectedIds.forEach((id) => {
+    if (!queuedIds.has(id)) missing.push(id);
+  });
+  if (missing.length === 0) return;
+
+  // 🚨 输出 warn，帮助锁定根因
+  // eslint-disable-next-line no-console
+  console.warn(
+    `[s7d-actionQueue][AUDIT] R${state.bigRound}.S${slot} buildActionQueue 漏收 ${missing.length} 个单位：`,
+    missing.map((id) => {
+      const u = state.units[id];
+      const p = getPlayer(state, u?.ownerId);
+      return {
+        instanceId: id,
+        name: u?.name,
+        ownerId: u?.ownerId,
+        zone: u?.zone,
+        hp: u?.hp,
+        fieldSlot: u?.fieldSlot,
+        playerAlive: p?.alive,
+        playerSlot1: p?.fieldSlots.slot1,
+        playerSlot2: p?.fieldSlots.slot2,
+      };
+    }),
+  );
+
+  // 强制补入队列
+  for (const id of missing) {
+    const u = state.units[id];
+    if (!u) continue;
+    const p = getPlayer(state, u.ownerId);
+    if (!p) continue;
+    state.actionQueue.push({
+      instanceId: id,
+      ownerId: u.ownerId,
+      mindFrozen: p.mindFrozen,
+      fieldSlot: slot,
+      acted: false,
+      skipped: false,
+    });
+    appendLog(
+      state,
+      'text',
+      `🛡️ 兜底：${u.name} 补入第 ${state.bigRound} 大回合 · 小轮次 ${slot} 行动队列`,
+      { targetIds: [id], payload: { slot, reason: 'audit_fix' } },
+    );
+  }
+  // 重新按 mindFrozen 降序排序（保持与 buildActionQueue 一致）
+  state.actionQueue.sort((a, b) => {
+    if (b.mindFrozen !== a.mindFrozen) return b.mindFrozen - a.mindFrozen;
+    return a.ownerId.localeCompare(b.ownerId);
+  });
+  // 把 currentActorIdx 重置到第一个未行动的位置
+  let idx = 0;
+  while (idx < state.actionQueue.length) {
+    const it = state.actionQueue[idx];
+    if (!it.acted && !it.skipped) break;
+    idx += 1;
+  }
+  state.currentActorIdx = idx;
 }
 
 // ==========================================================================
