@@ -20,7 +20,14 @@ const fs = require('fs');
 const path = require('path');
 
 const DIST = path.resolve(__dirname, '..', 'dist');
-const BASE = '/cultivation-game/'; // 必须与 vite.config.ts 里生产环境 base 一致
+// 与 vite.config.ts 保持一致的 base 决策逻辑
+//  - DEPLOY_TARGET=edgeone   → '/'        （腾讯云 EdgeOne Pages，根路径）
+//  - 其他（默认 GitHub Pages）→ '/cultivation-game/'
+const DEPLOY_TARGET = process.env.DEPLOY_TARGET || 'github';
+const BASE = DEPLOY_TARGET === 'edgeone' ? '/' : '/cultivation-game/';
+
+// 如果 BASE 已经是 '/'，那么没什么要改写的（资源本来就是 /images/xxx），直接跳过
+const SKIP = BASE === '/';
 
 // 要处理的文件扩展名
 const EXTS = ['.css', '.js', '.html'];
@@ -71,6 +78,11 @@ function processFile(file) {
 
 if (!fs.existsSync(DIST)) {
     console.error('[postbuild] dist/ not found, skip');
+    process.exit(0);
+}
+
+if (SKIP) {
+    console.log(`[postbuild] BASE='/' (DEPLOY_TARGET=${DEPLOY_TARGET})，无需重写资源路径，跳过。`);
     process.exit(0);
 }
 

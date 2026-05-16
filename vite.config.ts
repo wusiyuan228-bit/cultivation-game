@@ -6,12 +6,21 @@ import { dirname, resolve } from 'node:path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// GitHub Pages 部署路径：https://wusiyuan228-bit.github.io/cultivation-game/
-// 开发模式下使用 '/'，生产构建使用 '/cultivation-game/'
+// 部署目标说明：
+//  - 默认（GitHub Pages）：https://wusiyuan228-bit.github.io/cultivation-game/  → base = '/cultivation-game/'
+//  - EdgeOne Pages（国内）：https://xianzhan.pages.eo.dev/                       → base = '/'
+//  - 本地开发：base = '/'
+// 通过环境变量 DEPLOY_TARGET 区分（在托管平台的"环境变量"里配置 DEPLOY_TARGET=edgeone 即可走根路径）。
 const isProd = process.env.NODE_ENV === 'production';
+const deployTarget = process.env.DEPLOY_TARGET ?? 'github';
+const baseUrl = !isProd
+  ? '/'
+  : deployTarget === 'edgeone'
+    ? '/'
+    : '/cultivation-game/';
 
 export default defineConfig({
-  base: isProd ? '/cultivation-game/' : '/',
+  base: baseUrl,
   plugins: [react()],
   resolve: {
     alias: {
