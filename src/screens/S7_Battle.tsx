@@ -53,6 +53,8 @@ import { ReviveAllocateModal } from '@/components/battle/ReviveAllocateModal';
 import { TurnStartChoiceModal } from '@/components/battle/TurnStartChoiceModal';
 import { XiulianAmountModal, type XiulianPendingInfo } from '@/components/battle/XiulianAmountModal';
 import { encodeXiulianTargets } from '@/systems/battle/skills/situnan_xiulian';
+import { UltimateCastOverlay } from '@/components/battle/UltimateCastOverlay';
+import { useUltimateCastOverlay } from '@/hooks/useUltimateCastOverlay';
 import styles from './S7_Battle.module.css';
 
 /* ======== 地图格子尺寸常量 ======== */
@@ -347,6 +349,23 @@ export const S7_Battle: React.FC = () => {
 
   const battle = useBattleStore();
   const logEndRef = useRef<HTMLDivElement>(null);
+
+  // 🎬 2026-05-17 · 绝技释放屏幕特效（订阅 store.lastSkillEvent）
+  const ultimateCastEvent = useUltimateCastOverlay({
+    lastSkillEvent: battle.lastSkillEvent,
+    getUnit: (id) => {
+      const u = battle.units.find((x) => x.id === id);
+      if (!u) return undefined;
+      return {
+        id: u.id,
+        name: u.name,
+        heroId: u.heroId,
+        portrait: u.portrait,
+        ultimate: u.ultimate,
+      };
+    },
+    durationMs: 1000,
+  });
 
   const [showSelect, setShowSelect] = useState(true);
   const [showRule, setShowRule] = useState(false);
@@ -1799,6 +1818,9 @@ export const S7_Battle: React.FC = () => {
           <ResultPanel killCount={battle.killCount} onContinue={handleContinue} />
         )}
       </AnimatePresence>
+
+      {/* 🎬 绝技释放屏幕特效 — 1 秒动画，pointer-events:none，不影响交互 */}
+      <UltimateCastOverlay event={ultimateCastEvent} />
 
       {/* ─── 玩家可控的复活分配弹窗（徐立国 · 天罡元婴·重塑）─── */}
       <ReviveAllocateModal

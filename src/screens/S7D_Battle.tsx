@@ -71,6 +71,8 @@ import { S7D_Lineup } from './S7D_Lineup';
 import styles from './S7D_Battle.module.css';
 import { TurnStartChoiceModal } from '@/components/battle/TurnStartChoiceModal';
 import { ReviveAllocateModal } from '@/components/battle/ReviveAllocateModal';
+import { UltimateCastOverlay } from '@/components/battle/UltimateCastOverlay';
+import { useUltimateCastOverlay } from '@/hooks/useUltimateCastOverlay';
 import { useBattleMapInteractions } from '@/hooks/useBattleMapInteractions';
 import { effectiveStat, resolveStatSet } from '@/systems/battle/e2Helpers';
 import { downloadS7DBattleSnapshot } from '@/utils/s7dBattleSnapshot';
@@ -249,6 +251,27 @@ const dropReinforceTask = useS7DBattleStore((s) => s.dropReinforceTask);
   const pendingRevive = useS7DBattleStore((s) => s.pendingRevive);
   const confirmReviveAllocate = useS7DBattleStore((s) => s.confirmReviveAllocate);
   const cancelReviveAllocate = useS7DBattleStore((s) => s.cancelReviveAllocate);
+
+  // 🎬 2026-05-17 · 绝技释放屏幕特效（订阅 store.lastUltimateCast）
+  const lastUltimateCast = useS7DBattleStore((s) => s.lastUltimateCast);
+  const ultimateCastEvent = useUltimateCastOverlay({
+    // 适配为通用 hook 期望的 lastSkillEvent 形状
+    lastSkillEvent: lastUltimateCast
+      ? { unitId: lastUltimateCast.unitId, skillType: 'ultimate', ts: lastUltimateCast.ts }
+      : null,
+    getUnit: (id) => {
+      const u = battleState?.units?.[id];
+      if (!u) return undefined;
+      return {
+        id: u.instanceId,
+        name: u.name,
+        heroId: u.heroId,
+        portrait: u.portrait,
+        ultimate: u.ultimate ?? null,
+      };
+    },
+    durationMs: 1000,
+  });
 
   // ---- 本地 UI ----
   const [loading, setLoading] = useState(true);
@@ -2094,6 +2117,9 @@ const dropReinforceTask = useS7DBattleStore((s) => s.dropReinforceTask);
         onConfirm={(payload) => confirmReviveAllocate(payload)}
         onCancel={() => cancelReviveAllocate()}
       />
+
+      {/* 🎬 绝技释放屏幕特效 — 1 秒动画，pointer-events:none */}
+      <UltimateCastOverlay event={ultimateCastEvent} />
     </div>
   );
 };

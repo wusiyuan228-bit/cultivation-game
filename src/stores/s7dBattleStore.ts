@@ -243,6 +243,15 @@ interface S7DBattleStore {
   /** 玩家放弃调整 → 保持默认 */
   cancelReviveAllocate: () => void;
 
+  // ─────────────────────────────────────────────────────────────
+  // 绝技释放屏幕特效事件（2026-05-17）
+  // ─────────────────────────────────────────────────────────────
+  /**
+   * 最近一次绝技成功释放事件 —— 供 UI 层订阅触发 UltimateCastOverlay。
+   * 仅 useUltimate 路径写入；不参与存档；下一次绝技 ts 自增覆盖。
+   */
+  lastUltimateCast: { unitId: string; ts: number } | null;
+
   /** DEBUG：强制结束战斗（仅测试用） */
   debugForceEnd: (winner: 'A' | 'B' | 'draw', reason?: 'crystal_broken' | 'all_dead' | 'timeout') => void;
 }
@@ -747,6 +756,7 @@ export const useS7DBattleStore = create<S7DBattleStore>((set, get) => ({
   pendingTurnStartChoice: null,
   pendingTurnEndChoice: null,
   pendingRevive: null,
+  lastUltimateCast: null,
 
   // ------ 生命周期 ------
 
@@ -1126,6 +1136,8 @@ export const useS7DBattleStore = create<S7DBattleStore>((set, get) => ({
           `本次绝技击杀 ${_killed} 人，当前 reinforceQueue=${_stateAfter?.reinforceQueue.length}，phase=${_stateAfter?.phase}`,
         );
       }
+      // 🎬 2026-05-17：派发"绝技释放"事件，供 UI 层显示 UltimateCastOverlay 全屏特效
+      set({ lastUltimateCast: { unitId: casterId, ts: Date.now() } });
       __postSkillCleanupAndCheckWin(get, set);
     }
     return ret ?? false;

@@ -34,6 +34,8 @@ import { TurnStartChoiceModal } from '@/components/battle/TurnStartChoiceModal';
 import { ReviveAllocateModal } from '@/components/battle/ReviveAllocateModal';
 import { XiulianAmountModal, type XiulianPendingInfo } from '@/components/battle/XiulianAmountModal';
 import { encodeXiulianTargets } from '@/systems/battle/skills/situnan_xiulian';
+import { UltimateCastOverlay } from '@/components/battle/UltimateCastOverlay';
+import { useUltimateCastOverlay } from '@/hooks/useUltimateCastOverlay';
 import { getEffectiveHeroStats, getEffectiveCardStats } from '@/utils/heroStats';
 import { getAiTargetRealmUps } from '@/data/aiProgression';
 import styles from './S7_Battle.module.css';
@@ -555,6 +557,23 @@ export const S7B_Battle: React.FC = () => {
 
   const battle = useS7BBattleStore();
   const logEndRef = useRef<HTMLDivElement>(null);
+
+  // 🎬 2026-05-17 · 绝技释放屏幕特效（订阅 store.lastSkillEvent）
+  const ultimateCastEvent = useUltimateCastOverlay({
+    lastSkillEvent: battle.lastSkillEvent,
+    getUnit: (id) => {
+      const u = battle.units.find((x) => x.id === id);
+      if (!u) return undefined;
+      return {
+        id: u.id,
+        name: u.name,
+        heroId: u.heroId,
+        portrait: u.portrait,
+        ultimate: u.ultimate,
+      };
+    },
+    durationMs: 1000,
+  });
 
   const [showSelect, setShowSelect] = useState(true);
   const [showRule, setShowRule] = useState(false);
@@ -2632,6 +2651,9 @@ export const S7B_Battle: React.FC = () => {
         onConfirm={(payload) => battle.confirmReviveAllocate(payload)}
         onCancel={() => battle.cancelReviveAllocate()}
       />
+
+      {/* 🎬 绝技释放屏幕特效 — 1 秒动画，pointer-events:none */}
+      <UltimateCastOverlay event={ultimateCastEvent} />
 
       {/* ─── 司图楠 · 天逆珠·修炼 · X 值选择（2026-05-16）─── */}
       <XiulianAmountModal
