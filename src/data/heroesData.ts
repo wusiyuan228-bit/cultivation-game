@@ -75,7 +75,7 @@ export const HEROES_DATA: Hero[] = [
     awakening: {
       name: '涅槃·小舞儿', trigger: '气血降至1',
       image: 'hero_xiaowu_awaken',
-      hp: 1, atk: 1, mnd: 1,
+      hp: 5, atk: 5, mnd: 3,
       skills: {
         battle_skill: { name: '柔骨·缠魂', desc: '主动发动，可控制场上任意1名角色移动1格', type: 'awaken' },
         ultimate: { name: '十万年魂骨献祭', desc: '主动/被动退场时，塘散所有属性永久+5（可突破上限）', type: 'awaken' },

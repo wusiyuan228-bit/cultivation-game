@@ -79,7 +79,8 @@ export const HERO_BLUEPRINTS: Record<string, HeroBlueprint> = {
     name: '小舞儿',
     ipTag: 'douluo',
     awakenTrigger: 'self_hp_to_1',
-    // 涅槃复生：三维归 1，与过去切割 → 不保留战中永久增益/debuff
+    // 🔧 2026-05-16 涅槃复生：从原 1/1/1 调整为 5/5/3，与其他主角觉醒后的爆发感对齐
+    //   仍保留 absolute 语义（清除战中永久增益/debuff）
     awakenSemantic: 'absolute',
     base: {
       name: '小舞儿',
@@ -91,7 +92,7 @@ export const HERO_BLUEPRINTS: Record<string, HeroBlueprint> = {
     awakened: {
       name: '涅槃·小舞儿',
       type: '妖修' as CultivationType,
-      hp: 1, atk: 1, mnd: 1, hpCap: 1,
+      hp: 5, atk: 5, mnd: 3, hpCap: 5,
       skills: ['hero_xiaowu.awaken.battle', 'hero_xiaowu.awaken.ultimate'],
       portrait: 'hero_xiaowu_awaken',
     },

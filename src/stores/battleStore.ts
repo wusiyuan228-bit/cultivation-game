@@ -242,7 +242,36 @@ function buildS7TurnHookCtx(
         if (delta < 0 && opts.floor !== undefined) {
           newHp = Math.max(newHp, oldHp + Math.min(0, opts.floor - oldHp));
         }
+        // 🔧 2026-05-16 修复 #XULIGUO-NO-REVIVE-ON-NON-ATTACK-DEATH:
+        //   非攻击致死路径（瘴气/技能直伤/格子伤害等）也需触发徐立国"天罡元婴·重塑"复活
         const next = [...cur];
+        if (newHp <= 0 && shouldTryRevive(tu as any)) {
+          const p = DEFAULT_REVIVE_PAYLOAD;
+          next[i] = {
+            ...tu,
+            hp: p.hp,
+            atk: p.atk,
+            mnd: p.mnd,
+            maxHp: Math.max(tu.maxHp ?? p.hp, p.hp),
+            dead: false,
+            ultimateUsed: true,
+          };
+          set({ units: next });
+          get().addLog(reviveLogText(tu.name, p, 'auto'), 'skill');
+          if (!tu.isEnemy) {
+            setTimeout(() => {
+              if (get().pendingRevive) return;
+              set({
+                pendingRevive: {
+                  unitId: tu.id,
+                  unitName: tu.name,
+                  current: { atk: p.atk, mnd: p.mnd, hp: p.hp },
+                },
+              });
+            }, 200);
+          }
+          return p.hp - oldHp;
+        }
         next[i] = { ...tu, hp: newHp, dead: newHp <= 0 ? true : tu.dead };
         set({ units: next });
         return newHp - oldHp;
@@ -1702,10 +1731,38 @@ export const useBattleStore = create<BattleState>((set, get) => ({
 
       if (terrain === 'miasma') {
         const newHp = Math.max(0, newU.hp - 1);
-        newU = { ...newU, hp: newHp, dead: newHp <= 0 };
-        get().addLog(`☠ ${u.name} 停留在魔气侵蚀区，额外受到1点环境伤害`, 'damage');
-        if (newHp <= 0) {
-          get().addLog(`💀 ${u.name} 因持续瘴气而倒下！`, 'kill');
+        // 🔧 2026-05-16 瘴气致死走复活检查（徐立国天罡元婴·重塑）
+        if (newHp <= 0 && shouldTryRevive(newU as any)) {
+          const p = DEFAULT_REVIVE_PAYLOAD;
+          newU = {
+            ...newU,
+            hp: p.hp,
+            atk: p.atk,
+            mnd: p.mnd,
+            maxHp: Math.max(newU.maxHp ?? p.hp, p.hp),
+            dead: false,
+            ultimateUsed: true,
+          };
+          get().addLog(`☠ ${u.name} 停留在魔气侵蚀区，气血归零……`, 'damage');
+          get().addLog(reviveLogText(u.name, p, 'auto'), 'skill');
+          if (!u.isEnemy) {
+            setTimeout(() => {
+              if (get().pendingRevive) return;
+              set({
+                pendingRevive: {
+                  unitId: u.id,
+                  unitName: u.name,
+                  current: { atk: p.atk, mnd: p.mnd, hp: p.hp },
+                },
+              });
+            }, 200);
+          }
+        } else {
+          newU = { ...newU, hp: newHp, dead: newHp <= 0 };
+          get().addLog(`☠ ${u.name} 停留在魔气侵蚀区，额外受到1点环境伤害`, 'damage');
+          if (newHp <= 0) {
+            get().addLog(`💀 ${u.name} 因持续瘴气而倒下！`, 'kill');
+          }
         }
       }
 
