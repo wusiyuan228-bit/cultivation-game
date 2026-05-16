@@ -75,7 +75,7 @@ export const HEROES_DATA: Hero[] = [
     awakening: {
       name: '涅槃·小舞儿', trigger: '气血降至1',
       image: 'hero_xiaowu_awaken',
-      hp: 5, atk: 5, mnd: 3,
+      hp: 8, atk: 7, mnd: 5,
       skills: {
         battle_skill: { name: '柔骨·缠魂', desc: '主动发动，可控制场上任意1名角色移动1格', type: 'awaken' },
         ultimate: { name: '十万年魂骨献祭', desc: '主动/被动退场时，塘散所有属性永久+5（可突破上限）', type: 'awaken' },
@@ -104,7 +104,7 @@ export const HEROES_DATA: Hero[] = [
     awakening: {
       name: '焚天·萧焱', trigger: '场上有3张+斗破角色',
       image: 'hero_xiaoyan_awaken',
-      hp: 9, atk: 10, mnd: 3,
+      hp: 9, atk: 10, mnd: 5,
       skills: {
         battle_skill: { name: '帝炎·焚天', desc: '对自己所在纵列包含自己的全部角色，各造成2点固定伤害（每个行动轮开始时结算）', type: 'awaken' },
         ultimate: { name: '帝品火莲·毁灭', desc: '主动发动，对全场所有敌人造成自身修为值一半（向上取整）的固定伤害', type: 'awaken' },
@@ -162,7 +162,7 @@ export const HEROES_DATA: Hero[] = [
     awakening: {
       name: '剑虚·寒立', trigger: '累计击杀2名敌人',
       image: 'hero_hanli_awaken',
-      hp: 9, atk: 9, mnd: 4,
+      hp: 9, atk: 9, mnd: 5,
       skills: {
         battle_skill: { name: '噬金虫群', desc: '进攻时造成的伤害×2（判定结果翻倍）', type: 'awaken' },
         ultimate: { name: '天罗万象·大衍决', desc: '主动发动，选1名敌人，直接造成等同于自身修为值的固定伤害', type: 'awaken' },
