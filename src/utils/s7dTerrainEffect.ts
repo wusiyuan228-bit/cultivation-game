@@ -2,9 +2,9 @@
  * S7D · 战场地块（功能瓦片）结算
  *
  * 规则（与 S7/S7B 保持一致）：
- *   - 💚 spring    生命泉  · 停留至下回合开始 → 气血 +1（不破上限）
- *   - ⚔️ atk_boost 修为台  · 停留至下回合开始 → 修为 +1（永久）
- *   - 🧘 mnd_boost 心境坛  · 停留至下回合开始 → 心境 +1（永久）
+ *   - 💚 spring    生命泉  · 停留至下回合开始 → 气血 +1（不破当前 hpMax；满血则写"已满"战报）
+ *   - ⚔️ atk_boost 修为台  · 停留至下回合开始 → 修为 +1（永久，常规上限 ATK_CAP=15）
+ *   - 🧘 mnd_boost 心境坛  · 停留至下回合开始 → 心境 +1（永久，常规上限 MND_CAP=15）
  *   - 🔥 miasma    魔瘴地  · 停留至下回合开始 → 气血 -1
  *
  * "停留至下回合开始"判定：
@@ -25,6 +25,7 @@ import {
   isMiasma,
   type S7DTileType,
 } from '@/data/s7dMap';
+import { ATK_CAP, MND_CAP } from '@/constants/statCap';
 import { appendLog } from './s7dBattleActions';
 
 /**
@@ -106,40 +107,70 @@ export function applyS7DTerrainEffectOnTurnStart(
   let triggered = false;
   switch (currentTerrain) {
     case 'spring': {
-      if (u.hp < u.hpMax) {
-        const before = u.hp;
-        u.hp = Math.min(u.hp + 1, u.hpMax);
+      // 注：策划设定 → 生命泉满血时也参与结算（写战报告知玩家"已满"），
+      //     但加血后必须夹紧到当前 hpMax，不破角色当前的气血上限。
+      const before = u.hp;
+      const after = Math.min(u.hp + 1, u.hpMax);
+      u.hp = after;
+      if (after > before) {
         appendLog(
           state,
           'heal',
-          `💚 ${u.name} 停留在生命泉，气血 +1（${before}→${u.hp}/${u.hpMax}）`,
+          `💚 ${u.name} 停留在生命泉，气血 +1（${before}→${after}/${u.hpMax}）`,
           { targetIds: [instanceId], payload: { terrain: 'spring' } },
         );
-        triggered = true;
+      } else {
+        appendLog(
+          state,
+          'text',
+          `💚 ${u.name} 停留在生命泉，但气血已满（${before}/${u.hpMax}），无法再回复`,
+          { targetIds: [instanceId], payload: { terrain: 'spring', capped: true } },
+        );
       }
+      triggered = true;
       break;
     }
     case 'atk_boost': {
       const before = u.atk;
-      u.atk = Math.min(u.atk + 1, 99);
-      appendLog(
-        state,
-        'text',
-        `⚔️ ${u.name} 停留在修为台，修为 +1（${before}→${u.atk}，永久）`,
-        { targetIds: [instanceId], payload: { terrain: 'atk_boost' } },
-      );
+      const after = Math.min(u.atk + 1, ATK_CAP);
+      u.atk = after;
+      if (after > before) {
+        appendLog(
+          state,
+          'text',
+          `⚔️ ${u.name} 停留在修为台，修为 +1（${before}→${after}，永久）`,
+          { targetIds: [instanceId], payload: { terrain: 'atk_boost' } },
+        );
+      } else {
+        appendLog(
+          state,
+          'text',
+          `⚔️ ${u.name} 停留在修为台，但修为已达上限（${before}/${ATK_CAP}），无法再提升`,
+          { targetIds: [instanceId], payload: { terrain: 'atk_boost', capped: true } },
+        );
+      }
       triggered = true;
       break;
     }
     case 'mnd_boost': {
       const before = u.mnd;
-      u.mnd = Math.min(u.mnd + 1, 99);
-      appendLog(
-        state,
-        'text',
-        `🧘 ${u.name} 停留在心境坛，心境 +1（${before}→${u.mnd}，永久）`,
-        { targetIds: [instanceId], payload: { terrain: 'mnd_boost' } },
-      );
+      const after = Math.min(u.mnd + 1, MND_CAP);
+      u.mnd = after;
+      if (after > before) {
+        appendLog(
+          state,
+          'text',
+          `🧘 ${u.name} 停留在心境坛，心境 +1（${before}→${after}，永久）`,
+          { targetIds: [instanceId], payload: { terrain: 'mnd_boost' } },
+        );
+      } else {
+        appendLog(
+          state,
+          'text',
+          `🧘 ${u.name} 停留在心境坛，但心境已达上限（${before}/${MND_CAP}），无法再提升`,
+          { targetIds: [instanceId], payload: { terrain: 'mnd_boost', capped: true } },
+        );
+      }
       triggered = true;
       break;
     }
