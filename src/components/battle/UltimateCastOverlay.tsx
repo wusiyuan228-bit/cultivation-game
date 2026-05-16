@@ -61,15 +61,18 @@ function CastCard({
   return (
     <motion.div
       className={styles.castCard}
-      initial={{ opacity: 0, y: 60, scale: 0.88 }}
+      initial={{ opacity: 0, y: 50, scale: 0.9 }}
       animate={{
         opacity: [0, 1, 1, 0],
-        y: [60, 0, 0, -16],
-        scale: [0.88, 1, 1, 1.04],
+        y: [50, 0, 0, -12],
+        scale: [0.9, 1, 1, 1.04],
       }}
       transition={{
+        // v4 (2026-05-17): 立绘提前到 15% 完全显现, 88% 才开始淡出
+        // 完全可见时长 730ms (相比 v3 的 480ms 提升 52%)
+        // 让立绘成为视觉主角，光效作为节奏陪衬
         duration: durationS,
-        times: [0, 0.3, 0.78, 1],
+        times: [0, 0.15, 0.88, 1],
         ease: [0.16, 1, 0.3, 1],
       }}
     >
@@ -140,10 +143,11 @@ export function UltimateCastOverlay({ event, durationMs = 1000 }: Props) {
           <motion.div
             className={styles.flash}
             initial={{ opacity: 0, scale: 1.4 }}
-            animate={{ opacity: [0, 0.9, 0.5, 0.7, 0], scale: [1.4, 1, 1, 1, 1.6] }}
+            animate={{ opacity: [0, 0.9, 0.6, 0.7, 0], scale: [1.4, 1, 1, 1, 1.6] }}
             transition={{
+              // v4: 让 flash 的高亮高潮落在立绘完全可见区间内 (15%~88%)
               duration: D,
-              times: [0, 0.15, 0.4, 0.7, 1],
+              times: [0, 0.18, 0.5, 0.8, 1],
               ease: 'easeOut',
             }}
           />
@@ -151,7 +155,7 @@ export function UltimateCastOverlay({ event, durationMs = 1000 }: Props) {
             className={styles.sweep}
             initial={{ x: '-100%' }}
             animate={{ x: ['-100%', '300%'] }}
-            transition={{ duration: D * 0.7, ease: 'easeOut', delay: D * 0.1 }}
+            transition={{ duration: D * 0.65, ease: 'easeOut', delay: D * 0.18 }}
           />
 
           {/* 粒子层 —— 整层 absolute，不参与 flex 居中（避免影响 castCard 排版） */}

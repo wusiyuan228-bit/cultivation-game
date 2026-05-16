@@ -54,10 +54,12 @@ export function useUltimateCastOverlay({
     });
 
     if (timerRef.current) window.clearTimeout(timerRef.current);
+    // v4 (2026-05-17): 多给 200ms 缓冲，确保 motion keyframes 跑完整轮
+    // 立绘的最后淡出阶段（88%~100%）是关键阅读时间，不能被截断
     timerRef.current = window.setTimeout(() => {
       setEvent(null);
       timerRef.current = null;
-    }, durationMs);
+    }, durationMs + 200);
 
     return () => {
       // 依赖变更时不立即清空，让特效播完
