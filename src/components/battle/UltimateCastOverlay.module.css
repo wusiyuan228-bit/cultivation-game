@@ -1,24 +1,31 @@
 /**
- * 绝技释放屏幕特效 —— 全屏覆盖层
+ * 绝技释放屏幕特效 —— 全屏覆盖层（v2 · 2026-05-17 修复版）
+ *
+ * 改动要点（相对 v1）：
+ *   ① 不再用 fixed —— 改 absolute，挂在 .app-stage 内部，跟随等比缩放
+ *   ② 全部使用 1920×1080 内固定 px，位置以画布中心为基准
+ *   ③ 立绘在上、横幅在下，垂直分离，互不重叠
+ *   ④ 立绘改为完整卡牌立绘（getCachedCardFull）
  *
  * 时间轴（总长 1000ms）：
  *   0~150ms   : 全屏遮罩淡入 + 径向色块从外向内扫光
- *   150~400ms : 角色头像从一侧滑入 + 粒子从外向内汇聚
+ *   150~400ms : 角色立绘从下方滑入并放大
  *   400~700ms : 文字横幅停留（玩家阅读）
- *   700~1000ms: 整体淡出 + 头像滑出
+ *   700~1000ms: 整体淡出
  */
 
+/* ── 整体盖层（挂在 .app-stage 内，absolute 占满 1920×1080） ── */
 .overlay {
-  position: fixed;
+  position: absolute;
   inset: 0;
+  width: 1920px;
+  height: 1080px;
   z-index: 9999;
   pointer-events: none;
   overflow: hidden;
-  /* 防止整体动画期间触发滚动 */
-  contain: strict;
 }
 
-/* —— Layer 0：背景暗化 + 径向光团 —— */
+/* —— Layer 0：背景暗化 + 径向色 —— */
 .backdrop {
   position: absolute;
   inset: 0;
@@ -28,11 +35,10 @@
     rgba(0, 0, 0, 0.55) 40%,
     rgba(0, 0, 0, 0.78) 100%
   );
-  mix-blend-mode: normal;
   opacity: 0.85;
 }
 
-/* —— Layer 1：径向扫光（更亮的内层） —— */
+/* —— Layer 1：内层亮闪 —— */
 .flash {
   position: absolute;
   inset: 0;
@@ -45,7 +51,7 @@
   opacity: 0.7;
 }
 
-/* —— Layer 1.5：扫光条（对角线斜扫） —— */
+/* —— Layer 1.5：斜向扫光条 —— */
 .sweep {
   position: absolute;
   top: -50%;
@@ -65,56 +71,59 @@
   opacity: 0.85;
 }
 
-/* —— Layer 2：角色头像 —— */
+/* —— Layer 2：角色完整立绘 —— */
+/* 1920×1080 中心 = (960, 540)；立绘 420×560，垂直方向上靠 60px */
 .portraitWrap {
   position: absolute;
-  top: 50%;
+  /* 立绘容器：居中偏上 60px，外接尺寸 420×560 */
+  top: calc(50% - 60px);
   left: 50%;
-  width: 280px;
-  height: 280px;
+  width: 420px;
+  height: 560px;
   transform: translate(-50%, -50%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  /* 抠掉立绘背景 */
-  filter: drop-shadow(0 0 30px var(--ult-accent, #ffe58a))
-          drop-shadow(0 0 60px var(--ult-primary, #d4af37));
+  /* 整体光晕（落在立绘上） */
+  filter:
+    drop-shadow(0 0 28px var(--ult-accent, #ffe58a))
+    drop-shadow(0 0 56px var(--ult-primary, #d4af37));
 }
 
 .portrait {
-  width: 280px;
-  height: 280px;
+  width: 100%;
+  height: 100%;
   background-size: cover;
   background-position: center top;
   background-repeat: no-repeat;
-  border-radius: 12px;
+  border-radius: 14px;
   border: 3px solid var(--ult-accent, #ffe58a);
   box-shadow:
     0 0 40px var(--ult-primary, #d4af37),
-    inset 0 0 30px rgba(255, 255, 255, 0.15);
+    inset 0 0 30px rgba(255, 255, 255, 0.12);
+  background-color: rgba(0, 0, 0, 0.4); /* 立绘加载中的兜底底色 */
 }
 
 .portraitFallback {
-  width: 280px;
-  height: 280px;
-  border-radius: 12px;
+  width: 100%;
+  height: 100%;
+  border-radius: 14px;
   border: 3px solid var(--ult-accent, #ffe58a);
-  background: linear-gradient(135deg, var(--ult-primary, #d4af37) 0%, rgba(0, 0, 0, 0.5) 100%);
+  background: linear-gradient(135deg, var(--ult-primary, #d4af37) 0%, rgba(0, 0, 0, 0.6) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 110px;
+  font-size: 160px;
   color: #fff;
   font-weight: 800;
-  text-shadow: 0 0 20px var(--ult-accent, #ffe58a);
+  text-shadow: 0 0 24px var(--ult-accent, #ffe58a);
 }
 
 /* —— Layer 3：文字横幅（角色名 · 绝技名） —— */
+/* 立绘 top = 50%-60px，立绘高 560 → 立绘底 = 50%-60px+280 = 50%+220px
+   横幅放在立绘底部下方 40px → top: calc(50% + 260px) */
 .banner {
   position: absolute;
-  top: 50%;
+  top: calc(50% + 260px);
   left: 50%;
-  transform: translate(-50%, calc(-50% + 180px));
+  transform: translateX(-50%);
   text-align: center;
   white-space: nowrap;
 }
@@ -122,14 +131,14 @@
 .bannerInner {
   display: inline-flex;
   align-items: center;
-  gap: 16px;
-  padding: 14px 40px;
+  gap: 18px;
+  padding: 14px 48px;
   background: linear-gradient(
     90deg,
     transparent 0%,
-    var(--ult-outline, #5a3d0c) 20%,
+    var(--ult-outline, #5a3d0c) 18%,
     var(--ult-primary, #d4af37) 50%,
-    var(--ult-outline, #5a3d0c) 80%,
+    var(--ult-outline, #5a3d0c) 82%,
     transparent 100%
   );
   border-top: 2px solid var(--ult-accent, #ffe58a);
@@ -140,24 +149,24 @@
 }
 
 .heroName {
-  font-size: 28px;
+  font-size: 30px;
   font-weight: 700;
   color: #ffffff;
   text-shadow:
     0 0 8px var(--ult-accent, #ffe58a),
-    0 2px 4px rgba(0, 0, 0, 0.8);
+    0 2px 4px rgba(0, 0, 0, 0.85);
   letter-spacing: 4px;
 }
 
 .divider {
-  font-size: 24px;
+  font-size: 26px;
   color: var(--ult-accent, #ffe58a);
   font-weight: 300;
   text-shadow: 0 0 10px var(--ult-accent, #ffe58a);
 }
 
 .skillName {
-  font-size: 36px;
+  font-size: 40px;
   font-weight: 900;
   color: #ffffff;
   text-shadow:
@@ -177,24 +186,25 @@
 
 .particle {
   position: absolute;
-  font-size: 32px;
+  font-size: 36px;
   opacity: 0;
   text-shadow: 0 0 12px var(--ult-accent, #ffe58a);
   filter: drop-shadow(0 0 8px var(--ult-primary, #d4af37));
   will-change: transform, opacity;
 }
 
-/* —— "绝技"标签（小字提示） —— */
+/* —— "绝 技" 小标签 —— */
+/* 立绘 top = 50%-60px - 立绘高一半 280 = 50% - 340px → 标签放更上方 50% - 380px */
 .tag {
   position: absolute;
-  top: 50%;
+  top: calc(50% - 380px);
   left: 50%;
-  transform: translate(-50%, calc(-50% - 200px));
-  padding: 4px 16px;
+  transform: translateX(-50%);
+  padding: 5px 20px;
   border: 1px solid var(--ult-accent, #ffe58a);
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.55);
   color: var(--ult-accent, #ffe58a);
-  font-size: 14px;
-  letter-spacing: 8px;
+  font-size: 16px;
+  letter-spacing: 10px;
   text-shadow: 0 0 8px var(--ult-accent, #ffe58a);
 }

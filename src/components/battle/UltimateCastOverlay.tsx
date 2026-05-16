@@ -1,12 +1,10 @@
 /**
- * UltimateCastOverlay — 绝技释放屏幕特效
+ * UltimateCastOverlay — 绝技释放屏幕特效（v2 · 2026-05-17）
  *
- * Phase 1+2+3 合一：
- *   · 全屏径向滤镜（按角色阵营染色）
- *   · 角色头像滑入 + 放大
- *   · 文字横幅（角色名 · 绝技名）
- *   · 粒子动画（emoji 粒子向中心汇聚后扩散）
- *   · 音效 hook（onSfx，当前未接入）
+ * v2 改动：
+ *   ① 改用 getCachedCardFull —— 完整卡牌立绘（不是头像）
+ *   ② 立绘在上 / 横幅在下，垂直分离，永不重叠
+ *   ③ 容器 absolute / 1920×1080 px，跟随 .app-stage 等比缩放
  *
  * 总时长：1000ms
  *
@@ -14,7 +12,7 @@
  */
 import { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getCachedImage } from '@/utils/imageCache';
+import { getCachedCardFull, getCachedImage } from '@/utils/imageCache';
 import { getHeroTheme } from '@/data/heroThemeColors';
 import styles from './UltimateCastOverlay.module.css';
 
@@ -23,13 +21,13 @@ export interface UltimateCastEvent {
   ts: number;
   /** 释放绝技的单位 id */
   unitId: string;
-  /** 释放者 heroId（用于色调与立绘兜底）；非主角单位可不填 */
+  /** 释放者 heroId（用于色调与立绘获取） */
   heroId?: string;
   /** 释放者显示名 */
   heroName: string;
   /** 绝技名 */
   ultimateName: string;
-  /** 立绘 url 或 imageCache key（与 BattleUnit.portrait 一致） */
+  /** 立绘兜底字段（当 heroId 拿不到完整立绘时使用） */
   portrait?: string;
 }
 
@@ -39,11 +37,22 @@ interface Props {
   durationMs?: number;
 }
 
-/** 复用 S7B/S7D 的 portrait 解析规则：URL/路径直返，否则当 imageCache key */
-function resolvePortraitUrl(raw: string | undefined, heroId: string | undefined): string {
-  if (!raw) return heroId ? getCachedImage(heroId) : '';
-  if (/^(https?:|blob:|data:|\/|\.)/.test(raw)) return raw;
-  return getCachedImage(raw) || (heroId ? getCachedImage(heroId) : '');
+/**
+ * 取角色完整立绘 url：
+ *   1. 优先 getCachedCardFull(heroId) —— 已收集卡翻面看到的完整立绘
+ *   2. 回退 getCachedImage(heroId)   —— 头像
+ *   3. 回退传入的 portrait（可能是 url 或 cache key）
+ */
+function resolveFullPortrait(heroId: string | undefined, portrait: string | undefined): string {
+  if (heroId) {
+    const full = getCachedCardFull(heroId);
+    if (full) return full;
+    const small = getCachedImage(heroId);
+    if (small) return small;
+  }
+  if (!portrait) return '';
+  if (/^(https?:|blob:|data:|\/|\.)/.test(portrait)) return portrait;
+  return getCachedImage(portrait) || '';
 }
 
 /** 8 颗粒子的初始角度（环形分布） */
@@ -54,7 +63,7 @@ export function UltimateCastOverlay({ event, durationMs = 1000 }: Props) {
 
   const theme = useMemo(() => getHeroTheme(event?.heroId), [event?.heroId]);
   const portraitUrl = useMemo(
-    () => (event ? resolvePortraitUrl(event.portrait, event.heroId) : ''),
+    () => (event ? resolveFullPortrait(event.heroId, event.portrait) : ''),
     [event],
   );
 
@@ -87,7 +96,7 @@ export function UltimateCastOverlay({ event, durationMs = 1000 }: Props) {
             transition={{ duration: D * 0.25, ease: 'easeOut' }}
           />
 
-          {/* Layer 1 · 内层亮闪 */}
+          {/* Layer 1 · 内层亮闪（呼吸感） */}
           <motion.div
             className={styles.flash}
             initial={{ opacity: 0, scale: 1.4 }}
@@ -111,8 +120,8 @@ export function UltimateCastOverlay({ event, durationMs = 1000 }: Props) {
           <div className={styles.particles}>
             {Array.from({ length: PARTICLE_COUNT }).map((_, i) => {
               const angle = (i / PARTICLE_COUNT) * Math.PI * 2;
-              const startR = 360; // px：从远处汇聚
-              const endR = 480; // px：扩散到屏幕外
+              const startR = 360;
+              const endR = 480;
               const sx = Math.cos(angle) * startR;
               const sy = Math.sin(angle) * startR;
               const ex = Math.cos(angle) * endR;
@@ -143,7 +152,7 @@ export function UltimateCastOverlay({ event, durationMs = 1000 }: Props) {
             })}
           </div>
 
-          {/* "绝 · 技" 小标签 */}
+          {/* "绝 技" 小标签（立绘上方） */}
           <motion.div
             className={styles.tag}
             initial={{ opacity: 0, y: -10 }}
@@ -153,18 +162,18 @@ export function UltimateCastOverlay({ event, durationMs = 1000 }: Props) {
             绝 技
           </motion.div>
 
-          {/* Layer 2 · 角色立绘 */}
+          {/* Layer 2 · 角色完整立绘（居中偏上，独占顶部空间） */}
           <motion.div
             className={styles.portraitWrap}
-            initial={{ opacity: 0, x: -200, scale: 0.6 }}
+            initial={{ opacity: 0, y: 80, scale: 0.85 }}
             animate={{
               opacity: [0, 1, 1, 0],
-              x: [-200, 0, 0, 60],
-              scale: [0.6, 1.15, 1.05, 1.1],
+              y: [80, 0, 0, -20],
+              scale: [0.85, 1, 1, 1.04],
             }}
             transition={{
               duration: D,
-              times: [0, 0.3, 0.75, 1],
+              times: [0, 0.3, 0.78, 1],
               ease: [0.16, 1, 0.3, 1],
             }}
           >
@@ -180,7 +189,7 @@ export function UltimateCastOverlay({ event, durationMs = 1000 }: Props) {
             )}
           </motion.div>
 
-          {/* Layer 3 · 文字横幅 */}
+          {/* Layer 3 · 文字横幅（立绘下方，绝不重叠） */}
           <motion.div
             className={styles.banner}
             initial={{ opacity: 0, scaleX: 0 }}
@@ -190,7 +199,7 @@ export function UltimateCastOverlay({ event, durationMs = 1000 }: Props) {
             }}
             transition={{
               duration: D,
-              times: [0, 0.35, 0.8, 1],
+              times: [0, 0.4, 0.82, 1],
               ease: 'easeOut',
             }}
           >
