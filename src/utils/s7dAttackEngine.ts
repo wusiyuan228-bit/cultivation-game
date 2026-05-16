@@ -254,9 +254,11 @@ export function executeAttackWithHooks(
   // AttackContext
   // ==========================================================================
   // 🔧 2026-05-14 修复：绝技 followUp 攻击需标记 viaUltimate=true
+  // 🔧 2026-05-16 同 s7bBattleStore：attackKind 保持 'basic'，避免误屏蔽
+  //   defender 侧 basic-only 的金身类被动。区分用 viaUltimate。
   const _isUlt = isInUltimateAttackContext();
   const ctx: AttackContext = {
-    attackKind: _isUlt ? 'skill_damage' : 'basic',
+    attackKind: 'basic',
     viaUltimate: _isUlt,
     segmentIndex: 0,
     attacker: snapshots[attackerId],

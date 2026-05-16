@@ -15,6 +15,8 @@ export const skill_mahongjun_tianji: SkillRegistration = {
       const target = engine.getUnit(ctx.defender.id);
       if (!self || !target || !self.skills.includes('sr_mahongjun.battle')) return;
       if (ctx.attackKind !== 'basic') return;
+      // 🔧 2026-05-16 绝技 followUp 攻击不触发本被动（避免 AOE 绝技每段都自残并叠加固伤）
+      if (ctx.viaUltimate) return;
       if (self.hp.current < 3) {
         engine.emit(
           'skill_effect_blocked',

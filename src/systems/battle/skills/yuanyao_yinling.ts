@@ -14,6 +14,8 @@ export const skill_yuanyao_yinling: SkillRegistration = {
       const target = engine.getUnit(ctx.defender.id);
       if (!self || !target || !self.skills.includes('sr_yuanyao.battle')) return;
       if (ctx.attackKind !== 'basic') return;
+      // 🔧 2026-05-16 绝技 followUp 攻击不触发本被动（避免 AOE 绝技把每个目标 mnd 都-1）
+      if (ctx.viaUltimate) return;
       if (target.mnd.current <= 0) {
         engine.emit(
           'skill_effect_blocked',

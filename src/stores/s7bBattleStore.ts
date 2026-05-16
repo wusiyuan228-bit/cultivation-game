@@ -1153,9 +1153,16 @@ export const useS7BBattleStore = create<BattleState>((set, get) => ({
     // —— AttackContext ——
     // 🔧 2026-05-14 修复：绝技 followUp 攻击需标记 viaUltimate=true，
     //   否则青竹蜂云剑·七十二路等 'basic-only' 被动会误触发并读到被临时改写的 atk
+    // 🔧 2026-05-16 修复 #XIAOWU-WUDI-NOT-TRIGGER：
+    //   原实现把 attackKind 也改成了 'skill_damage'，导致 defender 侧 basic-only 的
+    //   防御被动（小舞儿无敌金身、戴沐白白虎金身等）也被误屏蔽——它们恰恰应该对
+    //   "绝技后置攻击"生效（佛怒火莲对相邻敌人各打 1 次普攻 → 金身应每段封顶 2）。
+    //   改回：attackKind 始终为 'basic'（followUp 本质就是 basic 攻击展开），
+    //   仅靠 viaUltimate 区分上下文。
+    //   attacker 侧的 basic-only 被动（青竹蜂云剑等）改用 viaUltimate 过滤——见技能文件。
     const _isUlt = isInUltimateAttackContext();
     const ctx: AttackContext = {
-      attackKind: _isUlt ? 'skill_damage' : 'basic',
+      attackKind: 'basic',
       viaUltimate: _isUlt,
       segmentIndex: 0,
       attacker: mapUnitToEngine(newAttacker),
