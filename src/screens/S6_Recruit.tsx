@@ -50,13 +50,18 @@ const BASE_COST = 5;
 
 // ===== AI 步骤基础延迟（单位 ms），倍速 1x=原值，2x=一半 =====
 // 2026-05-09 调整：目标 AI 每步约 0.8s，保证玩家能看清每步变化，整体提速 ~30%
+// 2026-05-16 二次提速：砍掉 AFTER_SKIP（无信息量），缩短抽卡/技能/保留三档延迟
+//   - AFTER_SKIP: 600 → 0   （依赖 aiDelay 的 100ms 下限兜底，几乎无感）
+//   - AFTER_NORMAL_DRAW: 800 → 400（闪现动画已占 1s，无需再等）
+//   - AFTER_SKILL: 800 → 500（技能动画已覆盖大部分时间）
+//   - AFTER_POST_DRAW: 800 → 400（保留/放回信息量少）
 const AI_DELAY = {
   TURN_START: 800,       // 回合开始后 → 决策（玩家需看到高亮切换）
-  AFTER_SKIP: 600,       // 跳过后 → 下一回合（信息量少，可稍快）
+  AFTER_SKIP: 0,         // 跳过后 → 下一回合（无视觉变化，砍至最低）
   AFTER_SWITCH: 800,     // 替换后 → 抽卡（切立绘需要看清）
-  AFTER_NORMAL_DRAW: 800,// 抽卡后 → post_draw 判断
-  AFTER_SKILL: 800,      // 技能后 → post_draw
-  AFTER_POST_DRAW: 800,  // 保留/放回后 → 下一回合
+  AFTER_NORMAL_DRAW: 400,// 抽卡后 → post_draw 判断（闪现已占 1s）
+  AFTER_SKILL: 500,      // 技能后 → post_draw（技能自带动画）
+  AFTER_POST_DRAW: 400,  // 保留/放回后 → 下一回合（信息量少）
   CANDIDATE_PICK: 800,   // AI 挑候选卡
   // —— 玩家操作后推进延迟（也跟随倍速） ——
   PLAYER_AFTER_SKIP: 500,
