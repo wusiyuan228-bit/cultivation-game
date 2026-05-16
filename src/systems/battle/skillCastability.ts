@@ -133,8 +133,19 @@ export function checkSkillCastability(
   }
 
   // ---- 距离/目标条件：按 selector 精准扫描 ----
-  // 4.1 未登记：兜底为"攻击附带型"，需相邻敌人
+  // 4.1 未登记：
+  //   · 绝技（ultimate）：尚未实装 → 直接置灰，hover 提示"暂未实装"
+  //     （UR 玄寂长老·轮回珠·噬魂 / UR 风无痕·轮回珠·裂天 等）
+  //   · 战技（battle）：兜底为"攻击附带型"，需相邻敌人（保留原逻辑兼容旧用法）
   if (!registration) {
+    if (skillType === 'ultimate') {
+      return {
+        hasCharges: false,
+        interactable: false,
+        isPassive: false,
+        reason: '该绝技效果暂未实装，敬请期待',
+      };
+    }
     const ok = ctx.allUnits ? hasAdjacentEnemyOf(unit, ctx.allUnits) : !!ctx.hasAdjacentEnemy;
     if (!ok) {
       return {

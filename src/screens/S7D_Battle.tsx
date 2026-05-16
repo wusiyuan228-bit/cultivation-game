@@ -1310,12 +1310,28 @@ const dropReinforceTask = useS7DBattleStore((s) => s.dropReinforceTask);
         return;
       }
       const actorId = currentAction.instanceId;
-      // 尝试最多 2 个动作：移动 + 攻击
-      for (let step = 0; step < 2; step++) {
+      // 尝试最多 3 个动作：绝技 + 移动 + 攻击（绝技后仍能继续移动+普攻）
+      for (let step = 0; step < 3; step++) {
         const sNow = useS7DBattleStore.getState().state;
         if (!sNow || sNow.winner) break;
         const action = decideAiAction(sNow, actorId);
         if (action.kind === 'pass') break;
+        if (action.kind === 'cast_ultimate') {
+          // 🤖 2026-05-17：AI 释放绝技
+          //   - useUltimate 内部会写入 lastUltimateCast → 触发屏幕特效
+          //   - 释放后**不结束**行动；下一轮循环继续走攻击/移动
+          const actorNow = sNow.units[actorId];
+          if (actorNow && actorNow.ultimate) {
+            useS7DBattleStore.getState().log(
+              `🤖 ${actorNow.name} 准备释放绝技【${actorNow.ultimate.name}】（${action.reason}）`,
+            );
+          }
+          await sleep(300);
+          useUltimateFn(actorId, action.targetIds, action.pickedPosition);
+          // 等特效播放（UltimateCastOverlay 总时长 1000ms，但此处 700ms 已可看到立绘）
+          await sleep(900);
+          continue;
+        }
         if (action.kind === 'attack_unit') {
           performAttackUnit(actorId, action.targetInstanceId);
           await sleep(DICE_SHOW_DURATION + 200);
