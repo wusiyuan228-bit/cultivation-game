@@ -130,7 +130,41 @@ export const ALL_IMAGES: Record<string, string> = {
 
 /** 单独给翻面大图用的路径表（懒加载） */
 function fullImagePath(id: string): string {
+  // 🚀 2026-05-17：cards_full 已批量转码为 webp（-44% 体积，约 18MB）
+  //   现代浏览器全面支持 webp（Chrome/Edge/Firefox/Safari 14+）
+  //   服务器仍保留同名 .jpg 作为兜底（CDN 上若 webp 404 可手动切回）
+  return asset(`images/cards_full/${id}.webp`);
+}
+
+/** webp 兜底 jpg 路径（极少数老浏览器或部署遗漏 webp 时使用） */
+function fullImagePathJpg(id: string): string {
   return asset(`images/cards_full/${id}.jpg`);
+}
+
+/**
+ * 内部：异步把大图 fetch 成 blob 并写入缓存。
+ *   - webp 优先；失败时自动降级 jpg
+ *   - HTTP 状态非 2xx / 网络异常都视作"webp 失败"
+ *   - 仍失败则把 jpg 路径写入 loading map 让 IMG 标签直接走（最起码可见）
+ */
+function loadCardFullBlob(id: string): Promise<string> {
+  const webpUrl = fullImagePath(id);
+  const jpgUrl = fullImagePathJpg(id);
+
+  const fetchAsBlob = (url: string) =>
+    fetch(url).then((r) => {
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      return r.blob();
+    });
+
+  return fetchAsBlob(webpUrl)
+    .catch(() => fetchAsBlob(jpgUrl))
+    .then((blob) => {
+      const blobUrl = URL.createObjectURL(blob);
+      fullBlobCache.set(id, blobUrl);
+      return blobUrl;
+    })
+    .catch(() => jpgUrl); // 终极兜底：返回 jpg 路径让 <img> 自行加载
 }
 
 const blobCache = new Map<string, string>();
@@ -233,37 +267,38 @@ export function getCachedCardFull(id: string): string {
   const cached = fullBlobCache.get(id);
   if (cached) return cached;
 
-  // 触发异步加载（只触发一次）
+  // 触发异步加载（只触发一次，自带 webp→jpg 兜底）
   if (!fullLoading.has(id)) {
-    const url = fullImagePath(id);
-    const p = fetch(url)
-      .then((r) => r.blob())
-      .then((blob) => {
-        const blobUrl = URL.createObjectURL(blob);
-        fullBlobCache.set(id, blobUrl);
-        return blobUrl;
-      })
-      .catch(() => url);
-    fullLoading.set(id, p);
+    fullLoading.set(id, loadCardFullBlob(id));
   }
 
-  // 首次返回原始路径，浏览器自行加载
+  // 首次返回 webp 原始路径，浏览器自行加载
   return fullImagePath(id);
 }
 
 /** 主动预取大图（在用户停留在详情页时调用，体验更丝滑） */
 export function prefetchCardFull(id: string): void {
   if (fullBlobCache.has(id) || fullLoading.has(id)) return;
-  const url = fullImagePath(id);
-  const p = fetch(url)
-    .then((r) => r.blob())
-    .then((blob) => {
-      const blobUrl = URL.createObjectURL(blob);
-      fullBlobCache.set(id, blobUrl);
-      return blobUrl;
-    })
-    .catch(() => url);
-  fullLoading.set(id, p);
+  fullLoading.set(id, loadCardFullBlob(id));
+}
+
+/**
+ * 🚀 批量预取大图（战前预热专用）
+ *   - 用于 S7/S7B/S7D 战斗初始化时把全部参战棋子的大图提前下载并缓存
+ *   - 自动去重（id 列表可包含重复或空字符串）
+ *   - 不阻塞主线程：fire-and-forget，错误自动吞掉
+ *
+ * 使用场景：绝技释放特效需要 cards_full 大图，如果首次访问才下载会"白闪一下"。
+ *           战前调用此方法，把双方阵容的所有立绘提前拉到 blob 缓存。
+ */
+export function prefetchManyCardFull(ids: Array<string | undefined | null>): void {
+  const seen = new Set<string>();
+  for (const id of ids) {
+    if (!id) continue;
+    if (seen.has(id)) continue;
+    seen.add(id);
+    prefetchCardFull(id);
+  }
 }
 
 /** 是否所有图片已缓存 */

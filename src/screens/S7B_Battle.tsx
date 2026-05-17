@@ -16,7 +16,7 @@ import type { BattleUnit, DiceResult } from '@/stores/s7bBattleStore';
 import { useGameStore, SaveSystem } from '@/stores/gameStore';
 import { getHeroById } from '@/hooks/useConfig';
 import { getPoolCardById } from '@/systems/recruit/cardPoolLoader';
-import { getCachedImage } from '@/utils/imageCache';
+import { getCachedImage, prefetchManyCardFull } from '@/utils/imageCache';
 import { sortCardsForDisplay } from '@/utils/cardDisplayOrder';
 import { TYPE_CHAR } from '@/data/heroConstants';
 import type { HeroId, CultivationType } from '@/types/game';
@@ -1044,6 +1044,14 @@ export const S7B_Battle: React.FC = () => {
           cardId: fillHero.id,
         });
       }
+
+      // 🚀 战前预热：把全部参战棋子的 cards_full 大图预取到 blob 缓存，
+      //   避免绝技释放特效首次显示时立绘"先白一下"再加载出来。
+      const prefetchIds: string[] = [];
+      for (const u of [...playerUnits, ...aiUnits]) {
+        if (u.cardId) prefetchIds.push(u.cardId);
+      }
+      prefetchManyCardFull(prefetchIds);
 
       battle.initBattle(playerUnits, aiUnits);
       setShowSelect(false);

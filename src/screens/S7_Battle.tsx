@@ -16,7 +16,7 @@ import type { BattleUnit, DiceResult } from '@/stores/battleStore';
 import { useGameStore, SaveSystem } from '@/stores/gameStore';
 import { getHeroById } from '@/hooks/useConfig';
 import { getPoolCardById } from '@/systems/recruit/cardPoolLoader';
-import { getCachedImage } from '@/utils/imageCache';
+import { getCachedImage, prefetchManyCardFull } from '@/utils/imageCache';
 import { sortCardsForDisplay } from '@/utils/cardDisplayOrder';
 import { TYPE_CHAR } from '@/data/heroConstants';
 import type { HeroId, CultivationType } from '@/types/game';
@@ -638,6 +638,7 @@ export const S7_Battle: React.FC = () => {
 
       if (!partnerId) {
         // 孤身入场：仅传主角
+        prefetchManyCardFull([heroUnit.cardId]);
         battle.initBattle(heroUnit);
         setShowSelect(false);
         return;
@@ -660,6 +661,9 @@ export const S7_Battle: React.FC = () => {
         portrait: partner.portrait,
         cardId: partner.cardId ?? partner.id,
       };
+
+      // 🚀 战前预热：把双方阵容大图预取到 blob 缓存，避免绝技特效白闪
+      prefetchManyCardFull([heroUnit.cardId, partnerUnit.cardId]);
 
       battle.initBattle(heroUnit, partnerUnit);
       setShowSelect(false);

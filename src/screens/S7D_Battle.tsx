@@ -21,7 +21,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { asset } from '@/utils/assetPath';
-import { getCachedImage } from '@/utils/imageCache';
+import { getCachedImage, prefetchManyCardFull } from '@/utils/imageCache';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { BackButton } from '@/components/BackButton';
@@ -444,6 +444,21 @@ const dropReinforceTask = useS7DBattleStore((s) => s.dropReinforceTask);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [heroId]);
+
+  // 🚀 战前预热：把全部参战棋子的 cards_full 大图预取到 blob 缓存，
+  //   避免绝技释放特效首次显示时立绘"先白一下"再加载出来。
+  //   依赖 battleState 第一次出现 + units 集合，确保只触发一次。
+  useEffect(() => {
+    if (!battleState) return;
+    const ids: string[] = [];
+    for (const u of Object.values(battleState.units)) {
+      if (u.heroId) ids.push(u.heroId);
+      if (u.cardId) ids.push(u.cardId);
+    }
+    prefetchManyCardFull(ids);
+    // 只在 battle 初次 ready 时跑一次：依赖列表故意只放 battleState 引用本身
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [!!battleState]);
 
   // ==========================================================================
   // 派生：当前行动信息
