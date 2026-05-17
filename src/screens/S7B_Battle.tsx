@@ -1708,6 +1708,7 @@ export const S7B_Battle: React.FC = () => {
         {/* sect 模式（宗门大比）下若跳 /story，会因第四章已读完再次自动跳回 S7C，形成循环。
             因此 sect 模式统一跳 /menu；测试/比武模式保留跳 /story 的原行为 */}
         <BackButton onClick={returnToMenu} />
+        <MusicToggle />
         <SelectPartner
           options={partnerOptions}
           partnerCount={partnerCount}

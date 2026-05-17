@@ -16,6 +16,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { BackButton } from '@/components/BackButton';
+import { MusicToggle } from '@/components/MusicToggle';
 import { useReturnToMenu } from '@/hooks/useReturnToMenu';
 import {
   generateS7DMap,
@@ -47,6 +48,7 @@ export const S7D_MapPreview: React.FC = () => {
   return (
     <div className={styles.screen}>
       <BackButton onClick={returnToMenu} />
+      <MusicToggle />
 
       {/* 标题 */}
       <motion.div

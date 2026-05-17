@@ -25,6 +25,7 @@ import { getCachedImage } from '@/utils/imageCache';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { BackButton } from '@/components/BackButton';
+import { MusicToggle } from '@/components/MusicToggle';
 import { useReturnToMenu } from '@/hooks/useReturnToMenu';
 import { useGameStore } from '@/stores/gameStore';
 import { SaveSystem } from '@/stores/gameStore';
@@ -1366,6 +1367,7 @@ const dropReinforceTask = useS7DBattleStore((s) => s.dropReinforceTask);
     return (
       <div className={styles.screen}>
         <BackButton onClick={returnToMenu} />
+        <MusicToggle />
         <div className={styles.centerMsg}>
           <div className={styles.loadingSpinner}>⚔</div>
           <div>正在布置战场...</div>
@@ -1377,6 +1379,7 @@ const dropReinforceTask = useS7DBattleStore((s) => s.dropReinforceTask);
     return (
       <div className={styles.screen}>
         <BackButton onClick={returnToMenu} />
+        <MusicToggle />
         <div className={styles.centerMsg}>
           <div className={styles.errorIcon}>⚠</div>
           <div className={styles.errorText}>{error}</div>
@@ -1391,6 +1394,7 @@ const dropReinforceTask = useS7DBattleStore((s) => s.dropReinforceTask);
     return (
       <div className={styles.screen}>
         <BackButton onClick={returnToMenu} />
+        <MusicToggle />
         <div className={styles.centerMsg}>战场尚未初始化</div>
       </div>
     );
@@ -1414,6 +1418,7 @@ const dropReinforceTask = useS7DBattleStore((s) => s.dropReinforceTask);
   return (
     <div className={styles.screen}>
       <BackButton onClick={returnToMenu} />
+      <MusicToggle />
 
       {/* 顶栏 */}
       <TopBar

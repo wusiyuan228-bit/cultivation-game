@@ -1162,6 +1162,7 @@ export const S7_Battle: React.FC = () => {
       <div className={styles.screen}>
         <div className={styles.bgOverlay} />
         <BackButton onClick={returnToMenu} />
+        <MusicToggle />
         <SelectPartner options={partnerOptions} onConfirm={handleConfirmPartner} />
       </div>
     );
