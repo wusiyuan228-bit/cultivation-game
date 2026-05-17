@@ -1313,12 +1313,24 @@ const dropReinforceTask = useS7DBattleStore((s) => s.dropReinforceTask);
       }
       const actorId = currentAction.instanceId;
       // 尝试最多 3 个动作：绝技 + 移动 + 攻击（绝技后仍能继续移动+普攻）
+      // 🔧 2026-05-17 #BUG-A 修复：本回合内若引擎拒绝绝技释放，
+      //   立即冻结 cast_ultimate 评估通道，避免死循环 3 次空转。
+      let ultimateBlocked = false;
       for (let step = 0; step < 3; step++) {
         const sNow = useS7DBattleStore.getState().state;
         if (!sNow || sNow.winner) break;
         const action = decideAiAction(sNow, actorId);
         if (action.kind === 'pass') break;
         if (action.kind === 'cast_ultimate') {
+          if (ultimateBlocked) {
+            // 已尝试过且被引擎拒绝，强制跳过绝技分支去走攻击/移动
+            // eslint-disable-next-line no-console
+            console.warn(
+              '[S7D-AI] cast_ultimate 评估通过但本回合已被引擎拒绝，跳过',
+              actorId,
+            );
+            break;
+          }
           // 🤖 2026-05-17：AI 释放绝技
           //   - useUltimate 内部会写入 lastUltimateCast → 触发屏幕特效
           //   - 释放后**不结束**行动；下一轮循环继续走攻击/移动
@@ -1328,10 +1340,25 @@ const dropReinforceTask = useS7DBattleStore((s) => s.dropReinforceTask);
               `🤖 ${actorNow.name} 准备释放绝技【${actorNow.ultimate.name}】（${action.reason}）`,
             );
           }
+          const ultUsedBefore = actorNow?.ultimateUsed === true;
           await sleep(300);
-          useUltimateFn(actorId, action.targetIds, action.pickedPosition);
+          const castOk = useUltimateFn(actorId, action.targetIds, action.pickedPosition);
+          // 🔍 2026-05-17 #BUG-A：检查引擎是否真正消费绝技
+          //   useUltimate 返回 false 或施法者 ultimateUsed 仍 false → 引擎拒绝
+          //   场景：暮佩翎续命丹 owner 内无可复活、天蕴子因果倒转目标无相邻友军等
+          //   不阻断后续 attack/move，但阻断本回合内再次评估 cast_ultimate
+          const sAfter = useS7DBattleStore.getState().state;
+          const actorAfter = sAfter?.units[actorId];
+          const ultUsedAfter = actorAfter?.ultimateUsed === true;
+          if (!castOk || (!ultUsedBefore && !ultUsedAfter)) {
+            ultimateBlocked = true;
+            // 不需要等特效，立即继续下一步走攻击/移动
+            await sleep(120);
+            continue;
+          }
           // 等特效播放（UltimateCastOverlay 总时长 1000ms，但此处 700ms 已可看到立绘）
           await sleep(900);
+          // 🪦 若施法者已 grave（主动退场型绝技），下一轮 decideAiAction 会返回 pass
           continue;
         }
         if (action.kind === 'attack_unit') {

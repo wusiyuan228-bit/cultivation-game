@@ -206,11 +206,18 @@ export function executeSkillViaEngine(
   // 构造 snapshots：所有 field 上的单位 → 临时可变 EngineUnit 集合
   // ---------------------------------------------------------------------------
   const playerFaction = state.playerFaction;
-  const fieldUnits = Object.values(state.units).filter(
-    (u) => u.zone === 'field' && u.hp > 0,
+  // 🔧 2026-05-17 #BUG-A 修复：snapshots 必须包含 grave 单位
+  //   原因：续命丹/道破情牵等"复活类"技能 precheck 依赖 engine.getAllUnits()
+  //   找已退场（!isAlive）的同 owner 友军；若 snapshots 仅含 field 活体，
+  //   precheck 会永远返回 ok=false，AI 反复评估→整局空转。
+  //   mapInstanceToEngineUnit 内部已正确把 zone!=='field' || hp<=0 的单位标
+  //   isAlive=false，因此把所有 zone in {field, grave} 的单位都纳入快照即可。
+  //   getAlliesOf/getEnemiesOf 仍按 isAlive 过滤，不会误把 grave 单位当战场目标。
+  const allUnitsForEngine = Object.values(state.units).filter(
+    (u) => u.zone === 'field' || u.zone === 'grave',
   );
   const snapshots: Record<string, EngineUnit> = {};
-  for (const u of fieldUnits) {
+  for (const u of allUnitsForEngine) {
     snapshots[u.instanceId] = mapInstanceToEngineUnit(u, playerFaction);
   }
 
@@ -659,13 +666,28 @@ function revivableViaXumingDan(
   caster: BattleCardInstance,
 ): void {
   // 候选：同阵营 + zone='grave' + 非主角
-  const dead = Object.values(state.units).find(
+  // 🔧 2026-05-17 #BUG-A 修复：优先选"归属玩家 fieldSlots 有空位"的候选，
+  //   否则原 find 第一个的逻辑会在第一个候选归属满员时直接放弃，
+  //   即便后面还有别的可复活死者。
+  const allDead = Object.values(state.units).filter(
     (u) =>
       u.faction === caster.faction &&
       u.zone === 'grave' &&
       !u.isHero &&
       u.instanceId !== caster.instanceId,
   );
+  let dead: BattleCardInstance | undefined;
+  for (const candidate of allDead) {
+    const op = state.players.find((p) => p.ownerId === candidate.ownerId);
+    if (!op) continue;
+    if (!op.fieldSlots.slot1 || !op.fieldSlots.slot2) {
+      dead = candidate;
+      break;
+    }
+  }
+  // 兜底：若全员满员，仍选第一个候选（保持原行为）以触发"满员"提示战报
+  if (!dead) dead = allDead[0];
+
   if (!dead) {
     appendLog(
       state,

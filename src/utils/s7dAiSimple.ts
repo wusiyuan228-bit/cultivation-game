@@ -199,11 +199,21 @@ function pickBestMove(
 
   // -------------- T3：占领敌方水晶（最高战略目标）--------------
   const enemyCrystalSet = new Set(enemyCrystal.positions.map((p) => `${p.row},${p.col}`));
-  const reachableEnemyCrystalCells = reachable.filter((c) => enemyCrystalSet.has(`${c.row},${c.col}`));
-  if (reachableEnemyCrystalCells.length > 0) {
-    // 直接站上敌晶 → 大回合末扣对方水晶血
-    const target = pickClosest(actor.position!, reachableEnemyCrystalCells);
-    return makeMoveAction(actor, target);
+  // 🔧 2026-05-17 #BUG-B 修复：actor 已经站在敌晶上时跳过本分支，
+  //   否则会反复横跳（pickClosest 会选出另一个敌晶格 → 移动 1 步 → 下一轮又选回原位）。
+  //   已在敌晶上时该回合保位即可，由 T4-T8 决定下一步（攻击 or 微调）。
+  const actorOnEnemyCrystal = enemyCrystalSet.has(
+    `${actor.position!.row},${actor.position!.col}`,
+  );
+  if (!actorOnEnemyCrystal) {
+    const reachableEnemyCrystalCells = reachable.filter((c) =>
+      enemyCrystalSet.has(`${c.row},${c.col}`),
+    );
+    if (reachableEnemyCrystalCells.length > 0) {
+      // 直接站上敌晶 → 大回合末扣对方水晶血
+      const target = pickClosest(actor.position!, reachableEnemyCrystalCells);
+      return makeMoveAction(actor, target);
+    }
   }
 
   // -------------- T4：阻击我方水晶被占 --------------
@@ -474,6 +484,44 @@ function evaluateUltimate(
     kind === 'single_adjacent_enemy'
   ) {
     if (enemies.length === 0) return { shouldCast: false, targetIds: [], reason: '无敌方' };
+
+    // 🔧 2026-05-17 #BUG-A 修复：天蕴子【天运·因果倒转】属"换血"型，
+    //   引擎 precheck 要求"目标敌相邻有同 owner 友军"且双方 hp 不等。
+    //   旧代码按伤害量评估必然误判，导致 AI 死循环空转 3 次。
+    //   单独按真实条件评估。
+    if (regId === 'ssr_tianyunzi.ult') {
+      // 必须找到一个 (敌, 同owner友军) 配对，敌 hp 远高于友军（借血）
+      const ownAllies = Object.values(state.units).filter(
+        (u) =>
+          u.zone === 'field' &&
+          u.hp > 0 &&
+          u.position &&
+          u.ownerId === self.ownerId &&
+          u.instanceId !== self.instanceId,
+      );
+      let bestPair: { enemy: BattleCardInstance; gain: number } | null = null;
+      for (const enemy of enemies) {
+        const adjOwnAllies = ownAllies.filter(
+          (a) => a.position && manhattan(a.position, enemy.position!) === 1,
+        );
+        if (adjOwnAllies.length === 0) continue;
+        const ally = [...adjOwnAllies].sort((a, b) => a.hp - b.hp)[0];
+        if (enemy.hp === ally.hp) continue;
+        const gain = enemy.hp - ally.hp;
+        if (gain >= 3 && (!bestPair || gain > bestPair.gain)) {
+          bestPair = { enemy, gain };
+        }
+      }
+      if (bestPair) {
+        return {
+          shouldCast: true,
+          targetIds: [bestPair.enemy.instanceId],
+          reason: `因果倒转 借血${bestPair.gain}`,
+        };
+      }
+      return { shouldCast: false, targetIds: [], reason: '无可借血组合' };
+    }
+
     let cands = enemies;
     if (kind === 'single_line_enemy') {
       cands = enemies.filter(
@@ -566,15 +614,39 @@ function evaluateUltimate(
   // ==== ④' 单友（增益/复活/镜像）====
   if (kind === 'single_any_ally') {
     // 复活类（沐佩玲/留眉）：候选是已退场（grave）非主角友军
+    // 🔧 2026-05-17 #BUG-A 修复：按 faction 过滤以与引擎/store 保持一致。
+    //   引擎 adapter 把 unit.owner 映射为 'P1'/'P2'（按 faction === playerFaction），
+    //   precheck 中 `u.owner === self.owner` 即按 faction 匹配；
+    //   store 层 revivableViaXumingDan 也用 `u.faction === caster.faction`。
+    //   因此 AI 评估必须用 faction 而非 ownerId，否则会漏掉同阵营不同 owner
+    //   的可复活友军（如暮佩翎 hanli 阵营，可复活 tangsan/xiaowu 队的非主角）。
     if (regId === 'sr_mupeiling.ultimate' || regId === 'sr_liumei.ultimate') {
       const deads = Object.values(state.units).filter(
         (u) =>
           u.zone === 'grave' &&
           u.faction === self.faction &&
-          !u.isHero,
+          !u.isHero &&
+          u.instanceId !== self.instanceId,
       );
       if (deads.length === 0) {
-        return { shouldCast: false, targetIds: [], reason: '无可复活友军' };
+        return { shouldCast: false, targetIds: [], reason: '无可复活友军（同阵营）' };
+      }
+      // 进一步预校验：该死者归属玩家 fieldSlots 必须有空位（否则 store 层会拒绝）
+      const owner = state.players.find((p) => p.ownerId === deads[0].ownerId);
+      if (!owner || (owner.fieldSlots.slot1 && owner.fieldSlots.slot2)) {
+        // 改选其他归属有空位的死者
+        const reviveable = deads.find((d) => {
+          const op = state.players.find((p) => p.ownerId === d.ownerId);
+          return op && (!op.fieldSlots.slot1 || !op.fieldSlots.slot2);
+        });
+        if (!reviveable) {
+          return { shouldCast: false, targetIds: [], reason: '可复活友军归属皆已满员' };
+        }
+        return {
+          shouldCast: true,
+          targetIds: [reviveable.instanceId],
+          reason: `复活${reviveable.name}`,
+        };
       }
       return {
         shouldCast: true,
