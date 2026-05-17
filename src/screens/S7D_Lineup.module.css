@@ -904,3 +904,23 @@
   border-radius: 6px;
   text-align: center;
 }
+
+/* ==========================================================================
+ * 阵亡补位场景 · 详情弹层覆盖布局
+ *
+ * S7D_Battle 用 .reinforceBox 把 S7D_Lineup 嵌入弹层，详情卡（CollectionModal）
+ * 默认的 .modalOverlay 是 absolute inset:0 + 居中，会被 reinforceBody 容器
+ * 边界裁切 + 底部"确认补位"按钮遮挡。这里改为：
+ *   1) 全屏 fixed 覆盖（盖到 reinforceBox 之上，包括底部按钮区）
+ *   2) 顶部对齐 + padding-top，让 854px 高的详情卡尽量靠上不被截断
+ *   3) z-index 高于 .reinforceOverlay(5000)，避免被遮挡
+ * ========================================================================== */
+.detailOverlayInReinforce {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 6000 !important;
+  align-items: flex-start !important;
+  padding-top: 24px !important;
+  padding-bottom: 24px !important;
+  overflow-y: auto;
+}

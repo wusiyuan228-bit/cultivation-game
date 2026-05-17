@@ -1508,9 +1508,11 @@
   /* 🔧 2026-05-14：高度改为 max-height，加保底最小值，避免在小屏挤压成扁条
    * 原 height:min(1000px,92vh) 在 600px 高浏览器下变 552px，扣掉 header 约 460px
    * 内部 .mainPanel 又写死 top:260px+bottom:40px → 主区高度仅 160px，确认按钮被裁。
-   * 现策略：高度自适应内容，超出 92vh 时 reinforceBody 滚动；保底 520px 确保按钮可见。 */
-  max-height: 92vh;
-  min-height: min(520px, 92vh);
+   * 现策略：高度自适应内容，超出 92vh 时 reinforceBody 滚动；保底 520px 确保按钮可见。
+   * 🔧 2026-05-17：max-height 92vh → 96vh，让补位界面再往上下伸展，
+   *   下方"确认补位"按钮更靠近底边，详情弹层可见区也相应增大。 */
+  max-height: 96vh;
+  min-height: min(520px, 96vh);
   background: linear-gradient(180deg, #2a1e18, #1d1310);
   border: 2px solid #c8a14b;
   border-radius: 12px;

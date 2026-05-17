@@ -59,6 +59,11 @@ interface Props {
    *   - 返回 ReactNode，会被渲染到详情页最底部
    */
   detailExtraActions?: (cardId: string) => React.ReactNode;
+  /**
+   * 给最外层 modalOverlay 追加的额外 className，便于调用方在特殊容器
+   * （如 S7D 阵亡补位嵌入弹层）里覆盖定位 / z-index / 对齐方式等。
+   */
+  overlayClassName?: string;
 }
 
 /**
@@ -106,6 +111,7 @@ export const CollectionModal: React.FC<Props> = ({
   initialDetailId = null,
   hideListReturn,
   detailExtraActions,
+  overlayClassName = '',
 }) => {
   const heroId = useGameStore((s) => s.heroId);
   const ownedCardIds = useGameStore((s) => s.ownedCardIds);
@@ -157,7 +163,7 @@ export const CollectionModal: React.FC<Props> = ({
     <AnimatePresence>
       {open && (
         <motion.div
-          className={styles.modalOverlay}
+          className={`${styles.modalOverlay} ${overlayClassName}`.trim()}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}

@@ -717,6 +717,7 @@ export const S7D_Lineup: React.FC<LineupProps> = (props) => {
         onClose={() => setDetailCardId(null)}
         chapter={5}
         initialDetailId={detailCardId}
+        overlayClassName={isReinforce ? styles.detailOverlayInReinforce : ''}
         detailExtraActions={(cid) => {
           const inStarter = selected.includes(cid);
           const pickFull = selected.length >= requiredPickSize;
