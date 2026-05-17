@@ -119,6 +119,9 @@ export interface BattleUnit {
   // ============ 阶段 C · 觉醒相关 ============
   /** 对应的主角 id（"hero_tangsan" / "hero_xiaowu" 等），用于查 HERO_BLUEPRINTS */
   heroId?: string;
+  /** 卡牌 id（'sr_daimubai' / 'ssr_yunyun' / 'bsr_xiaozhan' 等）—— 用于立绘解析等用途。
+   *  对于主角棋子，cardId 与 heroId 相同；对非主角棋子，cardId 为其招募卡 id。 */
+  cardId?: string;
   /** 是否已觉醒（true 后不再触发） */
   awakened?: boolean;
   /** 当前形态 */

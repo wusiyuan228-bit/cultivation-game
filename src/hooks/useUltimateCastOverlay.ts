@@ -13,6 +13,8 @@ export interface UltimateCastSourceUnit {
   id: string;
   name: string;
   heroId?: string;
+  /** 卡牌 id（如 'sr_daimubai'），用于非主角棋子的立绘解析（imageCache key） */
+  cardId?: string;
   portrait?: string;
   ultimate?: { name: string; desc?: string } | null;
 }
@@ -48,6 +50,7 @@ export function useUltimateCastOverlay({
       ts: lastSkillEvent.ts,
       unitId: unit.id,
       heroId: unit.heroId,
+      cardId: unit.cardId,
       heroName: unit.name,
       ultimateName: unit.ultimate.name,
       portrait: unit.portrait,

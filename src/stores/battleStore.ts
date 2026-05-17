@@ -85,6 +85,8 @@ export interface BattleUnit {
   registrySkills?: string[];
   /** 对应的主角 id */
   heroId?: string;
+  /** 卡牌 id（imageCache key），如 'sr_daimubai' / 'hero_tangsan'；用于绝技特效立绘解析 */
+  cardId?: string;
   /** 觉醒形态 */
   form?: 'base' | 'awakened';
   /** 是否已觉醒 */

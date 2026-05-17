@@ -134,6 +134,8 @@ interface PartnerOption {
   battleSkill: { name: string; desc: string } | null;
   ultimate: { name: string; desc: string } | null;
   portrait: string;
+  /** 卡牌 id（imageCache key） */
+  cardId?: string;
 }
 
 function SelectPartner({
@@ -360,6 +362,7 @@ export const S7_Battle: React.FC = () => {
         id: u.id,
         name: u.name,
         heroId: u.heroId,
+        cardId: u.cardId,
         portrait: u.portrait,
         ultimate: u.ultimate,
       };
@@ -560,6 +563,7 @@ export const S7_Battle: React.FC = () => {
             battleSkill: bc.skills.battle_skill ? { name: bc.skills.battle_skill.name, desc: bc.skills.battle_skill.desc } : null,
             ultimate: bc.skills.ultimate ? { name: bc.skills.ultimate.name, desc: bc.skills.ultimate.desc } : null,
             portrait: getCachedImage(h.id),
+            cardId: h.id,
           };
         }
         // 非主角卡（R/N/SR/SSR）
@@ -576,6 +580,7 @@ export const S7_Battle: React.FC = () => {
             battleSkill: poolCard.battleSkill ? { name: poolCard.battleSkill.name, desc: poolCard.battleSkill.desc } : null,
             ultimate: poolCard.ultimate ? { name: poolCard.ultimate.name, desc: poolCard.ultimate.desc } : null,
             portrait: getCachedImage(poolCard.id),
+            cardId: poolCard.id,
           };
         }
         return null;
@@ -603,6 +608,7 @@ export const S7_Battle: React.FC = () => {
         battleSkill: bc.skills.battle_skill ? { name: bc.skills.battle_skill.name, desc: bc.skills.battle_skill.desc } : null,
         ultimate: bc.skills.ultimate ? { name: bc.skills.ultimate.name, desc: bc.skills.ultimate.desc } : null,
         portrait: getCachedImage(hero.id),
+        cardId: hero.id,
       };
 
       const partner = partnerOptions.find((o) => o.id === partnerId)!;
@@ -620,6 +626,7 @@ export const S7_Battle: React.FC = () => {
         battleSkill: partner.battleSkill,
         ultimate: partner.ultimate,
         portrait: partner.portrait,
+        cardId: partner.cardId ?? partner.id,
       };
 
       battle.initBattle(heroUnit, partnerUnit);

@@ -141,6 +141,8 @@ interface PartnerOption {
   battleSkill: { name: string; desc: string } | null;
   ultimate: { name: string; desc: string } | null;
   portrait: string;
+  /** 卡牌 id（imageCache key），多数情况下与 id 一致 */
+  cardId?: string;
 }
 
 function SelectPartner({
@@ -568,6 +570,7 @@ export const S7B_Battle: React.FC = () => {
         id: u.id,
         name: u.name,
         heroId: u.heroId,
+        cardId: u.cardId,
         portrait: u.portrait,
         ultimate: u.ultimate,
       };
@@ -816,6 +819,7 @@ export const S7B_Battle: React.FC = () => {
             battleSkill: bc.skills.battle_skill ? { name: bc.skills.battle_skill.name, desc: bc.skills.battle_skill.desc } : null,
             ultimate: bc.skills.ultimate ? { name: bc.skills.ultimate.name, desc: bc.skills.ultimate.desc } : null,
             portrait: getCachedImage(h.id),
+            cardId: h.id,
           };
         }
         // 非主角卡（R/N/SR/SSR）—— 从 poolCard 读取战斗技能与绝技
@@ -836,6 +840,7 @@ export const S7B_Battle: React.FC = () => {
               ? { name: poolCard.ultimate.name, desc: poolCard.ultimate.desc }
               : null,
             portrait: getCachedImage(poolCard.id),
+            cardId: poolCard.id,
           };
         }
         return null;
@@ -873,6 +878,7 @@ export const S7B_Battle: React.FC = () => {
         ultimate: bc.skills.ultimate ? { name: bc.skills.ultimate.name, desc: bc.skills.ultimate.desc } : null,
         portrait: getCachedImage(hero.id),
         skillId: bc.skills.battle_skill ? SKILL_ID_MAP[bc.skills.battle_skill.name] : undefined,
+        cardId: hero.id,
       };
 
       // === 玩家副卡单元：按 partnerIds 顺序全部生成 ===
@@ -893,6 +899,7 @@ export const S7B_Battle: React.FC = () => {
           ultimate: partner.ultimate,
           portrait: partner.portrait,
           skillId: partner.battleSkill ? SKILL_ID_MAP[partner.battleSkill.name] : undefined,
+          cardId: partner.id,
         };
       });
 
@@ -968,6 +975,7 @@ export const S7B_Battle: React.FC = () => {
         skillId: aiHeroBC.skills.battle_skill
           ? SKILL_ID_MAP[aiHeroBC.skills.battle_skill.name]
           : undefined,
+        cardId: aiHero.id,
       };
 
       // ── AI 搭档单元（来自其招募的卡） ──
@@ -992,6 +1000,7 @@ export const S7B_Battle: React.FC = () => {
             : null,
           portrait: getCachedImage(pc.id),
           skillId: pc.battleSkill ? SKILL_ID_MAP[pc.battleSkill.name] : undefined,
+          cardId: pc.id,
         };
       });
 
@@ -1021,6 +1030,7 @@ export const S7B_Battle: React.FC = () => {
             : null,
           portrait: getCachedImage(fillHero.id),
           skillId: fbc.skills.battle_skill ? SKILL_ID_MAP[fbc.skills.battle_skill.name] : undefined,
+          cardId: fillHero.id,
         });
       }
 

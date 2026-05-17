@@ -19,6 +19,8 @@ export interface UltimateCastEvent {
   ts: number;
   unitId: string;
   heroId?: string;
+  /** 卡牌 id（imageCache key），如 'sr_daimubai'。当 heroId 为空时用作立绘解析的 fallback */
+  cardId?: string;
   heroName: string;
   ultimateName: string;
   portrait?: string;
@@ -29,15 +31,44 @@ interface Props {
   durationMs?: number;
 }
 
-function resolveFullPortrait(heroId: string | undefined, portrait: string | undefined): string {
+/**
+ * 立绘解析优先级：
+ *   1) heroId → 主角大图（含觉醒态）
+ *   2) cardId → 通用卡牌大图（sr_/ssr_/r_/n_/bsr_/bssr_ 等所有非主角棋子）
+ *   3) portrait → 已是 URL/blob 直接用；是 imageCache key 走小图兜底
+ *   4) 全部失败 → 返回空，触发 portraitFallback（首字占位）
+ *
+ * 注：getCachedCardFull 不挑前缀，直接拼 images/cards_full/{id}.jpg；
+ *     CARD_IDS 内已声明的资源都存在于 public/images/cards_full/ 下。
+ */
+function resolveFullPortrait(
+  heroId: string | undefined,
+  cardId: string | undefined,
+  portrait: string | undefined,
+): string {
+  // 1) 主角
   if (heroId) {
     const full = getCachedCardFull(heroId);
     if (full) return full;
     const small = getCachedImage(heroId);
     if (small) return small;
   }
+  // 2) 非主角棋子：用 cardId 取 cards_full 大图
+  if (cardId) {
+    const full = getCachedCardFull(cardId);
+    if (full) return full;
+    const small = getCachedImage(cardId);
+    if (small) return small;
+  }
+  // 3) portrait 字段兜底（可能是 blob URL / asset 路径 / imageCache key）
   if (!portrait) return '';
   if (/^(https?:|blob:|data:|\/|\.)/.test(portrait)) return portrait;
+  // 形如 'hero/hero_xxx' 的占位 key —— 提取末段当 cardId 再试
+  if (portrait.startsWith('hero/')) {
+    const key = portrait.slice('hero/'.length);
+    const full = getCachedCardFull(key);
+    if (full) return full;
+  }
   return getCachedImage(portrait) || '';
 }
 
@@ -108,7 +139,7 @@ export function UltimateCastOverlay({ event, durationMs = 1000 }: Props) {
 
   const theme = useMemo(() => getHeroTheme(event?.heroId), [event?.heroId]);
   const portraitUrl = useMemo(
-    () => (event ? resolveFullPortrait(event.heroId, event.portrait) : ''),
+    () => (event ? resolveFullPortrait(event.heroId, event.cardId, event.portrait) : ''),
     [event],
   );
 

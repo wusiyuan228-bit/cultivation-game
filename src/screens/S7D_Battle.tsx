@@ -266,6 +266,7 @@ const dropReinforceTask = useS7DBattleStore((s) => s.dropReinforceTask);
         id: u.instanceId,
         name: u.name,
         heroId: u.heroId,
+        cardId: u.cardId,
         portrait: u.portrait,
         ultimate: u.ultimate ?? null,
       };
