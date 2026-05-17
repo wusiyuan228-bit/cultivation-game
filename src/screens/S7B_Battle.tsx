@@ -160,15 +160,20 @@ function SelectPartner({
 }) {
   const [chosen, setChosen] = useState<string[]>([]);
 
+  // 🔧 2026-05-17：玩家可选道友不足时，要求选满全部可选项即可出战；
+  //   可选道友充足时，保持原有"必须选满 partnerCount"规则。
+  const requiredCount = Math.min(partnerCount, options.length);
+  const insufficient = options.length < partnerCount;
+
   const toggle = (id: string) => {
     setChosen((prev) => {
       if (prev.includes(id)) return prev.filter((x) => x !== id);
-      if (prev.length >= partnerCount) return prev; // 达到上限不再添加
+      if (prev.length >= requiredCount) return prev; // 达到上限不再添加
       return [...prev, id];
     });
   };
 
-  const ready = chosen.length === partnerCount;
+  const ready = chosen.length === requiredCount;
 
   return (
     <div className={styles.selectOverlay}>
@@ -232,24 +237,30 @@ function SelectPartner({
           })}
         </div>
         {options.length === 0 && (
-          <div style={{ textAlign: 'center', color: '#a09878', padding: 20 }}>
-            暂无可选搭档（N/R卡无战斗技能，但可作为纯数值棋子上阵）
+          <div style={{ textAlign: 'center', color: '#d89050', padding: '12px 20px', lineHeight: 1.7 }}>
+            ⚔ 无道侣相伴<br />
+            <span style={{ color: '#a09878', fontSize: 13 }}>
+              当前没有可上阵的道友，可孤身入场（仅主角出战）
+            </span>
           </div>
         )}
-        {options.length < partnerCount && options.length > 0 && (
+        {options.length > 0 && options.length < partnerCount && (
           <div style={{ textAlign: 'center', color: '#d89050', padding: '8px 0', fontSize: 14 }}>
-            ⚠ 可选搭档不足 {partnerCount} 名，请先通过招募获取更多道友
+            ⚠ 可选道友不足 {partnerCount} 名（仅 {options.length} 名）——将以现有道友入场
           </div>
         )}
         <div style={{ textAlign: 'center', color: '#a8a090', fontSize: 13, marginTop: 6 }}>
-          已选：{chosen.length} / {partnerCount}
+          已选：{chosen.length} / {requiredCount}
+          {insufficient && requiredCount < partnerCount && (
+            <span style={{ color: '#8a8270', marginLeft: 8 }}>（满编 {partnerCount}）</span>
+          )}
         </div>
         <button
           className={styles.selectConfirm}
           disabled={!ready}
           onClick={() => ready && onConfirm(chosen)}
         >
-          确认出战
+          {options.length === 0 ? '孤身入场' : '确认出战'}
         </button>
       </motion.div>
     </div>
