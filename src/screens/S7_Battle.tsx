@@ -143,9 +143,12 @@ function SelectPartner({
   onConfirm,
 }: {
   options: PartnerOption[];
-  onConfirm: (partnerId: string) => void;
+  onConfirm: (partnerId: string | null) => void;
 }) {
   const [chosen, setChosen] = useState<string | null>(null);
+  // 🔧 2026-05-17：玩家未招募任何搭档卡时（如首次招募全部跳过），
+  // 不再用界面卡住玩家，改为提示"无道侣相伴，孤身一名入场"。
+  const isSolo = options.length === 0;
 
   return (
     <div className={styles.selectOverlay}>
@@ -155,7 +158,11 @@ function SelectPartner({
         animate={{ scale: 1, opacity: 1 }}
       >
         <div className={styles.selectTitle}>宗门追回物资任务</div>
-        <div className={styles.selectSub}>在 8 个行动回合内击败数量越多的劫匪，追回宗门物资，将获得越多奖励。主角的属性值已提升至战斗状态。主角将自动上阵，还可选择另外 1 名搭档协同作战</div>
+        <div className={styles.selectSub}>
+          {isSolo
+            ? '在 8 个行动回合内击败数量越多的劫匪，追回宗门物资，将获得越多奖励。主角的属性值已提升至战斗状态。'
+            : '在 8 个行动回合内击败数量越多的劫匪，追回宗门物资，将获得越多奖励。主角的属性值已提升至战斗状态。主角将自动上阵，还可选择另外 1 名搭档协同作战'}
+        </div>
         <div className={styles.selectGrid}>
           {options.map((o) => (
             <div
@@ -182,17 +189,34 @@ function SelectPartner({
             </div>
           ))}
         </div>
-        {options.length === 0 && (
-          <div style={{ textAlign: 'center', color: '#a09878', padding: 20 }}>
-            暂无可选搭档（N/R卡无战斗技能，但可作为纯数值棋子上阵）
+        {isSolo && (
+          <div style={{
+            textAlign: 'center',
+            color: '#e0b890',
+            padding: '24px 20px',
+            margin: '12px auto',
+            maxWidth: 520,
+            background: 'rgba(40, 28, 16, 0.5)',
+            border: '1px dashed rgba(200, 161, 75, 0.4)',
+            borderRadius: 8,
+            lineHeight: 1.7,
+          }}>
+            <div style={{ fontSize: 18, color: '#ffd98a', marginBottom: 6 }}>⚔ 无道侣相伴</div>
+            尚未结识其他可同行的道侣，将由主角孤身一人前往剿匪。
           </div>
         )}
         <button
           className={styles.selectConfirm}
-          disabled={!chosen}
-          onClick={() => chosen && onConfirm(chosen)}
+          disabled={!isSolo && !chosen}
+          onClick={() => {
+            if (isSolo) {
+              onConfirm(null);
+            } else if (chosen) {
+              onConfirm(chosen);
+            }
+          }}
         >
-          确认出战
+          {isSolo ? '孤身入场' : '确认出战'}
         </button>
       </motion.div>
     </div>
@@ -589,8 +613,9 @@ export const S7_Battle: React.FC = () => {
   }, [heroId, ownedCardIds, cardBonuses]);
 
   // 确认搭档 → 初始化战斗
+  //   2026-05-17：支持 partnerId=null（玩家无可选搭档时孤身入场）
   const handleConfirmPartner = useCallback(
-    (partnerId: string) => {
+    (partnerId: string | null) => {
       if (!hero) return;
       const bonus = cardBonuses[heroId!] ?? { hp: 0, atk: 0, mnd: 0, realmUps: 0 };
       const bc = hero.battle_card;
@@ -610,6 +635,13 @@ export const S7_Battle: React.FC = () => {
         portrait: getCachedImage(hero.id),
         cardId: hero.id,
       };
+
+      if (!partnerId) {
+        // 孤身入场：仅传主角
+        battle.initBattle(heroUnit);
+        setShowSelect(false);
+        return;
+      }
 
       const partner = partnerOptions.find((o) => o.id === partnerId)!;
       const partnerUnit = {

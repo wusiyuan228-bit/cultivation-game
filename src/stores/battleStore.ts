@@ -441,7 +441,7 @@ interface BattleState {
 
   initBattle: (
     heroUnit: Omit<BattleUnit, 'acted' | 'dead' | 'ultimateUsed' | 'immobilized' | 'stunned' | 'lastTerrain' | 'stepsUsedThisTurn' | 'attackedThisTurn'>,
-    partnerUnit: Omit<BattleUnit, 'acted' | 'dead' | 'ultimateUsed' | 'immobilized' | 'stunned' | 'lastTerrain' | 'stepsUsedThisTurn' | 'attackedThisTurn'>,
+    partnerUnit?: Omit<BattleUnit, 'acted' | 'dead' | 'ultimateUsed' | 'immobilized' | 'stunned' | 'lastTerrain' | 'stepsUsedThisTurn' | 'attackedThisTurn'> | null,
   ) => void;
   selectUnit: (unitId: string) => void;
   cancelSelect: () => void;
@@ -533,7 +533,11 @@ export const useBattleStore = create<BattleState>((set, get) => ({
         awakened: false,
         killCountByThisUnit: 0,
       },
-      {
+    ];
+    // 🔧 2026-05-17：支持"孤身入场"——若玩家未招募任何搭档卡，partnerUnit 为空，
+    // 战斗按 1 名玩家单位发起；战斗结束判负条件 (playersAlive>0) 自然兼容。
+    if (partnerUnit) {
+      playerUnits.push({
         ...partnerUnit,
         row: 1,
         col: 0,
@@ -549,8 +553,8 @@ export const useBattleStore = create<BattleState>((set, get) => ({
         form: 'base',
         awakened: false,
         killCountByThisUnit: 0,
-      },
-    ];
+      });
+    }
 
     const enemyUnits: BattleUnit[] = ENEMY_DEFS.map((def, i) => ({
       id: `enemy_${i}`,
