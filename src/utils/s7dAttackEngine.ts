@@ -393,7 +393,13 @@ export function executeAttackWithHooks(
   if (killed) killedIds.unshift(defenderId);
 
   // 攻击者标记
-  attacker.attackedThisTurn = true;
+  // 🔧 2026-05-17 修复：绝技后置攻击（佛怒火莲/万毒淬体/凤凰火雨/破天/弑神击/万剑归宗等）
+  //   不应消耗"本回合普通攻击次数"。否则萧焱发动佛怒火莲对相邻敌人各打一击后，
+  //   仍想对其中一名敌人补一记普攻时，UI 会因 attackedThisTurn=true 直接禁用攻击。
+  //   规则：基础普攻 → 标 attackedThisTurn=true；绝技 followUp 攻击 → 不标。
+  if (!_isUlt) {
+    attacker.attackedThisTurn = true;
+  }
 
   return {
     attackerDice: aDice,
