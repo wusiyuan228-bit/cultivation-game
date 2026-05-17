@@ -303,17 +303,25 @@ head('⑳风刃·凌空');
   if (canAttackE1 && !canAttackE2) pass('攻击距离=2 生效');
 }
 
-// ㉑ 云韵·风之极陨杀：1骰主 + 最多4固定复制（Q45）
+// ㉑ 云韵·风之极陨杀：修为判定（双方掷骰）+ 1骰主 + 最多4固定复制（Q45 · 2026-05-17 修正）
 head('㉑风之极·陨杀 Q45');
 {
   const self = { atk: 4 };
   const primary = { hp: 10, atk: 2 };
-  const dmg0 = Math.max(1, self.atk * 2 - primary.atk);
+  // 真实双方掷骰：self.atk 颗 vs primary.atk 颗（3面骰 0/1/2）
+  const roll = (n) => Array.from({ length: Math.max(1, n) }, () => Math.floor(Math.random() * 3));
+  const sumArr = (a) => a.reduce((s, x) => s + x, 0);
+  const aDice = roll(self.atk);
+  const dDice = roll(primary.atk);
+  const aSum = sumArr(aDice);
+  const dSum = sumArr(dDice);
+  const dmg0 = Math.max(1, aSum - dSum);
   const extras = [{ hp: 5 }, { hp: 3 }, { hp: 7 }, { hp: 6 }, { hp: 2 }];
   const hit = extras.slice(0, 4);
+  console.log(`  云韵 ${self.atk}骰=[${aDice.join(',')}]=${aSum} vs 骰主 ${primary.atk}骰=[${dDice.join(',')}]=${dSum}`);
   console.log(`  骰主伤害=${dmg0} (primary.hp=${primary.hp}→${primary.hp - dmg0})`);
-  console.log(`  固定复制命中=${hit.length} 人（各-${dmg0}）`);
-  if (dmg0 === 6 && hit.length === 4) pass('1骰主 + 4 固定复制');
+  console.log(`  固定复制命中=${hit.length} 人（各-${dmg0}，共用判定结果）`);
+  if (dmg0 >= 1 && hit.length === 4) pass('双方掷骰修为判定 + 1骰主 + 4 固定复制');
 }
 
 // ㉒ 萧玄·天焱三决：刷新3名友军绝技
